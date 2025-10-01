@@ -6,15 +6,16 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+using namespace std;
 // ASCII-Zeichen nach Helligkeit sortiert (dunkel → hell)
-const std::string ASCII_CHARS = "@%#*+=-:. ";
+const string ASCII_CHARS = "@%#*+=-:. ";
 
 // Funktion: Bild zu ASCII-Art
-std::string image_to_ascii(const std::string& filename, int output_width = 80) {
+string image_to_ascii(const string& filename, int output_width = 80) {
     int width, height, channels;
     unsigned char* img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
     if (!img) {
-        throw std::runtime_error("Fehler: Bild konnte nicht geladen werden!");
+        throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
     }
 
     // Zielhöhe proportional skalieren
@@ -22,7 +23,7 @@ std::string image_to_ascii(const std::string& filename, int output_width = 80) {
     int output_height = static_cast<int>(output_width * aspect_ratio * 0.55f);
     // 0.55 für Konsolen-Zeichenhöhe korrigiert
 
-    std::string ascii;
+    string ascii;
     ascii.reserve(output_width * output_height + output_height);
 
     // Schrittgrößen fürs Sampling (Skalierung)
@@ -53,24 +54,27 @@ std::string image_to_ascii(const std::string& filename, int output_width = 80) {
     return ascii;
 }
 
+void print_help() {
+    cout << "Usage: img_to_ascii [Path_to_img]" << endl;
+}
+
 // @TODO: Füge ein Argument hinzu um den Path zu dem bild anzugeben
-// @TODO: Füge eine Hilfe seite dafür^ hinzu
 int main(int argc, char* argv[]) {
     try {
         // Verzeichnis des Executables herausfinden
-        std::filesystem::path exe_path = std::filesystem::absolute(argv[0]);
-        std::filesystem::path exe_dir = exe_path.parent_path();
+        filesystem::path exe_path = filesystem::absolute(argv[0]);
+        filesystem::path exe_dir = exe_path.parent_path();
 
         // Bild relativ zu exe_dir laden
-        std::filesystem::path image_path = exe_dir / "Silly_Cat__Character_.jpg";
+        filesystem::path image_path = exe_dir / "Silly_Cat__Character_.jpg";
 
-        std::cout << "Lade: " << image_path << std::endl;
+        cout << "Lade: " << image_path << endl;
 
-        std::string ascii = image_to_ascii(image_path.string(), 70);
-        std::cout << ascii << std::endl;
+        string ascii = image_to_ascii(image_path.string(), 70);
+        cout << ascii << endl;
 
-    } catch (const std::exception& error) {
-        std::cerr << error.what() << "\n";
+    } catch (const exception& error) {
+        cerr << error.what() << "\n";
     }
     return 0;
 }
