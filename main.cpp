@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 
-// stb_image (Header-Only Image Loader) → 192.168.21.252https://github.com/nothings/stb
+// stb_image (Header-Only Image Loader) → https://github.com/nothings/stb
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -53,6 +53,8 @@ std::string image_to_ascii(const std::string& filename, int output_width = 80) {
     return ascii;
 }
 
+// @TODO: Füge ein Argument hinzu um den Path zu dem bild anzugeben
+// @TODO: Füge eine Hilfe seite dafür^ hinzu
 int main(int argc, char* argv[]) {
     try {
         // Verzeichnis des Executables herausfinden
