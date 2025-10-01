@@ -12,9 +12,9 @@ namespace fs = filesystem;
 const string ASCII_CHARS = "@%#*+=-:. ";
 
 // Funktion: Bild zu ASCII-Art
-string image_to_ascii(const string& filename, int output_width = 80) {
-    int width, height, channels;
-    unsigned char* img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
+string image_to_ascii(const string &filename, int output_width = 70) {
+  int width, height, channels;
+  unsigned char* img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
     if (!img) {
         throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
     }
@@ -46,10 +46,11 @@ string image_to_ascii(const string& filename, int output_width = 80) {
             unsigned char r = img[idx + 0];
             unsigned char g = img[idx + 1];
             unsigned char b = img[idx + 2];
-            unsigned char gray = static_cast<unsigned char>(0.299*r + 0.587*g + 0.114*b);
+            auto gray =
+                static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
 
             // Mapping: Grau 0-255 auf ASCII_CHARS
-            int char_index = (gray * (ASCII_CHARS.size() - 1)) / 255;
+            int char_index = gray * (ASCII_CHARS.size() - 1) / 255;
             ascii += ASCII_CHARS[char_index];
         }
         ascii += '\n';
