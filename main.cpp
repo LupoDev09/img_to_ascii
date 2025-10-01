@@ -7,6 +7,7 @@
 #include "stb_image.h"
 
 using namespace std;
+namespace fs = filesystem;
 // ASCII-Zeichen nach Helligkeit sortiert (dunkel → hell)
 const string ASCII_CHARS = "@%#*+=-:. ";
 
@@ -58,15 +59,19 @@ void print_help() {
     cout << "Usage: img_to_ascii [Path_to_img]" << endl;
 }
 
-// @TODO: Füge ein Argument hinzu um den Path zu dem bild anzugeben
 int main(int argc, char* argv[]) {
     try {
-        // Verzeichnis des Executables herausfinden
-        filesystem::path exe_path = filesystem::absolute(argv[0]);
-        filesystem::path exe_dir = exe_path.parent_path();
+        fs::path image_path;
 
-        // Bild relativ zu exe_dir laden
-        filesystem::path image_path = exe_dir / "Silly_Cat__Character_.jpg";
+        if (argc > 1) {
+            // Wenn ein Argument übergeben wurde → benutzen
+            image_path = argv[1];
+        } else {
+            // Sonst Bild aus dem gleichen Ordner wie das Executable nehmen
+            fs::path exe_path = fs::absolute(argv[0]);
+            fs::path exe_dir = exe_path.parent_path();
+            image_path = exe_dir / "Silly_Cat__Character_.jpg";
+        }
 
         cout << "Lade: " << image_path << endl;
 
@@ -75,6 +80,7 @@ int main(int argc, char* argv[]) {
 
     } catch (const exception& error) {
         cerr << error.what() << "\n";
+        print_help();
     }
     return 0;
 }
