@@ -19,6 +19,10 @@ string image_to_ascii(const string& filename, int output_width = 80) {
         throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
     }
 
+    if (channels < 3) {
+        throw runtime_error("Bild hat zu wenige Farbkanäle (mind. RGB nötig)");
+    }
+
     // Zielhöhe proportional skalieren
     float aspect_ratio = static_cast<float>(height) / static_cast<float>(width);
     int output_height = static_cast<int>(output_width * aspect_ratio * 0.55f);
@@ -56,26 +60,31 @@ string image_to_ascii(const string& filename, int output_width = 80) {
 }
 
 void print_help() {
-    cout << "Usage: img_to_ascii [Path_to_img]" << endl;
+    cout << "Usage: img_to_ascii [Path_to_img] [-w width]" << endl;
 }
 
 int main(int argc, char* argv[]) {
     try {
         fs::path image_path;
+        int width = 70; // Default
 
-        if (argc > 1) {
-            // Wenn ein Argument übergeben wurde → benutzen
-            image_path = argv[1];
-        } else {
-            // Sonst Bild aus dem gleichen Ordner wie das Executable nehmen
+        for (int i = 1; i < argc; i++) {
+            string arg = argv[i];
+            if (arg == "-w" && i + 1 < argc) {
+                width = stoi(argv[++i]);
+            } else {
+                image_path = arg;
+            }
+        }
+
+        if (image_path.empty()) {
             fs::path exe_path = fs::absolute(argv[0]);
             fs::path exe_dir = exe_path.parent_path();
             image_path = exe_dir / "Silly_Cat__Character_.jpg";
         }
 
-        cout << "Lade: " << image_path << endl;
-
-        string ascii = image_to_ascii(image_path.string(), 70);
+        cout << "Lade: " << image_path << " (Breite: " << width << ")" << endl;
+        string ascii = image_to_ascii(image_path.string(), width);
         cout << ascii << endl;
 
     } catch (const exception& error) {
