@@ -18,7 +18,7 @@ std::string image_to_ascii(const std::string& filename, int output_width = 80) {
     }
 
     // Zielhöhe proportional skalieren
-    float aspect_ratio = (float)height / (float)width;
+    float aspect_ratio = static_cast<float>(height) / static_cast<float>(width);
     int output_height = static_cast<int>(output_width * aspect_ratio * 0.55f);
     // 0.55 für Konsolen-Zeichenhöhe korrigiert
 
@@ -26,8 +26,8 @@ std::string image_to_ascii(const std::string& filename, int output_width = 80) {
     ascii.reserve(output_width * output_height + output_height);
 
     // Schrittgrößen fürs Sampling (Skalierung)
-    float x_step = (float)width / output_width;
-    float y_step = (float)height / output_height;
+    float x_step = static_cast<float>(width) / output_width;
+    float y_step = static_cast<float>(height) / output_height;
 
     for (int y = 0; y < output_height; y++) {
         for (int x = 0; x < output_width; x++) {
