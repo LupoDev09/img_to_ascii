@@ -1,6 +1,6 @@
 #include <filesystem>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <string>
 
 // stb_image (Header-Only Image Loader) → https://github.com/nothings/stb
@@ -67,7 +67,7 @@ string image_to_ascii(const string &filename, int output_width = 70,
 }
 
 void print_help() {
-  cout << "Usage: img_to_ascii [Path_to_img] [-w width] [--ascii ]" << endl;
+  cout << "Usage: img_to_ascii [Path_to_img] [-w width] [--ascii] [-o || --output output_file]" << endl;
 }
 
 // @TODO change print help
