@@ -71,6 +71,7 @@ void print_help() {
     cout << "Usage: img_to_ascii [Path_to_img] [-w width]" << endl;
 }
 
+// @TODO ASCII_CHARS als parameter nemen
 int main(int argc, char* argv[]) {
     try {
         fs::path image_path;
