@@ -140,11 +140,10 @@ void print_help() {
          << "Path_to_img \t is the path to the used img\n"
          << "-w/--width \t is the width of the image\n"
          << "--ascii \t configure the chars used for the art\n"
-         << "-o/--output \t output file"
+         << "-o/--output \t output file\n"
          << "--colored \t add some colors in the ascii\n"
          << "\nNote: --colored is not compatable with --output and -o" << endl;
 }
-
 
 int main(int argc, char *argv[]) {
     try {
@@ -175,6 +174,10 @@ int main(int argc, char *argv[]) {
             } else { // Get img path
                 image_path = arg;
             }
+        }
+
+        if (colored && !output_path.empty()) {
+            throw runtime_error("--colored und --output sind nicht kompatibel (Farben brauchen Terminal)");
         }
 
         // if path is not provided use default path
@@ -211,5 +214,6 @@ int main(int argc, char *argv[]) {
         cerr << error.what() << "\n";
         print_help();
     }
+    cout << "\033[0m"; // Reset ganz am Ende von main
     return 0;
 }
