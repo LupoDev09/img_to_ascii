@@ -9,9 +9,6 @@
 using namespace std;
 namespace fs = filesystem;
 
-// ASCII-Zeichen nach Helligkeit sortiert (dunkel → hell)
-const string ASCII_CHARS = "@%#*+=-:. ";
-
 /**
  * Bild zu ASCII-Art
  *
@@ -19,7 +16,8 @@ const string ASCII_CHARS = "@%#*+=-:. ";
  * @param output_width
  * @return img as ascii string
  */
-string image_to_ascii(const string &filename, int output_width = 70) {
+string image_to_ascii(const string &filename, int output_width = 70,
+                      string ascii_chars = "@%#*+=-:. ") {
   int width, height, channels;
   unsigned char* img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
     if (!img) {
@@ -56,9 +54,9 @@ string image_to_ascii(const string &filename, int output_width = 70) {
             auto gray =
                 static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
 
-            // Mapping: Grau 0-255 auf ASCII_CHARS
-            int char_index = gray * (ASCII_CHARS.size() - 1) / 255;
-            ascii += ASCII_CHARS[char_index];
+            // Mapping: Grau 0-255 auf ascii_chars
+            int char_index = gray * (ascii_chars.size() - 1) / 255;
+            ascii.push_back(ascii_chars[char_index]);
         }
         ascii += '\n';
     }
@@ -68,20 +66,30 @@ string image_to_ascii(const string &filename, int output_width = 70) {
 }
 
 void print_help() {
-    cout << "Usage: img_to_ascii [Path_to_img] [-w width]" << endl;
+  cout << "Usage: img_to_ascii [Path_to_img] [-w width] [--ascii ]" << endl;
 }
 
-// @TODO ASCII_CHARS als parameter nemen
+// @TODO add a flag to print the art to a file rather than the console
 int main(int argc, char* argv[]) {
     try {
         fs::path image_path;
         int width = 70; // Default
+        string ascii_chars = "@%#*+=-:. ";
 
         for (int i = 1; i < argc; i++) {
             string arg = argv[i];
           if (arg == "-w" && i + 1 < argc) { // Get width parameter
-            width = stoi(argv[++i]);
-          } else { // Get img path
+              try {
+                width = stoi(argv[++i]);
+              } catch (...) {
+                throw runtime_error("Ungültige Breite bei -w");
+              }
+            } else if (arg == "--ascii" && i + 1 < argc) {
+              ascii_chars = argv[++i];
+            } else if (arg == "-h" || arg == "--help") {
+              print_help();
+              return 0;
+            } else { // Get img path
             image_path = arg;
             }
         }
@@ -94,7 +102,7 @@ int main(int argc, char* argv[]) {
         }
 
         cout << "Lade: " << image_path << " (Breite: " << width << ")" << endl;
-        string ascii = image_to_ascii(image_path.string(), width);
+        string ascii = image_to_ascii(image_path.string(), width, ascii_chars);
         cout << ascii << endl;
 
     } catch (const exception& error) {
