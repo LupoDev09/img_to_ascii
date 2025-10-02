@@ -151,7 +151,9 @@ void print_help() {
          << "--ascii \t configure the chars used for the art\n"
          << "-o/--output \t output file\n"
          << "--colored \t add some colors in the ascii\n"
-         << "\nNote: --colored is not compatable with --output and -o" << endl;
+         << "\nNote:\n\t --colored is not compatable with --output and -o\n"
+         << "\tThis thing does not work on Windof"
+         << endl;
 }
 
 int main(int argc, char *argv[]) {
