@@ -77,10 +77,9 @@ string image_to_ascii(const string &filename, int output_width = 70,
     return ascii;
 }
 
-string image_to_ascii_color(const string &filename, int output_width = 70,
-                            string ascii_chars = "@%#*+=-:. ") {
+string image_to_ascii_color(const string &filename, int output_width = 70, string ascii_chars = "@%#*+=-:. ") {
     int width, height, channels;
-    unsigned char* img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
+    unsigned char *img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
     if (!img) {
         throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
     }
@@ -143,13 +142,12 @@ void print_help() {
          << "-w/--width \t is the width of the image\n"
          << "--ascii \t configure the chars used for the art\n"
          << "-o/--output \t output file"
-    << "--colored \t add some colors in the ascii\n"
-    << "\nNote: --colored is not compatable with --output and -o"
-    << endl;
+         << "--colored \t add some colors in the ascii\n"
+         << "\nNote: --colored is not compatable with --output and -o" << endl;
 }
 
 
-int main(int argc, char* argv[]) {
+int main(int argc, char * argv[]) {
     try {
         string ascii_chars = "@%#*+=-:. ";
         fs::path image_path;
@@ -195,7 +193,7 @@ int main(int argc, char* argv[]) {
         string ascii;
         if (colored) {
             ascii = image_to_ascii_color(image_path.string(), width, ascii_chars);
-        }else {
+        } else {
             ascii = image_to_ascii(image_path.string(), width, ascii_chars);
         }
 
