@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <iostream>
+#include <fstream>
 #include <string>
 
 // stb_image (Header-Only Image Loader) → https://github.com/nothings/stb
@@ -69,28 +70,32 @@ void print_help() {
   cout << "Usage: img_to_ascii [Path_to_img] [-w width] [--ascii ]" << endl;
 }
 
-// @TODO add a flag to print the art to a file rather than the console
+// @TODO change print help
 int main(int argc, char* argv[]) {
     try {
+        string ascii_chars = "@%#*+=-:. ";
         fs::path image_path;
         int width = 70; // Default
-        string ascii_chars = "@%#*+=-:. ";
+        fs::path output_path;
 
         for (int i = 1; i < argc; i++) {
             string arg = argv[i];
-          if (arg == "-w" && i + 1 < argc) { // Get width parameter
-              try {
-                width = stoi(argv[++i]);
-              } catch (...) {
-                throw runtime_error("Ungültige Breite bei -w");
-              }
+            if (arg == "-w" && i + 1 < argc) {
+                // Get width parameter
+                try {
+                    width = stoi(argv[++i]);
+                } catch (...) {
+                    throw runtime_error("Ungültige Breite bei -w");
+                }
+            } else if ((arg == "-o" || arg == "--output") && i + 1 < argc) {
+                output_path = fs::path(argv[++i]); // <-- Fix
             } else if (arg == "--ascii" && i + 1 < argc) {
-              ascii_chars = argv[++i];
+                ascii_chars = argv[++i];
             } else if (arg == "-h" || arg == "--help") {
-              print_help();
-              return 0;
+                print_help();
+                return 0;
             } else { // Get img path
-            image_path = arg;
+                image_path = arg;
             }
         }
 
@@ -103,7 +108,17 @@ int main(int argc, char* argv[]) {
 
         cout << "Lade: " << image_path << " (Breite: " << width << ")" << endl;
         string ascii = image_to_ascii(image_path.string(), width, ascii_chars);
-        cout << ascii << endl;
+
+        if (output_path.empty()) {
+            cout << ascii << endl;
+        } else {
+            ofstream out(output_path);
+            if (!out) {
+                throw runtime_error("Konnte Datei nicht zum Schreiben öffnen: " + output_path.string());
+            }
+            out << ascii;
+            cout << "ASCII-Art in Datei geschrieben: " << output_path << endl;
+        }
 
     } catch (const exception& error) {
         cerr << error.what() << "\n";
