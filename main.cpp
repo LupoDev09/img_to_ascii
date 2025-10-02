@@ -147,7 +147,7 @@ void print_help() {
 }
 
 
-int main(int argc, char * argv[]) {
+int main(int argc, char *argv[]) {
     try {
         string ascii_chars = "@%#*+=-:. ";
         fs::path image_path;
