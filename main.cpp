@@ -8,10 +8,16 @@
 
 using namespace std;
 namespace fs = filesystem;
+
 // ASCII-Zeichen nach Helligkeit sortiert (dunkel → hell)
 const string ASCII_CHARS = "@%#*+=-:. ";
 
 // Funktion: Bild zu ASCII-Art
+/**
+ * @param filename
+ * @param output_width
+ * @return img as ascii string
+ */
 string image_to_ascii(const string &filename, int output_width = 70) {
   int width, height, channels;
   unsigned char* img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
@@ -71,13 +77,14 @@ int main(int argc, char* argv[]) {
 
         for (int i = 1; i < argc; i++) {
             string arg = argv[i];
-            if (arg == "-w" && i + 1 < argc) {
-                width = stoi(argv[++i]);
-            } else {
-                image_path = arg;
+          if (arg == "-w" && i + 1 < argc) { // Get width parameter
+            width = stoi(argv[++i]);
+          } else { // Get img path
+            image_path = arg;
             }
         }
 
+        // if path is not provided use default path
         if (image_path.empty()) {
             fs::path exe_path = fs::absolute(argv[0]);
             fs::path exe_dir = exe_path.parent_path();
