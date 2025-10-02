@@ -15,6 +15,7 @@ namespace fs = filesystem;
  *
  * @param filename
  * @param output_width
+ * @param ascii_chars
  * @return img as ascii string
  */
 string image_to_ascii(const string &filename, int output_width = 70, string ascii_chars = "@%#*+=-:. ") {
@@ -76,6 +77,14 @@ string image_to_ascii(const string &filename, int output_width = 70, string asci
     return ascii;
 }
 
+/**
+ * Bild zu ASCII-Art aber mit Farbe
+ *
+ * @param filename
+ * @param output_width
+ * @param ascii_chars
+ * @return img as ascii string
+ */
 string image_to_ascii_color(const string &filename, int output_width = 70, string ascii_chars = "@%#*+=-:. ") {
     int width, height, channels;
     unsigned char *img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
