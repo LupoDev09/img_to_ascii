@@ -103,7 +103,7 @@ int main(int argc, char* argv[]) {
         if (image_path.empty()) {
             fs::path exe_path = fs::absolute(argv[0]);
             fs::path exe_dir = exe_path.parent_path();
-            image_path = exe_dir / "Silly_Cat__Character_.jpg";
+            image_path = exe_dir / "Silly_Cat_Character_.jpg";
         }
 
         cout << "Lade: " << image_path << " (Breite: " << width << ")" << endl;
