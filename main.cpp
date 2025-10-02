@@ -67,7 +67,7 @@ string image_to_ascii(const string &filename, int output_width = 70,
 }
 
 void print_help() {
-  cout << "Usage: img_to_ascii [Path_to_img] [-w width] [--ascii] [-o || --output output_file]" << endl;
+    cout << "Usage: img_to_ascii [Path_to_img] [-w width] [--ascii] [-o || --output output_file]" << endl;
 }
 
 // @TODO change print help
