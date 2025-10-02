@@ -67,7 +67,14 @@ string image_to_ascii(const string &filename, int output_width = 70,
 }
 
 void print_help() {
-    cout << "Usage: img_to_ascii [Path_to_img] [-w width] [--ascii] [-o || --output output_file]" << endl;
+    cout << "Usage: \n"
+    <<"img_to_ascii [--help || -h] [Path_to_img] [-w width] [--ascii] [-o || --output output_file]\n"
+    << "--help/-h \t prints this help\n"
+    << "Path_to_img \t is the path to the used img\n"
+    << "-w/--width \t is the width of the image\n"
+    << "--ascii \t configure the alphabet used for the art\n"
+    << "-o/--output \t is the output file"
+    << endl;
 }
 
 
@@ -80,7 +87,7 @@ int main(int argc, char* argv[]) {
 
         for (int i = 1; i < argc; i++) {
             string arg = argv[i];
-            if (arg == "-w" && i + 1 < argc) {
+            if ((arg == "-w" || arg == "--width") && i + 1 < argc) {
                 // Get width parameter
                 try {
                     width = stoi(argv[++i]);
