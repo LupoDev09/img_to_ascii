@@ -19,13 +19,14 @@ namespace fs = filesystem;
  */
 string image_to_ascii(const string &filename, int output_width = 70,
                       string ascii_chars = "@%#*+=-:. ") {
-  int width, height, channels;
-  unsigned char* img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
+    int width, height, channels;
+    unsigned char*img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
     if (!img) {
         throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
     }
 
     if (channels < 3) {
+        stbi_image_free(img);
         throw runtime_error("Bild hat zu wenige Farbkanäle (mind. RGB nötig)");
     }
 
@@ -48,12 +49,22 @@ string image_to_ascii(const string &filename, int output_width = 70,
 
             int idx = (py * width + px) * channels;
 
-            // Grauwert berechnen (RGB → Luminanz)
+            // RGB-Werte holen
             unsigned char r = img[idx + 0];
             unsigned char g = img[idx + 1];
             unsigned char b = img[idx + 2];
-            auto gray =
-                static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
+
+            // Transparenz prüfen, falls Alpha-Kanal vorhanden
+            if (channels >= 4) {
+                unsigned char a = img[idx + 3];
+                if (a < 128) { // Pixel halbtransparent oder unsichtbar → Leerzeichen
+                    ascii.push_back(' ');
+                    continue;
+                }
+            }
+
+            // Grauwert berechnen (RGB → Luminanz)
+            auto gray = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
 
             // Mapping: Grau 0-255 auf ascii_chars
             int char_index = gray * (ascii_chars.size() - 1) / 255;
@@ -110,6 +121,10 @@ int main(int argc, char* argv[]) {
             fs::path exe_path = fs::absolute(argv[0]);
             fs::path exe_dir = exe_path.parent_path();
             image_path = exe_dir / "Silly_Cat_Character_.jpg";
+        }
+
+        if (ascii_chars.empty()) {
+            throw runtime_error("--ascii darf nicht leer sein! entweder lass es weg oder gib es einen wert");
         }
 
         cout << "Lade: " << image_path << " (Breite: " << width << ")" << endl;
