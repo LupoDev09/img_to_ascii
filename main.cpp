@@ -12,8 +12,9 @@ namespace fs = filesystem;
 // ASCII-Zeichen nach Helligkeit sortiert (dunkel → hell)
 const string ASCII_CHARS = "@%#*+=-:. ";
 
-// Funktion: Bild zu ASCII-Art
 /**
+ * Bild zu ASCII-Art
+ *
  * @param filename
  * @param output_width
  * @return img as ascii string
