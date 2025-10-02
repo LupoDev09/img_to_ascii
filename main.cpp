@@ -68,13 +68,12 @@ string image_to_ascii(const string &filename, int output_width = 70,
 
 void print_help() {
     cout << "Usage: \n"
-    <<"img_to_ascii [--help || -h] [Path_to_img] [-w width] [--ascii] [-o || --output output_file]\n"
-    << "--help/-h \t prints this help\n"
-    << "Path_to_img \t is the path to the used img\n"
-    << "-w/--width \t is the width of the image\n"
-    << "--ascii \t configure the alphabet used for the art\n"
-    << "-o/--output \t is the output file"
-    << endl;
+         << "img_to_ascii [--help || -h] [Path_to_img] [-w width] [--ascii] [-o || --output output_file]\n"
+         << "--help/-h \t prints this help\n"
+         << "Path_to_img \t is the path to the used img\n"
+         << "-w/--width \t is the width of the image\n"
+         << "--ascii \t configure the alphabet used for the art\n"
+         << "-o/--output \t is the output file" << endl;
 }
 
 
