@@ -13,12 +13,16 @@ namespace fs = filesystem;
 /**
  * Wandelt ein Bild in ASCII-Art um.
  *
+ * @brief converts a provided img to ascii art
+ *
  * @param filename Pfad zur Bilddatei, die geladen werden soll.
  * @param output_width Breite der ASCII-Ausgabe in Zeichen (Standard: 70).
  * @param ascii_chars Zeichenfolge von dunkel → hell zur Darstellung (Standard: "@%#*+=-:. ").
+ *
  * @return ASCII-Art als String, Zeilen durch '\n' getrennt.
+ *
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
- */
+*/
 string image_to_ascii(const string &filename, int output_width = 70, const string &ascii_chars = "@%#*+=-:. ") {
     int width, height, channels;
     unsigned char *img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
@@ -81,12 +85,16 @@ string image_to_ascii(const string &filename, int output_width = 70, const strin
 /**
  * Wandelt ein Bild in ASCII-Art mit farbe um.
  *
+ * @brief converts a provided img to ascii art
+ *
  * @param filename Pfad zur Bilddatei, die geladen werden soll.
  * @param output_width Breite der ASCII-Ausgabe in Zeichen (Standard: 70).
  * @param ascii_chars Zeichenfolge von dunkel → hell zur Darstellung (Standard: "@%#*+=-:. ").
+ *
  * @return ASCII-Art als String, Zeilen durch '\n' getrennt.
+ *
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
- */
+*/
 string image_to_ascii_color(const string &filename, int output_width = 70, const string &ascii_chars = "@%#*+=-:. ") {
     int width, height, channels;
     unsigned char *img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
@@ -145,7 +153,7 @@ string image_to_ascii_color(const string &filename, int output_width = 70, const
 }
 
 /**
- *Gibt die Hilfe auf der Konse aus
+ * @brief Gibt die Hilfe auf der Konse aus
  */
 void print_help() {
     cout << "Usage: \n"
