@@ -152,7 +152,7 @@ void print_help() {
          << "img_to_ascii [--help || -h] [Path_to_img] [-w width] [--ascii] [-o || --output output_file] [--colored]\n"
          << "--help/-h \t prints this help\n"
          << "Path_to_img \t is the path to the used img\n"
-         << "-w/--width \t is the width of the image\n"
+         << "-w/--width \t is the width of the output\n"
          << "--ascii \t configure the chars used for the art\n"
          << "-o/--output \t output file\n"
          << "--colored \t add some colors in the ascii\n"
