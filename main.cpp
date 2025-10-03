@@ -127,7 +127,7 @@ string image_to_ascii_color(const string &filename, int output_width = 70, const
             }
 
             // Grauwert → Zeichen auswählen
-            unsigned char gray = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
+            auto gray = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
             int char_index = gray * (ascii_chars.size() - 1) / 255;
             char c = ascii_chars[char_index];
 
