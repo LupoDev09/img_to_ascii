@@ -22,7 +22,7 @@ namespace fs = filesystem;
  * @return ASCII-Art als String, Zeilen durch '\n' getrennt.
  *
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
-*/
+ */
 string image_to_ascii(const string &filename, int output_width = 70, const string &ascii_chars = "@%#*+=-:. ") {
     int width, height, channels;
     unsigned char *img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
@@ -94,7 +94,7 @@ string image_to_ascii(const string &filename, int output_width = 70, const strin
  * @return ASCII-Art als String, Zeilen durch '\n' getrennt.
  *
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
-*/
+ */
 string image_to_ascii_color(const string &filename, int output_width = 70, const string &ascii_chars = "@%#*+=-:. ") {
     int width, height, channels;
     unsigned char *img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
