@@ -18,7 +18,7 @@ namespace fs = filesystem;
  * @param ascii_chars
  * @return img as ascii string
  */
-string image_to_ascii(const string &filename, int output_width = 70, string ascii_chars = "@%#*+=-:. ") {
+string image_to_ascii(const string &filename, int output_width = 70, const string &ascii_chars = "@%#*+=-:. ") {
     int width, height, channels;
     unsigned char *img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
     if (!img) {
@@ -85,7 +85,7 @@ string image_to_ascii(const string &filename, int output_width = 70, string asci
  * @param ascii_chars
  * @return img as ascii string
  */
-string image_to_ascii_color(const string &filename, int output_width = 70, string ascii_chars = "@%#*+=-:. ") {
+string image_to_ascii_color(const string &filename, int output_width = 70, const string &ascii_chars = "@%#*+=-:. ") {
     int width, height, channels;
     unsigned char *img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
     if (!img) {
@@ -142,6 +142,9 @@ string image_to_ascii_color(const string &filename, int output_width = 70, strin
     return ascii;
 }
 
+/**
+ *Gibt die Hilfe auf der Konse aus
+ */
 void print_help() {
     cout << "Usage: \n"
          << "img_to_ascii [--help || -h] [Path_to_img] [-w width] [--ascii] [-o || --output output_file] [--colored]\n"
@@ -174,7 +177,7 @@ int main(int argc, char *argv[]) {
                     throw runtime_error("Ungültige Breite bei -w");
                 }
             } else if ((arg == "-o" || arg == "--output") && i + 1 < argc) {
-                output_path = fs::path(argv[++i]); // <-- Fix
+                output_path = fs::path(argv[++i]);
             } else if (arg == "--ascii" && i + 1 < argc) {
                 ascii_chars = argv[++i];
             }else if (arg == "--colored") {
