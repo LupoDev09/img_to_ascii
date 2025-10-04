@@ -179,7 +179,6 @@ void print_help() {
          << "-o/--output \t output file\n"
          << "--colored \t add some colors in the ascii\n"
          << "\nNote:\n\t --colored is not compatable with --output and -o\n"
-         << "\tThis thing does not work on Windof"
          << endl;
 }
 
