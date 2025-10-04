@@ -11,9 +11,11 @@
 #include <windows.h>
 void enable_vt_mode() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hOut == INVALID_HANDLE_VALUE) return;
+    if (hOut == INVALID_HANDLE_VALUE)
+        return;
     DWORD dwMode = 0;
-    if (!GetConsoleMode(hOut, &dwMode)) return;
+    if (!GetConsoleMode(hOut, &dwMode))
+        return;
     dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
     SetConsoleMode(hOut, dwMode);
 }
@@ -183,9 +185,9 @@ void print_help() {
 
 int main(int argc, char *argv[]) {
     try {
-        #if defined(_WIN32)
-                enable_vt_mode();
-        #endif
+#if defined(_WIN32)
+        enable_vt_mode();
+#endif
         string ascii_chars = "@%#*+=-:. ";
         fs::path image_path;
         fs::path output_path;
