@@ -33,7 +33,7 @@ namespace fs = std::filesystem;
  * @param output_width Breite der ASCII-Ausgabe in Zeichen (Standard: 70).
  * @param ascii_chars Zeichenfolge von dunkel → hell zur Darstellung (Standard: "@%#*+=-:. ").
  *
- * @return ASCII-Art als String, Zeilen durch '\n' getrennt.
+ * @return ASCII-Art als String, Zeilen durch'\n' getrennt.
  *
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
  */
@@ -105,7 +105,7 @@ string image_to_ascii(const string &filename, int output_width = 70, const strin
  * @param output_width Breite der ASCII-Ausgabe in Zeichen (Standard: 70).
  * @param ascii_chars Zeichenfolge von dunkel → hell zur Darstellung (Standard: "@%#*+=-:. ").
  *
- * @return ASCII-Art als String, Zeilen durch '\n' getrennt.
+ * @return ASCII-Art als String, Zeilen durch'\n' getrennt.
  *
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
  */
@@ -167,7 +167,7 @@ string image_to_ascii_color(const string &filename, int output_width = 70, const
 }
 
 /**
- * @brief Gibt die Hilfe auf der Konse aus
+ * @brief Gibt die Hilfe auf der Konsole aus
  */
 void print_help() {
     cout << "Usage: \n"
@@ -178,7 +178,7 @@ void print_help() {
          << "--ascii \t configure the chars used for the art\n"
          << "-o/--output \t output file\n"
          << "--colored \t add some colors in the ascii\n"
-         << "\nNote:\n\t --colored is not compatable with --output and -o\n"
+         << "\nNote:\n\t --colored is not compatible with --output and -o\n"
          << endl;
 }
 
