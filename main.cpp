@@ -8,7 +8,7 @@
 #include "stb_image.h"
 
 #if defined(_WIN32)
-// Special shit for windows becuse without this shit it wont work :3
+// Special shit for windows because without this shit it won't work :3
 #include <windows.h>
 void enable_vt_mode() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
