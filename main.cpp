@@ -170,16 +170,18 @@ string image_to_ascii_color(const string &filename, int output_width = 70, const
  * @brief Gibt die Hilfe auf der Konsole aus
  */
 void print_help() {
-    cout << "Usage: \n"
-         << "img_to_ascii [--help || -h] [Path_to_img] [-w width] [--ascii] [-o || --output output_file] [--colored]\n"
-         << "--help/-h \t prints this help\n"
-         << "Path_to_img \t is the path to the used img\n"
-         << "-w/--width \t is the width of the output\n"
-         << "--ascii \t configure the chars used for the art\n"
-         << "-o/--output \t output file\n"
-         << "--colored \t add some colors in the ascii\n"
-         << "\nNote:\n\t --colored is not compatible with --output and -o\n"
-         << endl;
+    cout << "Usage:\n"
+     << "  img_to_ascii <Path_to_img> [options]\n\n"
+     << "Options:\n"
+     << "  -h, --help        Zeigt diese Hilfe an\n"
+     << "  -w, --width N     Breite der ASCII-Ausgabe (Standard: 70)\n"
+     << "  --ascii CHARS     Zeichensatz für Helligkeit (Standard: \"@%#*+=-:. \")\n"
+     << "  -o, --output PATH Ausgabe in Datei speichern\n"
+     << "  --colored         Farbausgabe im Terminal (nicht mit --output kombinierbar)\n\n"
+     << "Hinweis:\n"
+     << "  Wenn kein Bildpfad angegeben wird, wird 'Silly_Cat_Character_.jpg' verwendet.\n"
+     << "  Es ist basically Gluekspiel ob das Ding auf Windows Lauft"
+     << endl;
 }
 
 int main(int argc, char *argv[]) {
