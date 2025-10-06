@@ -8,6 +8,7 @@
 #include "stb_image.h"
 
 #if defined(_WIN32)
+// Special shit for windows becuse without this shit it wont work :3
 #include <windows.h>
 void enable_vt_mode() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -170,18 +171,20 @@ string image_to_ascii_color(const string &filename, int output_width = 70, const
  * @brief Gibt die Hilfe auf der Konsole aus
  */
 void print_help() {
-    cout << "Usage:\n"
-     << "  img_to_ascii <Path_to_img> [options]\n\n"
-     << "Options:\n"
-     << "  -h, --help        Zeigt diese Hilfe an\n"
-     << "  -w, --width N     Breite der ASCII-Ausgabe (Standard: 70)\n"
-     << "  --ascii CHARS     Zeichensatz für Helligkeit (Standard: \"@%#*+=-:. \")\n"
-     << "  -o, --output PATH Ausgabe in Datei speichern\n"
-     << "  --colored         Farbausgabe im Terminal (nicht mit --output kombinierbar)\n\n"
-     << "Hinweis:\n"
-     << "  Wenn kein Bildpfad angegeben wird, wird 'Silly_Cat_Character_.jpg' verwendet.\n"
-     << "  Es ist basically Gluekspiel ob das Ding auf Windows Lauft"
-     << endl;
+  cout << "Usage:\n"
+       << "  img_to_ascii <Path_to_img> [options]\n\n"
+       << "Options:\n"
+       << "  -h, --help        Zeigt diese Hilfe an\n"
+       << "  -w, --width N     Breite der ASCII-Ausgabe (Standard: 70)\n"
+       << "  --ascii CHARS     Zeichensatz für Helligkeit (Standard: "
+          "\"@%#*+=-:. \")\n"
+       << "  -o, --output PATH Ausgabe in Datei speichern\n"
+       << "  --colored         Farbausgabe im Terminal (nicht mit --output "
+          "kombinierbar)\n\n"
+       << "Hinweis:\n"
+       << "  Wenn kein Bildpfad angegeben wird, wird "
+          "'Silly_Cat_Character_.jpg' verwendet.\n"
+       << "  Es ist basically Gluekspiel ob das Ding auf Windows Lauft" << endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -195,6 +198,7 @@ int main(int argc, char *argv[]) {
         int width = 70; // Default
         bool colored = false;
 
+        // Parse flags
         for (int i = 1; i < argc; i++) {
             string arg = argv[i];
             if ((arg == "-w" || arg == "--width") && i + 1 < argc) {
@@ -229,6 +233,7 @@ int main(int argc, char *argv[]) {
             image_path = exe_dir / "Silly_Cat_Character_.jpg";
         }
 
+        // if ascii_chars is provided but is empty throw an error
         if (ascii_chars.empty()) {
             throw runtime_error("--ascii darf nicht leer sein! entweder lass es weg oder gib es einen wert");
         }
