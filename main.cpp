@@ -10,6 +10,9 @@
 #if defined(_WIN32)
 // Special shit for windows because without this shit it won't work :3
 #include <windows.h>
+#include <io.h>
+#include <fcntl.h>
+
 void enable_vt_mode() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut == INVALID_HANDLE_VALUE)
@@ -18,7 +21,9 @@ void enable_vt_mode() {
     if (!GetConsoleMode(hOut, &dwMode))
         return;
     dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    SetConsoleMode(hOut, dwMode);
+    if (!SetConsoleMode(hOut, dwMode)) {
+      std::cerr << "Warnung: ANSI-Farben werden eventuell nicht unterstützt.\n";
+    }
 }
 #endif
 
@@ -190,8 +195,11 @@ void print_help() {
 int main(int argc, char *argv[]) {
     try {
 #if defined(_WIN32)
+        // Damit UTF-8 und ANSI Farben in der Windows-Konsole funktionieren:
+        _setmode(_fileno(stdout), _O_TEXT);
         enable_vt_mode();
 #endif
+
         string ascii_chars = "@%#*+=-:. ";
         fs::path image_path;
         fs::path output_path;
@@ -261,6 +269,6 @@ int main(int argc, char *argv[]) {
         cerr << error.what() << "\n";
         print_help();
     }
-    cout << "\033[0m"; // Reset ganz am Ende von main
+    cout << "\033[0m" << endl; // Reset ganz am Ende von main
     return 0;
 }
