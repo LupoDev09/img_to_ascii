@@ -192,7 +192,7 @@ void print_help() {
          << "Hinweis:\n"
          << "  Wenn kein Bildpfad angegeben wird, wird "
             "'Silly_Cat_Character_.jpg' verwendet.\n"
-         << "  Es ist basically Gluekspiel ob das Ding auf Windows Lauft :3" << endl;
+         << "  Es ist basically Glücksspiel ob das Ding auf Windows Lauft :3" << endl;
 }
 
 int main(int argc, char *argv[]) {
