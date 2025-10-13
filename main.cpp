@@ -58,20 +58,20 @@ string image_to_ascii(const string &filename, int output_width = 70, const strin
 
     // Zielhöhe proportional skalieren
     float aspect_ratio = static_cast<float>(height) / static_cast<float>(width);
-    int output_height = static_cast<int>(output_width * aspect_ratio * 0.55f);
+    int output_height = static_cast<int>(static_cast<float>(output_width) * aspect_ratio * 0.55f);
     // 0.55 für Konsolen-Zeichenhöhe korrigiert
 
     string ascii;
     ascii.reserve(output_width * output_height + output_height);
 
     // Schrittgrößen fürs Sampling (Skalierung)
-    float x_step = static_cast<float>(width) / output_width;
-    float y_step = static_cast<float>(height) / output_height;
+    float x_step = static_cast<float>(width) / static_cast<float>(output_width);
+    float y_step = static_cast<float>(height) / static_cast<float>(output_height);
 
     for (int y = 0; y < output_height; y++) {
         for (int x = 0; x < output_width; x++) {
-            int px = static_cast<int>(x * x_step);
-            int py = static_cast<int>(y * y_step);
+            int px = static_cast<int>(static_cast<float>(x) * x_step);
+            int py = static_cast<int>(static_cast<float>(y) * y_step);
 
             int idx = (py * width + px) * channels;
 
@@ -93,7 +93,7 @@ string image_to_ascii(const string &filename, int output_width = 70, const strin
             auto gray = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
 
             // Mapping: Grau 0-255 auf ascii_chars
-            int char_index = gray * (ascii_chars.size() - 1) / 255;
+            int char_index = static_cast<int>(gray * static_cast<double>(ascii_chars.size() - 1) / 255.0);
             ascii.push_back(ascii_chars[char_index]);
         }
         ascii += '\n';
@@ -130,18 +130,18 @@ string image_to_ascii_color(const string &filename, int output_width = 70, const
     }
 
     float aspect_ratio = static_cast<float>(height) / static_cast<float>(width);
-    int output_height = static_cast<int>(output_width * aspect_ratio * 0.55f);
+    int output_height = static_cast<int>(static_cast<float>(output_width) * aspect_ratio * 0.55f);
 
     string ascii;
     ascii.reserve(output_width * output_height * 30);// Platz für ANSI-Codes
 
-    float x_step = static_cast<float>(width) / output_width;
-    float y_step = static_cast<float>(height) / output_height;
+    float x_step = static_cast<float>(width) / static_cast<float>(output_width);
+    float y_step = static_cast<float>(height) / static_cast<float>(output_height);
 
     for (int y = 0; y < output_height; y++) {
         for (int x = 0; x < output_width; x++) {
-            int px = static_cast<int>(x * x_step);
-            int py = static_cast<int>(y * y_step);
+            int px = static_cast<int>(static_cast<float>(x) * x_step);
+            int py = static_cast<int>(static_cast<float>(y) * y_step);
 
             int idx = (py * width + px) * channels;
 
@@ -160,7 +160,7 @@ string image_to_ascii_color(const string &filename, int output_width = 70, const
 
             // Grauwert → Zeichen auswählen
             auto gray = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
-            int char_index = gray * (ascii_chars.size() - 1) / 255;
+            int char_index = static_cast<int>(gray * static_cast<double>(ascii_chars.size() - 1) / 255.0);
             char c = ascii_chars[char_index];
 
             // ANSI 24-Bit Farbcodes (Vordergrundfarbe)
@@ -192,7 +192,7 @@ void print_help() {
          << "Hinweis:\n"
          << "  Wenn kein Bildpfad angegeben wird, wird "
             "'Silly_Cat_Character_.jpg' verwendet.\n"
-         << "  Es ist basically Gluekspiel ob das Ding auf Windows Lauft" << endl;
+         << "  Es ist basically Gluekspiel ob das Ding auf Windows Lauft :3" << endl;
 }
 
 int main(int argc, char *argv[]) {
