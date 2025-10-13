@@ -117,62 +117,62 @@ string image_to_ascii(const string &filename, int output_width = 70, const strin
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
  */
 string image_to_ascii_color(const string &filename, int output_width = 70, const string &ascii_chars = "@%#*+=-:. ") {
-  int width, height, channels;
-  unsigned char *img =
-      stbi_load(filename.c_str(), &width, &height, &channels, 0);
-  if (!img) {
-    throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
-  }
-
-  if (channels < 3) {
-    stbi_image_free(img);
-    throw runtime_error("Bild hat zu wenige Farbkanäle (mind. RGB nötig)");
-  }
-
-  float aspect_ratio = static_cast<float>(height) / static_cast<float>(width);
-  int output_height = static_cast<int>(output_width * aspect_ratio * 0.55f);
-
-  string ascii;
-  ascii.reserve(output_width * output_height * 30); // Platz für ANSI-Codes
-
-  float x_step = static_cast<float>(width) / output_width;
-  float y_step = static_cast<float>(height) / output_height;
-
-  for (int y = 0; y < output_height; y++) {
-    for (int x = 0; x < output_width; x++) {
-      int px = static_cast<int>(x * x_step);
-      int py = static_cast<int>(y * y_step);
-
-      int idx = (py * width + px) * channels;
-
-      unsigned char r = img[idx + 0];
-      unsigned char g = img[idx + 1];
-      unsigned char b = img[idx + 2];
-
-      // Transparenz prüfen
-      if (channels >= 4) {
-        unsigned char a = img[idx + 3];
-        if (a < 128) {
-          ascii += " ";
-          continue;
-        }
-      }
-
-      // Grauwert → Zeichen auswählen
-      auto gray = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
-      int char_index = gray * (ascii_chars.size() - 1) / 255;
-      char c = ascii_chars[char_index];
-
-      // ANSI 24-Bit Farbcodes (Vordergrundfarbe)
-      ascii += "\033[38;2;" + to_string(r) + ";" + to_string(g) + ";" +
-               to_string(b) + "m";
-      ascii.push_back(c);
+    int width, height, channels;
+    unsigned char *img =
+            stbi_load(filename.c_str(), &width, &height, &channels, 0);
+    if (!img) {
+        throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
     }
-    ascii += "\033[0m\n"; // Reset am Zeilenende
-  }
 
-  stbi_image_free(img);
-  return ascii;
+    if (channels < 3) {
+        stbi_image_free(img);
+        throw runtime_error("Bild hat zu wenige Farbkanäle (mind. RGB nötig)");
+    }
+
+    float aspect_ratio = static_cast<float>(height) / static_cast<float>(width);
+    int output_height = static_cast<int>(output_width * aspect_ratio * 0.55f);
+
+    string ascii;
+    ascii.reserve(output_width * output_height * 30);// Platz für ANSI-Codes
+
+    float x_step = static_cast<float>(width) / output_width;
+    float y_step = static_cast<float>(height) / output_height;
+
+    for (int y = 0; y < output_height; y++) {
+        for (int x = 0; x < output_width; x++) {
+            int px = static_cast<int>(x * x_step);
+            int py = static_cast<int>(y * y_step);
+
+            int idx = (py * width + px) * channels;
+
+            unsigned char r = img[idx + 0];
+            unsigned char g = img[idx + 1];
+            unsigned char b = img[idx + 2];
+
+            // Transparenz prüfen
+            if (channels >= 4) {
+                unsigned char a = img[idx + 3];
+                if (a < 128) {
+                    ascii += " ";
+                    continue;
+                }
+            }
+
+            // Grauwert → Zeichen auswählen
+            auto gray = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
+            int char_index = gray * (ascii_chars.size() - 1) / 255;
+            char c = ascii_chars[char_index];
+
+            // ANSI 24-Bit Farbcodes (Vordergrundfarbe)
+            ascii += "\033[38;2;" + to_string(r) + ";" + to_string(g) + ";" +
+                     to_string(b) + "m";
+            ascii.push_back(c);
+        }
+        ascii += "\033[0m\n";// Reset am Zeilenende
+    }
+
+    stbi_image_free(img);
+    return ascii;
 }
 
 /**
