@@ -37,7 +37,7 @@ namespace fs = std::filesystem;
  *
  * @param filename Pfad zur Bilddatei, die geladen werden soll.
  * @param output_width Breite der ASCII-Ausgabe in Zeichen (Standard: 70).
- * @param ascii_chars Zeichenfolge von dunkel → hell zur Darstellung (Standard: "@%#*+=-:. ").
+ * @param ascii_chars Zeichenfolge von dunkel → hell zur Darstellung (Standard: "\@%#*+=-:. ").
  *
  * @return ASCII-Art als String, Zeilen durch'\n' getrennt.
  *
@@ -110,7 +110,7 @@ string image_to_ascii(const string &filename, int output_width = 70, const strin
  *
  * @param filename Pfad zur Bilddatei, die geladen werden soll.
  * @param output_width Breite der ASCII-Ausgabe in Zeichen (Standard: 70).
- * @param ascii_chars Zeichenfolge von dunkel → hell zur Darstellung (Standard: "@%#*+=-:. ").
+ * @param ascii_chars Zeichenfolge von dunkel → hell zur Darstellung (Standard: "\@%#*+=-:. ").
  *
  * @return ASCII-Art als String, Zeilen durch'\n' getrennt.
  *
