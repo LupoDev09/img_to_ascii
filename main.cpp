@@ -44,62 +44,62 @@ namespace fs = std::filesystem;
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
  */
 string image_to_ascii(const string &filename, int output_width = 70, const string &ascii_chars = "@%#*+=-:. ") {
-  int width, height, channels;
-  unsigned char *img =
-      stbi_load(filename.c_str(), &width, &height, &channels, 0);
-  if (!img) {
-    throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
-  }
-
-  if (channels < 3) {
-    stbi_image_free(img);
-    throw runtime_error("Bild hat zu wenige Farbkanäle (mind. RGB nötig)");
-  }
-
-  // Zielhöhe proportional skalieren
-  float aspect_ratio = static_cast<float>(height) / static_cast<float>(width);
-  int output_height = static_cast<int>(output_width * aspect_ratio * 0.55f);
-  // 0.55 für Konsolen-Zeichenhöhe korrigiert
-
-  string ascii;
-  ascii.reserve(output_width * output_height + output_height);
-
-  // Schrittgrößen fürs Sampling (Skalierung)
-  float x_step = static_cast<float>(width) / output_width;
-  float y_step = static_cast<float>(height) / output_height;
-
-  for (int y = 0; y < output_height; y++) {
-    for (int x = 0; x < output_width; x++) {
-      int px = static_cast<int>(x * x_step);
-      int py = static_cast<int>(y * y_step);
-
-      int idx = (py * width + px) * channels;
-
-      // RGB-Werte holen
-      unsigned char r = img[idx + 0];
-      unsigned char g = img[idx + 1];
-      unsigned char b = img[idx + 2];
-
-      // Transparenz prüfen, falls Alpha-Kanal vorhanden
-      if (channels >= 4) {
-        unsigned char a = img[idx + 3];
-        if (a < 128) { // Pixel halbtransparent oder unsichtbar → Leerzeichen
-          ascii.push_back(' ');
-          continue;
-        }
-      }
-
-      // Grauwert berechnen (RGB → Luminanz)
-      auto gray = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
-
-      // Mapping: Grau 0-255 auf ascii_chars
-      int char_index = gray * (ascii_chars.size() - 1) / 255;
-      ascii.push_back(ascii_chars[char_index]);
+    int width, height, channels;
+    unsigned char *img =
+            stbi_load(filename.c_str(), &width, &height, &channels, 0);
+    if (!img) {
+        throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
     }
-    ascii += '\n';
-  }
 
-  stbi_image_free(img);
+    if (channels < 3) {
+        stbi_image_free(img);
+        throw runtime_error("Bild hat zu wenige Farbkanäle (mind. RGB nötig)");
+    }
+
+    // Zielhöhe proportional skalieren
+    float aspect_ratio = static_cast<float>(height) / static_cast<float>(width);
+    int output_height = static_cast<int>(output_width * aspect_ratio * 0.55f);
+    // 0.55 für Konsolen-Zeichenhöhe korrigiert
+
+    string ascii;
+    ascii.reserve(output_width * output_height + output_height);
+
+    // Schrittgrößen fürs Sampling (Skalierung)
+    float x_step = static_cast<float>(width) / output_width;
+    float y_step = static_cast<float>(height) / output_height;
+
+    for (int y = 0; y < output_height; y++) {
+        for (int x = 0; x < output_width; x++) {
+            int px = static_cast<int>(x * x_step);
+            int py = static_cast<int>(y * y_step);
+
+            int idx = (py * width + px) * channels;
+
+            // RGB-Werte holen
+            unsigned char r = img[idx + 0];
+            unsigned char g = img[idx + 1];
+            unsigned char b = img[idx + 2];
+
+            // Transparenz prüfen, falls Alpha-Kanal vorhanden
+            if (channels >= 4) {
+                unsigned char a = img[idx + 3];
+                if (a < 128) {// Pixel halbtransparent oder unsichtbar → Leerzeichen
+                    ascii.push_back(' ');
+                    continue;
+                }
+            }
+
+            // Grauwert berechnen (RGB → Luminanz)
+            auto gray = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
+
+            // Mapping: Grau 0-255 auf ascii_chars
+            int char_index = gray * (ascii_chars.size() - 1) / 255;
+            ascii.push_back(ascii_chars[char_index]);
+        }
+        ascii += '\n';
+    }
+
+    stbi_image_free(img);
   return ascii;
 }
 
