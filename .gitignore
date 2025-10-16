@@ -1,4 +1,8 @@
+CMake*
 cmake*
+Makefile
+*.cmake
 .idea
 .vs
-out
+out 
+img_to_ascii
