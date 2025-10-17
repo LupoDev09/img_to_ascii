@@ -3,4 +3,7 @@ project(img_to_ascii)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(img_to_ascii main.cpp stb_image.h)
+add_executable(img_to_ascii
+        main.cpp
+        utils.cpp
+)
