@@ -5,8 +5,8 @@
 #include <vector>
 #include <chrono>
 #include <algorithm>
-#include "../include/utils.h"
-//#define STB_IMAGE_WRITE_IMPLEMENTATION  // Implementation wird in utils.cpp bereitgestellt
+#include "../include/img_utils.h"
+//#define STB_IMAGE_WRITE_IMPLEMENTATION  // Implementation wird in stb_impl.cpp bereitgestellt
 #include "../include/stb_image_write.h"
 #include "../include/stb_image.h"
 

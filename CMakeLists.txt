@@ -5,6 +5,6 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(img_to_ascii
         src/main.cpp
-        src/utils.cpp
+        src/img_utils.cpp
         src/stb_impl.cpp
 )
