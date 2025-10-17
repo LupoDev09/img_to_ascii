@@ -98,24 +98,22 @@ static vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path
  *@return ASCII-Animation als String
 */
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
-string gif_to_ascii(const string &gif_path, int width, const string &ascii_chars, bool keep_tmp, bool colored) {
+void gif_to_ascii(const string &gif_path, int width, const string &ascii_chars, bool keep_tmp, bool colored, fs::path out_dir) {
     fs::path input_gif = gif_path;
-    fs::path out_dir = "./tmp_gif_frames"; // temporäres Verzeichnis
 
     if (!fs::exists(input_gif)) {
         cerr << "Input file does not exist: " << input_gif << "\n";
-        return "";
+        return ;
     }
 
     // Extrahiere Frames (ImageMagick oder Fallback)
     vector<fs::path> frames = extract_frames(input_gif, out_dir);
     if (frames.empty()) {
         cerr << "Keine Frames gefunden oder Fehler bei der Extraktion.\n";
-        return "";
+        return ;
     }
 
     // Erzeuge ASCII für jeden Frame
-    string ascii_animation;
     if (!colored) {
         for (size_t i = 0; i < frames.size(); ++i) {
             const auto &p = frames[i];
@@ -157,5 +155,5 @@ string gif_to_ascii(const string &gif_path, int width, const string &ascii_chars
         cout << "Frames behalten in: " << out_dir << "\n";
     }
 
-    return ascii_animation;
+    return ;
 }

@@ -13,11 +13,12 @@ namespace fs = std::filesystem;
 int main(int argc, char *argv[]) {
     try {
         // Damit UTF-8 und ANSI Farben in der Windows-Konsole funktionieren
-        // compiliert auf nicht windows Systemen passiert gar nichts ausser eine warnung in cerr zu schreiben
+        // compiliert auf nicht windows Systemen passiert gar nichts, ausser eine warnung in cerr zu schreiben
         enable_vt_mode();
         string ascii_chars = "@%#*+=-:. ";
         fs::path image_path;
         fs::path output_path;
+        fs::path tmp_dir;
         int width = 70;// Default
         bool colored = false;
         bool gif = false;
@@ -43,16 +44,26 @@ int main(int argc, char *argv[]) {
                 gif = true;
             } else if (arg == "--keep-frames") {
                 keep_frames = true;
+            } else if (arg == "--tmp_dir" && i + 1 < argc) {
+                tmp_dir = fs::path(argv[++i]);
             } else if (arg == "-h" || arg == "--help") {
                 print_help();
                 return 0;
-            } else {// Get img path
+            } else if (!arg.starts_with('-') && image_path.empty()) {
+                // <-- Nur das erste Nicht-Flag als Bildpfad speichern
                 image_path = arg;
+            } else {
+                cerr << "Unbekanntes Argument: " << arg << endl;
             }
         }
 
+
         if (colored && !output_path.empty()) {
             throw runtime_error("--colored und --output sind nicht kompatibel (Farben brauchen Terminal)");
+        }
+
+        if (tmp_dir.empty()) {
+            tmp_dir = "./tmp_gif_frames";
         }
 
         // if path is not provided use default path
@@ -79,9 +90,8 @@ int main(int argc, char *argv[]) {
         cout << "Lade: " << image_path << " (Breite: " << width << ")" << endl;
         string ascii;
         if (gif == true) {
-            // gif_to_ascii jetzt mit keep_frames-Option
-            gif_to_ascii(image_path.string(), width, ascii_chars, keep_frames, colored);
-            ascii = ""; // gif_to_ascii gibt die Animation direkt aus
+            // gif_to_ascii gibt die Animation direkt aus, also brauchen wir den Rückgabewert nicht
+            gif_to_ascii(image_path.string(), width, ascii_chars, keep_frames, colored, tmp_dir);
         } else if (colored) {
             ascii = image_to_ascii_color(image_path.string(), width, ascii_chars);
         } else {
@@ -110,5 +120,4 @@ int main(int argc, char *argv[]) {
 }
 
 // TODO: Extract frame delays / disposal info and save as JSON alongside frames. This will allow accurate playback timing later. (Nice to have.)
-// TODO: Add option to specify output directory for frames instead of using temp directory. (Nice to have.)
 // TODO: Add option to specify custom naming scheme for frames. (Nice to have.)
