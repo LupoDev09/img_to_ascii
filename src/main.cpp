@@ -3,8 +3,8 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <regex>
 #include "../include/img_utils.h"
-#include "../include/stb_image.h"
 #include "../include/gif_utils.h"
 
 using namespace std;
@@ -15,14 +15,15 @@ int main(int argc, char *argv[]) {
         // Damit UTF-8 und ANSI Farben in der Windows-Konsole funktionieren
         // compiliert auf nicht windows Systemen passiert gar nichts, ausser eine warnung in cerr zu schreiben
         enable_vt_mode();
-        string ascii_chars = "@%#*+=-:. ";
-        fs::path image_path;
-        fs::path output_path;
-        fs::path tmp_dir;
-        int width = 70;// Default
-        bool colored = false;
-        bool gif = false;
-        bool keep_frames = false; // neue Flag: behalte tmp-Frames, wenn true
+        string ascii_chars = "@%#*+=-:. ";  // Standard-Zeichensatz
+        string tmp_frames_naming_scheme;    // Derzeit nicht implementiert
+        fs::path image_path;                // Pfad zum Eingabebild
+        fs::path output_path;               // Ausgabe-Dateipfad wenn man --output benutzt
+        fs::path tmp_dir;                   // temporäres Verzeichnis für GIF-Frames
+        int width = 70;                     // Standardbreite ist 70 Zeichen
+        bool colored = false;               // standardmäßig keine farbige Ausgabe
+        bool gif = false;                   // standardmäßig wird nicht davon ausgegangen das der input ein GIF ist
+        bool keep_frames = false;           // behalte temporäre Frames standardmäßig nicht
 
         // Parse flags
         for (int i = 1; i < argc; i++) {
@@ -49,19 +50,22 @@ int main(int argc, char *argv[]) {
             } else if (arg == "-h" || arg == "--help") {
                 print_help();
                 return 0;
-            } else if (!arg.starts_with('-') && image_path.empty()) {
-                // <-- Nur das erste Nicht-Flag als Bildpfad speichern
-                image_path = arg;
+            } else if (arg == "--tmp_frames_naming_scheme" && i + 1 < argc) {
+                tmp_frames_naming_scheme = argv[++i];
+            } else if (arg == "--img") {
+                image_path = argv[++i];
             } else {
                 cerr << "Unbekanntes Argument: " << arg << endl;
             }
         }
 
 
+        // --colored und --output sind nicht kompatibel
         if (colored && !output_path.empty()) {
             throw runtime_error("--colored und --output sind nicht kompatibel (Farben brauchen Terminal)");
         }
 
+        // if tmp_dir is not provided use default path
         if (tmp_dir.empty()) {
             tmp_dir = "./tmp_gif_frames";
         }
@@ -78,6 +82,27 @@ int main(int argc, char *argv[]) {
             throw runtime_error("--ascii darf nicht leer sein! entweder lass es weg oder gib es einen wert");
         }
 
+        // if tmp_frames_naming_scheme is not provided use default naming scheme
+        if (tmp_frames_naming_scheme.empty()) {
+            tmp_frames_naming_scheme = "/frame_%03d.png";
+        }
+
+        // Check if tmp_frames_naming_scheme contains %03d
+        std::regex re("%0?\\d*d");
+        if (!std::regex_search(tmp_frames_naming_scheme, re)) {
+            throw std::runtime_error(
+                "--tmp_frames_naming_scheme muss ein '%d'-Platzhalter enthalten (z.B. '%03d') für die Frame-Nummerierung"
+            );
+        }
+
+        // Check if tmp_frames_naming_scheme ends with .png, .jpg or .jpeg
+        if (tmp_frames_naming_scheme.find(".png") == string::npos &&
+            tmp_frames_naming_scheme.find(".jpg") == string::npos &&
+            tmp_frames_naming_scheme.find(".jpeg") == string::npos) {
+            throw runtime_error("--tmp_frames_naming_scheme muss auf .png, .jpg oder .jpeg enden");
+        }
+
+        // --keep-frames only works with --gif
         if (keep_frames == true && gif == false) {
             throw runtime_error("--keep-frames funktioniert nur mit --gif");
         }
@@ -91,7 +116,7 @@ int main(int argc, char *argv[]) {
         string ascii;
         if (gif == true) {
             // gif_to_ascii gibt die Animation direkt aus, also brauchen wir den Rückgabewert nicht
-            gif_to_ascii(image_path.string(), width, ascii_chars, keep_frames, colored, tmp_dir);
+            gif_to_ascii(image_path.string(), width, ascii_chars, keep_frames, colored, tmp_dir, tmp_frames_naming_scheme);
         } else if (colored) {
             ascii = image_to_ascii_color(image_path.string(), width, ascii_chars);
         } else {
@@ -120,4 +145,4 @@ int main(int argc, char *argv[]) {
 }
 
 // TODO: Extract frame delays / disposal info and save as JSON alongside frames. This will allow accurate playback timing later. (Nice to have.)
-// TODO: Add option to specify custom naming scheme for frames. (Nice to have.)
+// TODO: Try to use a C++ image library to extract GIF frames directly instead of relying on ImageMagick. (Harder.)

@@ -25,9 +25,10 @@ namespace fs = std::filesystem;
  * Falls ImageMagick nicht vorhanden ist, wird als Fallback nur die erste Frame via stb_image gespeichert.
  * @param input_gif Pfad zur Eingabe-GIF-Datei
  * @param out_dir Pfad zum Ausgabeverzeichnis für die extrahierten Frames
+ * @param tmp_frames_naming_scheme Benennungsschema für temporäre GIF-Frames
  * @return Sortierter Vektor mit Pfaden zu den extrahierten PNG-Frames
 */
-static vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path &out_dir) {
+vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path &out_dir, const string& tmp_frames_naming_scheme) {
     vector<fs::path> frames;
 
     // Entferne altes temporäres Verzeichnis, damit keine alten Frames vorhanden sind
@@ -49,7 +50,7 @@ static vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path
 
     // ImageMagick-Aufruf: -coalesce sorgt für vollständige (composited) Frames,
     // PNG32: erzwingt RGBA-Ausgabe (vermeidet palettierte/greyscale PNGs)
-    string cmd = "magick \"" + input_gif.string() + "\" -coalesce -alpha set PNG32:\"" + out_dir.string() + "/frame_%03d.png\"";
+    const string cmd = "magick \"" + input_gif.string() + "\" -coalesce -alpha set PNG32:\"" + out_dir.string() + "/" + tmp_frames_naming_scheme + "\"";
     int rc = system(cmd.c_str());
     if (rc != 0) {
         // Fallback: nur erste Frame via stb_image
@@ -67,6 +68,7 @@ static vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path
             return frames;
         }
         stbi_image_free(data);
+        frames.push_back(out);
     }
 
     // Sammle nur PNG-Dateien und sortiere sie
@@ -95,11 +97,15 @@ static vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path
  *@param width Gewünschte Breite des ASCII-Ausgabe (in ASCII-Zeichen)
  *@param ascii_chars Zeichen, die für die ASCII-Darstellung verwendet werden sollen
  *@param keep_tmp Ob die temporären extrahierten Frames beibehalten werden sollen (standardmäßig false)
+ *@param colored Ob die ASCII-Ausgabe in Farbe erfolgen soll
+ *@param out_dir Verzeichnis zum Speichern der temporären Frames
+ *@param tmp_frames_naming_scheme Benennungsschema für temporäre GIF-Frames
  *@return ASCII-Animation als String
 */
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
-void gif_to_ascii(const string &gif_path, int width, const string &ascii_chars, bool keep_tmp, bool colored, fs::path out_dir) {
-    fs::path input_gif = gif_path;
+void gif_to_ascii(const std::string &gif_path, int width, const std::string &ascii_chars, bool keep_tmp, bool colored,
+    std::filesystem::path out_dir, const std::string& tmp_frames_naming_scheme) {
+    const fs::path input_gif = gif_path;
 
     if (!fs::exists(input_gif)) {
         cerr << "Input file does not exist: " << input_gif << "\n";
@@ -107,7 +113,7 @@ void gif_to_ascii(const string &gif_path, int width, const string &ascii_chars, 
     }
 
     // Extrahiere Frames (ImageMagick oder Fallback)
-    vector<fs::path> frames = extract_frames(input_gif, out_dir);
+    const vector<fs::path> frames = extract_frames(input_gif, out_dir, tmp_frames_naming_scheme);
     if (frames.empty()) {
         cerr << "Keine Frames gefunden oder Fehler bei der Extraktion.\n";
         return ;
@@ -155,5 +161,4 @@ void gif_to_ascii(const string &gif_path, int width, const string &ascii_chars, 
         cout << "Frames behalten in: " << out_dir << "\n";
     }
 
-    return ;
 }
