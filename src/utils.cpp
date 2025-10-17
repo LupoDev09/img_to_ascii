@@ -8,7 +8,7 @@
 #include <string>
 #include <filesystem>
 #include <iostream>
-#include "utils.h"
+#include "../include/utils.h"
 #include "../include/stb_image.h"
 
 using namespace std;
