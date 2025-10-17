@@ -6,3 +6,4 @@ Makefile
 .vs
 out 
 img_to_ascii*
+tmp*

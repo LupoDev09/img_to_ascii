@@ -1,11 +1,55 @@
 #include <filesystem>
-#include <fstream>
 #include <iostream>
+#include <fstream>
 #include <string>
+#include <vector>
 #include "utils.h" // print_help, image_to_ascii, image_to_ascii_color
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+#include "stb_image.h"
 
 using namespace std;
 namespace fs = std::filesystem;
+
+
+string gif_to_ascii(const string &gif_path, int width,
+                        const string &ascii_chars) {
+    fs::path input_gif = gif_path;
+    fs::path out_dir = "./tmp_gif_frames";
+
+    if (!fs::exists(input_gif)) {
+        cerr << "Input file does not exist: " << input_gif << "\n";
+        return "";
+    }
+    fs::create_directories(out_dir);
+
+    // Try ImageMagick `magick` first (coalesce to get full frames)
+    string cmd = "magick " + input_gif.string() + " -coalesce " + (out_dir / "frame_%03d.png").string();
+    int rc = system(cmd.c_str());
+    if (rc == 0) {
+        cout << "Frames written to: " << out_dir << " (via ImageMagick)\n";
+        return "";
+    }
+
+    // Fallback: use stb_image to load the first frame and save it as frame_000.png
+    cout << "ImageMagick failed or not installed; falling back to saving first frame via stb_image.\n";
+    int w,h,n;
+    unsigned char* data = stbi_load(input_gif.string().c_str(), &w, &h, &n, 4); // force RGBA
+    if (!data) {
+        cerr << "stbi_load failed: " << stbi_failure_reason() << "\n";
+        return "";
+    }
+    fs::path out = out_dir / "frame_000.png";
+    if (!stbi_write_png(out.string().c_str(), w, h, 4, data, w * 4)) {
+        cerr << "stbi_write_png failed\n";
+        stbi_image_free(data);
+        return "";
+    }
+    stbi_image_free(data);
+    cout << "Wrote first frame to: " << out << "\n";
+    return "";
+}
 
 int main(int argc, char *argv[]) {
     try {
@@ -19,6 +63,7 @@ int main(int argc, char *argv[]) {
         fs::path output_path;
         int width = 70;// Default
         bool colored = false;
+        bool gif = false;
 
         // Parse flags
         for (int i = 1; i < argc; i++) {
@@ -36,6 +81,8 @@ int main(int argc, char *argv[]) {
                 ascii_chars = argv[++i];
             } else if (arg == "--colored") {
                 colored = true;
+            } else if (arg == "--gif") {
+                gif = true;
             } else if (arg == "-h" || arg == "--help") {
                 print_help();
                 return 0;
@@ -62,9 +109,16 @@ int main(int argc, char *argv[]) {
                                 "oder gib es einen wert");
         }
 
+        // Check if file exists
+        if (!fs::exists(image_path)) {
+            throw runtime_error("Datei nicht gefunden: " + image_path.string());
+        }
+
         cout << "Lade: " << image_path << " (Breite: " << width << ")" << endl;
         string ascii;
-        if (colored) {
+        if (gif == true) {
+            ascii = gif_to_ascii(image_path.string(), width, ascii_chars);
+        } else if (colored) {
             ascii = image_to_ascii_color(image_path.string(), width, ascii_chars);
         } else {
             ascii = image_to_ascii(image_path.string(), width, ascii_chars);
