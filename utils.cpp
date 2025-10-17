@@ -2,14 +2,13 @@
 // Created by lupo on 17.10.25.
 //
 
-// stb_image (Header-Only Image Loader) → https://github.com/nothings/stb
-#define STB_IMAGE_IMPLEMENTATION
 
+
+// stb_image headers (Implementierung befindet sich in stb_impl.cpp)
 #include <string>
 #include <filesystem>
 #include <iostream>
 #include "utils.h"
-// stb_image (Header-Only Image Loader) → https://github.com/nothings/stb Nicht Meins!!!
 #include "stb_image.h"
 
 using namespace std;
@@ -30,6 +29,8 @@ void print_help() {
          << "  --colored         Farbausgabe im Terminal (nicht mit --output "
             "kombinierbar)\n"
          << "  --gif             GIF-Datei als ASCII-Animation verarbeiten\n"
+        << "   --keep-frames     Temporäre extrahierte Frames bei GIF-Verarbeitung "
+            "behalten\n"
          << "\n\n"
          << "Hinweis:\n"
          << "  Wenn kein Bildpfad angegeben wird, wird "
@@ -89,10 +90,10 @@ string image_to_ascii(const string &filename, int output_width, const string &as
             unsigned char g = img[idx + 1];
             unsigned char b = img[idx + 2];
 
-            // Transparenz prüfen, falls Alpha-Kanal vorhanden
-            if (used_channels >= 4) {
+            // Transparenz prüfen, falls die Quelldatei tatsächlich ein Alpha-Kanal hat
+            if (channels_in_file >= 4) {
                 unsigned char a = img[idx + 3];
-                if (a < 128) {// Pixel halbtransparent oder unsichtbar → Leerzeichen
+                if (a < 128) { // Pixel halbtransparent oder unsichtbar → Leerzeichen
                     ascii.push_back(' ');
                     continue;
                 }
@@ -160,7 +161,7 @@ string image_to_ascii_color(const string &filename, int output_width, const stri
             unsigned char b = img[idx + 2];
 
             // Transparenz prüfen
-            if (used_channels >= 4) {
+            if (channels_in_file >= 4) {
                 unsigned char a = img[idx + 3];
                 if (a < 128) {
                     ascii += " ";

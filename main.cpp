@@ -5,8 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include "utils.h" // print_help, image_to_ascii, image_to_ascii_color
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
+//#define STB_IMAGE_WRITE_IMPLEMENTATION  // Implementation wird in utils.cpp bereitgestellt
 #include "stb_image_write.h"
 #include "stb_image.h"
 
