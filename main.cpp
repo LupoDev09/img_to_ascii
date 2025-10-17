@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <algorithm>
 #include "utils.h" // print_help, image_to_ascii, image_to_ascii_color
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -12,58 +13,114 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-void write_frames(const string& out_dir, const fs::path &input_gif) {
-    fs::create_directories(out_dir);                                                                    // Erstellen des Ausgabeverzeichnisses, falls es nicht existiert
+// Extrahiere Frames aus einer GIF-Datei in ein Ausgabeverzeichnis.
+// Rückgabe: sortierte Liste der erzeugten PNG-Dateien (vollständige Frames).
+// Wenn ImageMagick verfügbar ist, wird "magick ... -coalesce -alpha set PNG32:..." verwendet,
+// damit die resultierenden PNGs RGBA (kein palettiertes/graues PNG) sind.
+// Falls ImageMagick nicht vorhanden ist, wird als Fallback nur die erste Frame via stb_image gespeichert.
+static vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path &out_dir) {
+    vector<fs::path> frames;
 
-    // Try ImageMagick `magick` first (coalesce to get full frames)
-    string cmd = "magick " + input_gif.string() + " -coalesce "+ (out_dir + "/frame_%03d.png");            // Befehl zum Extrahieren der Frames mit ImageMagick, wenn es zur verfügung steht
-    int rc = system(cmd.c_str());                                                                  // Ausführen des Befehls im System
-    if (rc == 0) {
-        cout << "Frames written to: " << out_dir << " (via ImageMagick)\n";
-        return;
+    // Entferne altes temporäres Verzeichnis, damit keine alten Frames vorhanden sind
+    try {
+        if (fs::exists(out_dir)) {
+            fs::remove_all(out_dir);
+        }
+    } catch (const std::exception &e) {
+        cerr << "Warnung: Konnte temporäres Verzeichnis nicht löschen: " << e.what() << "\n";
     }
 
-    // Fallback: use stb_image to load the first frame and save it as frame_000.png
-    cout << "ImageMagick failed or not installed; falling back to saving first frame via stb_image.\n"
-        << "If you want to use ImageMagick, please install it from https://imagemagick.org/script/download.php.\n"
-        << "It's needed to extract all frames from the gif.\n";
-    int w,h,n;
-    unsigned char* data = stbi_load(input_gif.string().c_str(), &w, &h,
-                        &n, 4);                                                 // force RGBA
-    if (!data) {
-        cerr << "stbi_load failed: " << stbi_failure_reason() << "\n";
+    // Erstelle Ausgabeverzeichnis
+    try {
+        fs::create_directories(out_dir);
+    } catch (const std::exception &e) {
+        cerr << "Fehler: Konnte Ausgabeverzeichnis nicht erstellen: " << e.what() << "\n";
+        return frames;
     }
-    fs::path out = out_dir + "frame_000.png";
-    if (!stbi_write_png(out.string().c_str(), w, h, 4, data, w * 4)) {
-        cerr << "stbi_write_png failed\n";
+
+    // ImageMagick-Aufruf: -coalesce sorgt für vollständige (composited) Frames,
+    // PNG32: erzwingt RGBA-Ausgabe (vermeidet palettierte/greyscale PNGs)
+    string cmd = "magick \"" + input_gif.string() + "\" -coalesce -alpha set PNG32:\"" + out_dir.string() + "/frame_%03d.png\"";
+    int rc = system(cmd.c_str());
+    if (rc != 0) {
+        // Fallback: nur erste Frame via stb_image
+        cout << "ImageMagick fehlgeschlagen oder nicht installiert; speichere als Fallback nur die erste Frame via stb_image.\n";
+        int w,h,n;
+        unsigned char* data = stbi_load(input_gif.string().c_str(), &w, &h, &n, 4); // force RGBA
+        if (!data) {
+            cerr << "stbi_load failed: " << stbi_failure_reason() << "\n";
+            return frames;
+        }
+        fs::path out = out_dir / "frame_000.png";
+        if (!stbi_write_png(out.string().c_str(), w, h, 4, data, w * 4)) {
+            cerr << "stbi_write_png failed\n";
+            stbi_image_free(data);
+            return frames;
+        }
         stbi_image_free(data);
     }
-    stbi_image_free(data);
-    cout << "Wrote first frame to: " << out << "\n";
+
+    // Sammle nur PNG-Dateien und sortiere sie
+    try {
+        for (const auto &entry : fs::directory_iterator(out_dir)) {
+            if (!entry.is_regular_file()) continue;
+            auto ext = entry.path().extension().string();
+            for (auto &c : ext) c = static_cast<char>(std::tolower(c));
+            if (ext == ".png") frames.push_back(entry.path());
+        }
+    } catch (const std::exception &e) {
+        cerr << "Fehler beim Lesen des Frame-Verzeichnisses: " << e.what() << "\n";
+        return frames;
+    }
+    sort(frames.begin(), frames.end());
+    return frames;
 }
 
-string gif_to_ascii(const string &gif_path,
-                        int width,
-                        const string &ascii_chars) {
+// Wandelt ein GIF in ASCII um, indem es alle extrahierten PNG-Frames der Reihe nach
+// mit image_to_ascii() verarbeitet. Wenn keep_tmp == false, werden die temporären
+// Frames nach der Verarbeitung gelöscht (Standardverhalten).
+// TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
+string gif_to_ascii(const string &gif_path, int width, const string &ascii_chars, bool keep_tmp = false) {
+    fs::path input_gif = gif_path;
+    fs::path out_dir = "./tmp_gif_frames"; // temporäres Verzeichnis
 
-    fs::path input_gif = gif_path;                          // Pfad zur Eingabe-GIF-Datei gegeben als Argument in main als img_path
-    fs::path out_dir = "./tmp_gif_frames";                  // Temporäres Verzeichnis zum Speichern der extrahierten Frames TODO: remove it after use
-
-    if (!fs::exists(input_gif)) {                                                           // Überprüfen, ob die Eingabedatei existiert
-        cerr << "Input file does not exist: "
-        << input_gif << "\n";                                                               // Fehlermeldung und Rückgabe bei nicht existierender Datei
+    if (!fs::exists(input_gif)) {
+        cerr << "Input file does not exist: " << input_gif << "\n";
         return "";
     }
-    write_frames(out_dir.string(), input_gif);                                        // Aufrufen der Funktion zum Extrahieren der Frames
-    string ascii_animation;                                                                 // String zum Speichern der ASCII-Animation
-    for (const auto &entry : fs::directory_iterator(out_dir)) {                             // Iterieren über die extrahierten Frames im temporären Verzeichnis
-        if (entry.is_regular_file()) {                                                      // Überprüfen, ob der Eintrag eine reguläre Datei ist
-            string frame_path = entry.path().string();                                      // Pfad zur Frame-Datei als String
-            string ascii_frame = image_to_ascii(frame_path, width, ascii_chars);    // Konvertieren des Frames in ASCII-Art
-            ascii_animation += ascii_frame + "\n";                                          // Hinzufügen des ASCII-Frames zur Animation
+
+    // Extrahiere Frames (ImageMagick oder Fallback)
+    auto frames = extract_frames(input_gif, out_dir);
+    if (frames.empty()) {
+        cerr << "Keine Frames gefunden oder Fehler bei der Extraktion.\n";
+        return "";
+    }
+
+    // Erzeuge ASCII für jede Frame
+    string ascii_animation;
+    for (const auto &p : frames) {
+        try {
+            string ascii_frame = image_to_ascii(p.string(), width, ascii_chars);
+            ascii_animation += ascii_frame;
+            // Cursor-Reset, damit die Animation später im Terminal klappt
+            ascii_animation += "\033[H";
+        } catch (const std::exception &e) {
+            cerr << "Warnung: Fehler beim Verarbeiten von " << p << ": " << e.what() << "\n";
         }
     }
-    return ascii_animation;                                                                 // Rückgabe der vollständigen ASCII-Animation
+
+    // Entferne temporäres Verzeichnis falls nicht behalten
+    if (!keep_tmp) {
+        try {
+            fs::remove_all(out_dir);
+        } catch (const std::exception &e) {
+            cerr << "Warnung: Konnte temporäre Frames nicht löschen: " << e.what() << "\n";
+        }
+    } else {
+        cout << "Frames behalten in: " << out_dir << "\n";
+    }
+
+    return ascii_animation;
 }
 
 int main(int argc, char *argv[]) {
@@ -79,6 +136,7 @@ int main(int argc, char *argv[]) {
         int width = 70;// Default
         bool colored = false;
         bool gif = false;
+        bool keep_frames = false; // neue Flag: behalte tmp-Frames, wenn true
 
         // Parse flags
         for (int i = 1; i < argc; i++) {
@@ -98,6 +156,8 @@ int main(int argc, char *argv[]) {
                 colored = true;
             } else if (arg == "--gif") {
                 gif = true;
+            } else if (arg == "--keep-frames") {
+                keep_frames = true;
             } else if (arg == "-h" || arg == "--help") {
                 print_help();
                 return 0;
@@ -107,8 +167,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (colored && !output_path.empty()) {
-            throw runtime_error("--colored und --output sind nicht kompatibel "
-                                "(Farben brauchen Terminal)");
+            throw runtime_error("--colored und --output sind nicht kompatibel (Farben brauchen Terminal)");
         }
 
         // if path is not provided use default path
@@ -120,8 +179,7 @@ int main(int argc, char *argv[]) {
 
         // if ascii_chars is provided but is empty throw an error
         if (ascii_chars.empty()) {
-            throw runtime_error("--ascii darf nicht leer sein! entweder lass es weg "
-                                "oder gib es einen wert");
+            throw runtime_error("--ascii darf nicht leer sein! entweder lass es weg oder gib es einen wert");
         }
 
         // Check if file exists
@@ -132,7 +190,8 @@ int main(int argc, char *argv[]) {
         cout << "Lade: " << image_path << " (Breite: " << width << ")" << endl;
         string ascii;
         if (gif == true) {
-            ascii = gif_to_ascii(image_path.string(), width, ascii_chars);
+            // gif_to_ascii jetzt mit keep_frames-Option
+            ascii = gif_to_ascii(image_path.string(), width, ascii_chars, keep_frames);
         } else if (colored) {
             ascii = image_to_ascii_color(image_path.string(), width, ascii_chars);
         } else {
@@ -144,8 +203,7 @@ int main(int argc, char *argv[]) {
         } else {
             ofstream out(output_path);
             if (!out) {
-                throw runtime_error("Konnte Datei nicht zum Schreiben öffnen: " +
-                                    output_path.string());
+                throw runtime_error("Konnte Datei nicht zum Schreiben öffnen: " + output_path.string());
             }
             out << ascii;
             cout << "ASCII-Art in Datei geschrieben: " << output_path << endl;
@@ -160,3 +218,6 @@ int main(int argc, char *argv[]) {
     cout << "\033[0m" << endl; // Reset ganz am Ende von main
     return 0;
 }
+
+// TODO: Extract frame delays / disposal info and save as JSON alongside frames.
+// This will allow accurate playback timing later. (Nicht dringend für jetzt.)

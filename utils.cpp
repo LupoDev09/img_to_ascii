@@ -51,16 +51,18 @@ void print_help() {
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
  */
 string image_to_ascii(const string &filename, int output_width, const string &ascii_chars ) {
-    int width, height, channels;
+    int width, height, channels_in_file;
+    const int desired_channels = 4; // force RGBA so we always have at least RGB
     unsigned char *img =
-            stbi_load(filename.c_str(), &width, &height, &channels, 0);
+            stbi_load(filename.c_str(), &width, &height, &channels_in_file, desired_channels);
     if (!img) {
         throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
     }
 
-    if (channels < 3) {
-        stbi_image_free(img);
-        throw runtime_error("Bild hat zu wenige Farbkanäle (mind. RGB nötig)");
+    int used_channels = desired_channels; // buffer is returned with this many channels
+    if (channels_in_file < 3) {
+        // Warnung, aber nicht fatal: wir haben durch forced channels trotzdem RGB
+        cerr << "Warnung: Quelldatei hat nur " << channels_in_file << " Kanäle; konvertiere zu RGB.\n";
     }
 
     // Zielhöhe proportional skalieren
@@ -80,7 +82,7 @@ string image_to_ascii(const string &filename, int output_width, const string &as
             int px = static_cast<int>(static_cast<float>(x) * x_step);
             int py = static_cast<int>(static_cast<float>(y) * y_step);
 
-            int idx = (py * width + px) * channels;
+            int idx = (py * width + px) * used_channels;
 
             // RGB-Werte holen
             unsigned char r = img[idx + 0];
@@ -88,7 +90,7 @@ string image_to_ascii(const string &filename, int output_width, const string &as
             unsigned char b = img[idx + 2];
 
             // Transparenz prüfen, falls Alpha-Kanal vorhanden
-            if (channels >= 4) {
+            if (used_channels >= 4) {
                 unsigned char a = img[idx + 3];
                 if (a < 128) {// Pixel halbtransparent oder unsichtbar → Leerzeichen
                     ascii.push_back(' ');
@@ -124,16 +126,17 @@ string image_to_ascii(const string &filename, int output_width, const string &as
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
  */
 string image_to_ascii_color(const string &filename, int output_width, const string &ascii_chars) {
-    int width, height, channels;
+    int width, height, channels_in_file;
+    const int desired_channels = 4; // force RGBA
     unsigned char *img =
-            stbi_load(filename.c_str(), &width, &height, &channels, 0);
+            stbi_load(filename.c_str(), &width, &height, &channels_in_file, desired_channels);
     if (!img) {
         throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
     }
 
-    if (channels < 3) {
-        stbi_image_free(img);
-        throw runtime_error("Bild hat zu wenige Farbkanäle (mind. RGB nötig)");
+    int used_channels = desired_channels;
+    if (channels_in_file < 3) {
+        cerr << "Warnung: Quelldatei hat nur " << channels_in_file << " Kanäle; konvertiere zu RGB.\n";
     }
 
     float aspect_ratio = static_cast<float>(height) / static_cast<float>(width);
@@ -150,14 +153,14 @@ string image_to_ascii_color(const string &filename, int output_width, const stri
             int px = static_cast<int>(static_cast<float>(x) * x_step);
             int py = static_cast<int>(static_cast<float>(y) * y_step);
 
-            int idx = (py * width + px) * channels;
+            int idx = (py * width + px) * used_channels;
 
             unsigned char r = img[idx + 0];
             unsigned char g = img[idx + 1];
             unsigned char b = img[idx + 2];
 
             // Transparenz prüfen
-            if (channels >= 4) {
+            if (used_channels >= 4) {
                 unsigned char a = img[idx + 3];
                 if (a < 128) {
                     ascii += " ";
@@ -189,7 +192,7 @@ string image_to_ascii_color(const string &filename, int output_width, const stri
 #include <io.h>
 #include <fcntl.h>
 
-void enable_vt_mode(); {
+void enable_vt_mode() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut == INVALID_HANDLE_VALUE)
         return;
