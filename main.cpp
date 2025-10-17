@@ -3,11 +3,14 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <chrono>
 #include <algorithm>
 #include "utils.h" // print_help, image_to_ascii, image_to_ascii_color
 //#define STB_IMAGE_WRITE_IMPLEMENTATION  // Implementation wird in utils.cpp bereitgestellt
 #include "stb_image_write.h"
 #include "stb_image.h"
+
+#include <thread>
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -89,7 +92,7 @@ string gif_to_ascii(const string &gif_path, int width, const string &ascii_chars
     }
 
     // Extrahiere Frames (ImageMagick oder Fallback)
-    auto frames = extract_frames(input_gif, out_dir);
+    vector<fs::path> frames = extract_frames(input_gif, out_dir);
     if (frames.empty()) {
         cerr << "Keine Frames gefunden oder Fehler bei der Extraktion.\n";
         return "";
@@ -97,12 +100,15 @@ string gif_to_ascii(const string &gif_path, int width, const string &ascii_chars
 
     // Erzeuge ASCII für jede Frame
     string ascii_animation;
-    for (const auto &p : frames) {
+    for (size_t i = 0; i < frames.size(); ++i) {
+        const auto &p = frames[i];
         try {
             string ascii_frame = image_to_ascii(p.string(), width, ascii_chars);
-            ascii_animation += ascii_frame;
-            // Cursor-Reset, damit die Animation später im Terminal klappt
-            ascii_animation += "\033[H";
+            cout << ascii_frame;
+            if (i + 1 != frames.size()) {
+                cout << "\033[H";
+            }
+            this_thread::sleep_for(std::chrono::milliseconds(100));
         } catch (const std::exception &e) {
             cerr << "Warnung: Fehler beim Verarbeiten von " << p << ": " << e.what() << "\n";
         }
@@ -190,7 +196,8 @@ int main(int argc, char *argv[]) {
         string ascii;
         if (gif == true) {
             // gif_to_ascii jetzt mit keep_frames-Option
-            ascii = gif_to_ascii(image_path.string(), width, ascii_chars, keep_frames);
+            gif_to_ascii(image_path.string(), width, ascii_chars, keep_frames);
+            ascii = ""; // gif_to_ascii gibt die Animation direkt aus
         } else if (colored) {
             ascii = image_to_ascii_color(image_path.string(), width, ascii_chars);
         } else {
