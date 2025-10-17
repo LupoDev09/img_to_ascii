@@ -16,4 +16,6 @@ std::string image_to_ascii_color(const std::string &filename,
     int output_width = 70,
     const std::string &ascii_chars = "@%#*+=-:. ");             // Wandelt ein Bild in ASCII-Art mit farbe um.
 
+void enable_vt_mode();
+
 #endif //IMG_TO_ASCII_UTILS_H

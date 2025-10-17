@@ -179,3 +179,24 @@ string image_to_ascii_color(const string &filename, int output_width, const stri
     stbi_image_free(img);
     return ascii;
 }
+
+
+#if defined(_WIN32)
+// Special shit for windows because without this shit it won't work :3
+#include <windows.h>
+#include <io.h>
+#include <fcntl.h>
+
+void enable_vt_mode(); {
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE)
+        return;
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hOut, &dwMode))
+        return;
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    if (!SetConsoleMode(hOut, dwMode)) {
+        std::cerr << "Warnung: ANSI-Farben werden eventuell nicht unterstützt.\n";
+    }
+}
+#endif

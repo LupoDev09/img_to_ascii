@@ -4,26 +4,6 @@
 #include <string>
 #include "utils.h" // print_help, image_to_ascii, image_to_ascii_color
 
-#if defined(_WIN32)
-// Special shit for windows because without this shit it won't work :3
-#include <windows.h>
-#include <io.h>
-#include <fcntl.h>
-
-void enable_vt_mode() {
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hOut == INVALID_HANDLE_VALUE)
-        return;
-    DWORD dwMode = 0;
-    if (!GetConsoleMode(hOut, &dwMode))
-        return;
-    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    if (!SetConsoleMode(hOut, dwMode)) {
-        std::cerr << "Warnung: ANSI-Farben werden eventuell nicht unterstützt.\n";
-    }
-}
-#endif
-
 using namespace std;
 namespace fs = std::filesystem;
 
