@@ -53,7 +53,7 @@ void print_help() {
  */
 string image_to_ascii(const string &filename, int output_width, const string &ascii_chars ) {
     int width, height, channels_in_file;
-    const int desired_channels = 4; // force RGBA so we always have at least RGB
+    constexpr int desired_channels = 4; // force RGBA so we always have at least RGB
     unsigned char *img =
             stbi_load(filename.c_str(), &width, &height, &channels_in_file, desired_channels);
     if (!img) {
@@ -128,7 +128,7 @@ string image_to_ascii(const string &filename, int output_width, const string &as
  */
 string image_to_ascii_color(const string &filename, int output_width, const string &ascii_chars) {
     int width, height, channels_in_file;
-    const int desired_channels = 4; // force RGBA
+    constexpr int desired_channels = 4; // force RGBA
     unsigned char *img =
             stbi_load(filename.c_str(), &width, &height, &channels_in_file, desired_channels);
     if (!img) {

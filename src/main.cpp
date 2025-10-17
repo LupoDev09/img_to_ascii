@@ -98,7 +98,7 @@ string gif_to_ascii(const string &gif_path, int width, const string &ascii_chars
         return "";
     }
 
-    // Erzeuge ASCII für jede Frame
+    // Erzeuge ASCII für jeden Frame
     string ascii_animation;
     for (size_t i = 0; i < frames.size(); ++i) {
         const auto &p = frames[i];
@@ -227,3 +227,4 @@ int main(int argc, char *argv[]) {
 
 // TODO: Extract frame delays / disposal info and save as JSON alongside frames.
 // This will allow accurate playback timing later. (Nicht dringend für jetzt.)
+// TODO: Extract those funktions out to a separate gif_utils.cpp/hpp file.
