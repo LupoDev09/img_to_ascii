@@ -9,7 +9,7 @@
 #include <filesystem>
 #include <iostream>
 #include "utils.h"
-#include "stb_image.h"
+#include "../include/stb_image.h"
 
 using namespace std;
 namespace fs = std::filesystem;

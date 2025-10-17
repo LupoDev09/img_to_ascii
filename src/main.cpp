@@ -5,10 +5,10 @@
 #include <vector>
 #include <chrono>
 #include <algorithm>
-#include "utils.h" // print_help, image_to_ascii, image_to_ascii_color
+#include "../include/utils.h"
 //#define STB_IMAGE_WRITE_IMPLEMENTATION  // Implementation wird in utils.cpp bereitgestellt
-#include "stb_image_write.h"
-#include "stb_image.h"
+#include "../include/stb_image_write.h"
+#include "../include/stb_image.h"
 
 #include <thread>
 

@@ -4,7 +4,7 @@ project(img_to_ascii)
 set(CMAKE_CXX_STANDARD 20)
 
 add_executable(img_to_ascii
-        main.cpp
-        utils.cpp
-        stb_impl.cpp
+        src/main.cpp
+        src/utils.cpp
+        src/stb_impl.cpp
 )
