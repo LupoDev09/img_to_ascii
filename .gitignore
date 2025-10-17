@@ -5,4 +5,4 @@ Makefile
 .idea
 .vs
 out 
-img_to_ascii
+img_to_ascii*
