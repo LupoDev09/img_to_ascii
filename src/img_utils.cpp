@@ -193,7 +193,12 @@ string image_to_ascii_color(const string &filename, int output_width, const stri
 #include <io.h>
 #include <fcntl.h>
 
+/**
+ * @brief If compiled on windows this funktion activates ansi-escape sequences in cmd for windows
+ * on other OS's it writes a warning to cerr
+ */
 void enable_vt_mode() {
+    _setmode(_fileno(stdout), _O_TEXT);
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut == INVALID_HANDLE_VALUE)
         return;
@@ -204,5 +209,9 @@ void enable_vt_mode() {
     if (!SetConsoleMode(hOut, dwMode)) {
         std::cerr << "Warnung: ANSI-Farben werden eventuell nicht unterstützt.\n";
     }
+}
+#else
+void enable_vt_mode() {
+    cerr << "Ether you are not on Windows or something went wrong while compiling" << endl;
 }
 #endif

@@ -17,11 +17,16 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-// Extrahiere Frames aus einer GIF-Datei in ein Ausgabeverzeichnis.
-// Rückgabe: sortierte Liste der erzeugten PNG-Dateien (vollständige Frames).
-// Wenn ImageMagick verfügbar ist, wird "magick ... -coalesce -alpha set PNG32:..." verwendet,
-// damit die resultierenden PNGs RGBA (kein palettiertes/graues PNG) sind.
-// Falls ImageMagick nicht vorhanden ist, wird als Fallback nur die erste Frame via stb_image gespeichert.
+/**
+ * @brief Extrahiere Frames aus einer GIF-Datei in ein Ausgabeverzeichnis.
+ *
+ * @details Wenn ImageMagick verfügbar ist, wird "magick ... -coalesce -alpha set PNG32:..." verwendet,
+ * damit die resultierenden PNGs RGBA (kein palettiertes/graues PNG) sind.
+ * Falls ImageMagick nicht vorhanden ist, wird als Fallback nur die erste Frame via stb_image gespeichert.
+ * @param input_gif Pfad zur Eingabe-GIF-Datei
+ * @param out_dir Pfad zum Ausgabeverzeichnis für die extrahierten Frames
+ * @return Sortierter Vektor mit Pfaden zu den extrahierten PNG-Frames
+*/
 static vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path &out_dir) {
     vector<fs::path> frames;
 
@@ -76,13 +81,22 @@ static vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path
         cerr << "Fehler beim Lesen des Frame-Verzeichnisses: " << e.what() << "\n";
         return frames;
     }
-    sort(frames.begin(), frames.end());
+    ranges::sort(frames);
     return frames;
 }
 
-// Wandelt ein GIF in ASCII um, indem es alle extrahierten PNG-Frames der Reihe nach
-// mit image_to_ascii() verarbeitet. Wenn keep_tmp == false, werden die temporären
-// Frames nach der Verarbeitung gelöscht (Standardverhalten).
+
+/**
+ *@brief Wandelt ein GIF in ASCII um, indem es alle extrahierten PNG-Frames der Reihe nach
+ *mit image_to_ascii() verarbeitet. Wenn keep_tmp == false, werden die temporären
+ *Frames nach der Verarbeitung gelöscht (Standardverhalten).
+ *
+ *@param gif_path Pfad zur Eingabe-GIF-Datei
+ *@param width Gewünschte Breite des ASCII-Ausgabe (in ASCII-Zeichen)
+ *@param ascii_chars Zeichen, die für die ASCII-Darstellung verwendet werden sollen
+ *@param keep_tmp Ob die temporären extrahierten Frames beibehalten werden sollen (standardmäßig false)
+ *@return ASCII-Animation als String
+*/
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
 string gif_to_ascii(const string &gif_path, int width, const string &ascii_chars, bool keep_tmp) {
     fs::path input_gif = gif_path;

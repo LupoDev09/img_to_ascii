@@ -12,11 +12,9 @@ namespace fs = std::filesystem;
 
 int main(int argc, char *argv[]) {
     try {
-#if defined(_WIN32)
-        // Damit UTF-8 und ANSI Farben in der Windows-Konsole funktionieren:
-        _setmode(_fileno(stdout), _O_TEXT);
+        // Damit UTF-8 und ANSI Farben in der Windows-Konsole funktionieren
+        // compiliert auf nicht windows Systemen passiert gar nichts ausser eine warnung in cerr zu schreiben
         enable_vt_mode();
-#endif
         string ascii_chars = "@%#*+=-:. ";
         fs::path image_path;
         fs::path output_path;
@@ -109,4 +107,3 @@ int main(int argc, char *argv[]) {
 
 // TODO: Extract frame delays / disposal info and save as JSON alongside frames.
 // This will allow accurate playback timing later. (Nicht dringend für jetzt.)
-// TODO: Extract those funktions out to a separate gif_utils.cpp/hpp file.
