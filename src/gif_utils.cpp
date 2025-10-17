@@ -98,7 +98,7 @@ static vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path
  *@return ASCII-Animation als String
 */
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
-string gif_to_ascii(const string &gif_path, int width, const string &ascii_chars, bool keep_tmp) {
+string gif_to_ascii(const string &gif_path, int width, const string &ascii_chars, bool keep_tmp, bool colored) {
     fs::path input_gif = gif_path;
     fs::path out_dir = "./tmp_gif_frames"; // temporäres Verzeichnis
 
@@ -116,17 +116,33 @@ string gif_to_ascii(const string &gif_path, int width, const string &ascii_chars
 
     // Erzeuge ASCII für jeden Frame
     string ascii_animation;
-    for (size_t i = 0; i < frames.size(); ++i) {
-        const auto &p = frames[i];
-        try {
-            string ascii_frame = image_to_ascii(p.string(), width, ascii_chars);
-            cout << ascii_frame;
-            if (i + 1 != frames.size()) {
-                cout << "\033[H";
+    if (!colored) {
+        for (size_t i = 0; i < frames.size(); ++i) {
+            const auto &p = frames[i];
+            try {
+                string ascii_frame = image_to_ascii(p.string(), width, ascii_chars);
+                cout << ascii_frame;
+                if (i + 1 != frames.size()) {
+                    cout << "\033[H";
+                }
+                this_thread::sleep_for(std::chrono::milliseconds(100));
+            } catch (const std::exception &e) {
+                cerr << "Warnung: Fehler beim Verarbeiten von " << p << ": " << e.what() << "\n";
             }
-            this_thread::sleep_for(std::chrono::milliseconds(100));
-        } catch (const std::exception &e) {
-            cerr << "Warnung: Fehler beim Verarbeiten von " << p << ": " << e.what() << "\n";
+        }
+    } else {
+        for (size_t i = 0; i < frames.size(); ++i) {
+            const auto &p = frames[i];
+            try {
+                string ascii_frame = image_to_ascii_color(p.string(), width, ascii_chars);
+                cout << ascii_frame;
+                if (i + 1 != frames.size()) {
+                    cout << "\033[H";
+                }
+                this_thread::sleep_for(std::chrono::milliseconds(100));
+            } catch (const std::exception &e) {
+                cerr << "Warnung: Fehler beim Verarbeiten von " << p << ": " << e.what() << "\n";
+            }
         }
     }
 

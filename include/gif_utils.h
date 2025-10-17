@@ -32,5 +32,5 @@ static std::vector<std::filesystem::path> extract_frames(const std::filesystem::
  *@return ASCII-Animation als String
 */
 
-std::string gif_to_ascii(const std::string &gif_path, int width, const std::string &ascii_chars, bool keep_tmp = false);
+std::string gif_to_ascii(const std::string &gif_path, int width, const std::string &ascii_chars, bool keep_tmp = false, bool colored = false);
 #endif //IMG_TO_ASCII_GIF_UTILS_H

@@ -67,6 +67,10 @@ int main(int argc, char *argv[]) {
             throw runtime_error("--ascii darf nicht leer sein! entweder lass es weg oder gib es einen wert");
         }
 
+        if (keep_frames == true && gif == false) {
+            throw runtime_error("--keep-frames funktioniert nur mit --gif");
+        }
+
         // Check if file exists
         if (!fs::exists(image_path)) {
             throw runtime_error("Datei nicht gefunden: " + image_path.string());
@@ -76,7 +80,7 @@ int main(int argc, char *argv[]) {
         string ascii;
         if (gif == true) {
             // gif_to_ascii jetzt mit keep_frames-Option
-            gif_to_ascii(image_path.string(), width, ascii_chars, keep_frames);
+            gif_to_ascii(image_path.string(), width, ascii_chars, keep_frames, colored);
             ascii = ""; // gif_to_ascii gibt die Animation direkt aus
         } else if (colored) {
             ascii = image_to_ascii_color(image_path.string(), width, ascii_chars);
@@ -105,5 +109,6 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-// TODO: Extract frame delays / disposal info and save as JSON alongside frames.
-// This will allow accurate playback timing later. (Nicht dringend für jetzt.)
+// TODO: Extract frame delays / disposal info and save as JSON alongside frames. This will allow accurate playback timing later. (Nice to have.)
+// TODO: Add option to specify output directory for frames instead of using temp directory. (Nice to have.)
+// TODO: Add option to specify custom naming scheme for frames. (Nice to have.)
