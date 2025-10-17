@@ -12,43 +12,58 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-
-string gif_to_ascii(const string &gif_path, int width,
-                        const string &ascii_chars) {
-    fs::path input_gif = gif_path;
-    fs::path out_dir = "./tmp_gif_frames";
-
-    if (!fs::exists(input_gif)) {
-        cerr << "Input file does not exist: " << input_gif << "\n";
-        return "";
-    }
-    fs::create_directories(out_dir);
+void write_frames(const string& out_dir, const fs::path &input_gif) {
+    fs::create_directories(out_dir);                                                                    // Erstellen des Ausgabeverzeichnisses, falls es nicht existiert
 
     // Try ImageMagick `magick` first (coalesce to get full frames)
-    string cmd = "magick " + input_gif.string() + " -coalesce " + (out_dir / "frame_%03d.png").string();
-    int rc = system(cmd.c_str());
+    string cmd = "magick " + input_gif.string() + " -coalesce "+ (out_dir + "/frame_%03d.png");            // Befehl zum Extrahieren der Frames mit ImageMagick, wenn es zur verfügung steht
+    int rc = system(cmd.c_str());                                                                  // Ausführen des Befehls im System
     if (rc == 0) {
         cout << "Frames written to: " << out_dir << " (via ImageMagick)\n";
-        return "";
+        return;
     }
 
     // Fallback: use stb_image to load the first frame and save it as frame_000.png
-    cout << "ImageMagick failed or not installed; falling back to saving first frame via stb_image.\n";
+    cout << "ImageMagick failed or not installed; falling back to saving first frame via stb_image.\n"
+        << "If you want to use ImageMagick, please install it from https://imagemagick.org/script/download.php.\n"
+        << "It's needed to extract all frames from the gif.\n";
     int w,h,n;
-    unsigned char* data = stbi_load(input_gif.string().c_str(), &w, &h, &n, 4); // force RGBA
+    unsigned char* data = stbi_load(input_gif.string().c_str(), &w, &h,
+                        &n, 4);                                                 // force RGBA
     if (!data) {
         cerr << "stbi_load failed: " << stbi_failure_reason() << "\n";
-        return "";
     }
-    fs::path out = out_dir / "frame_000.png";
+    fs::path out = out_dir + "frame_000.png";
     if (!stbi_write_png(out.string().c_str(), w, h, 4, data, w * 4)) {
         cerr << "stbi_write_png failed\n";
         stbi_image_free(data);
-        return "";
     }
     stbi_image_free(data);
     cout << "Wrote first frame to: " << out << "\n";
-    return "";
+}
+
+string gif_to_ascii(const string &gif_path,
+                        int width,
+                        const string &ascii_chars) {
+
+    fs::path input_gif = gif_path;                          // Pfad zur Eingabe-GIF-Datei gegeben als Argument in main als img_path
+    fs::path out_dir = "./tmp_gif_frames";                  // Temporäres Verzeichnis zum Speichern der extrahierten Frames TODO: remove it after use
+
+    if (!fs::exists(input_gif)) {                                                           // Überprüfen, ob die Eingabedatei existiert
+        cerr << "Input file does not exist: "
+        << input_gif << "\n";                                                               // Fehlermeldung und Rückgabe bei nicht existierender Datei
+        return "";
+    }
+    write_frames(out_dir.string(), input_gif);                                        // Aufrufen der Funktion zum Extrahieren der Frames
+    string ascii_animation;                                                                 // String zum Speichern der ASCII-Animation
+    for (const auto &entry : fs::directory_iterator(out_dir)) {                             // Iterieren über die extrahierten Frames im temporären Verzeichnis
+        if (entry.is_regular_file()) {                                                      // Überprüfen, ob der Eintrag eine reguläre Datei ist
+            string frame_path = entry.path().string();                                      // Pfad zur Frame-Datei als String
+            string ascii_frame = image_to_ascii(frame_path, width, ascii_chars);    // Konvertieren des Frames in ASCII-Art
+            ascii_animation += ascii_frame + "\n";                                          // Hinzufügen des ASCII-Frames zur Animation
+        }
+    }
+    return ascii_animation;                                                                 // Rückgabe der vollständigen ASCII-Animation
 }
 
 int main(int argc, char *argv[]) {
