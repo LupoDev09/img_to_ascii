@@ -28,6 +28,8 @@ void print_help() {
 
         << "  -w, --width N                        Breite der ASCII-Ausgabe (Standard: 70)\n"
 
+        << "  --loop N                             Anzahl der Wiederholungen der Ausgabe (Standard: 0 = einmalig)\n"
+
         << "  --ascii CHARS                        Zeichensatz für Helligkeit (Standard: "
             "\"@%#*+=-:. \")\n"
 

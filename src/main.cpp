@@ -22,6 +22,7 @@ int main(int argc, char *argv[]) {
         fs::path tmp_dir;                   // temporäres Verzeichnis für GIF-Frames
         int width = 70;                     // Standardbreite ist 70 Zeichen
         int fps = 1;                        // Standard Frame-Rate für GIFs
+        int loop = 0;                      // Standardmäßig 0 Loop (einmalige ausgabe)
         bool colored = false;               // standardmäßig keine farbige Ausgabe
         bool gif = false;                   // standardmäßig wird nicht davon ausgegangen das der input ein GIF ist
         bool keep_frames = false;           // behalte temporäre Frames standardmäßig nicht
@@ -41,6 +42,12 @@ int main(int argc, char *argv[]) {
                     fps = stoi(argv[++i]);
                 } catch (...) {
                     throw runtime_error("Ungültige Frame-Rate bei --fps");
+                }
+            }else if (arg == "--loop" && i + 1 < argc) {
+                try {
+                    loop = stoi(argv[++i]);
+                } catch (...) {
+                    throw runtime_error("Ungültige Loop-Anzahl bei --loop");
                 }
             }else if ((arg == "-o" || arg == "--output") && i + 1 < argc) {
                 output_path = fs::path(argv[++i]);
@@ -139,16 +146,18 @@ int main(int argc, char *argv[]) {
             throw runtime_error("Datei nicht gefunden: " + image_path.string());
         }
 
-        cout << "Lade: " << image_path << " (Breite: " << width << ", FPS: "<< fps << ")" << endl;
+        cout << "Lade: " << image_path << " (Breite: " << width << ", FPS: "<< fps << ", loops: " << loop << ")" << endl;
         string ascii;
-        if (gif == true) {
-            // gif_to_ascii gibt die Animation direkt aus, also brauchen wir den Rückgabewert nicht
-            gif_to_ascii(image_path.string(), width, ascii_chars, keep_frames, colored, tmp_dir, tmp_frames_naming_scheme, fps);
-        } else if (colored) {
-            ascii = image_to_ascii_color(image_path.string(), width, ascii_chars);
-        } else {
-            ascii = image_to_ascii(image_path.string(), width, ascii_chars);
-        }
+        do {
+            if (gif == true) {
+                // gif_to_ascii gibt die Animation direkt aus, also brauchen wir den Rückgabewert nicht
+                gif_to_ascii(image_path.string(), width, ascii_chars, keep_frames, colored, tmp_dir, tmp_frames_naming_scheme, fps);
+            } else if (colored) {
+                ascii = image_to_ascii_color(image_path.string(), width, ascii_chars);
+            } else {
+                ascii = image_to_ascii(image_path.string(), width, ascii_chars);
+            }
+        } while (loop-- > 0);
 
         if (output_path.empty()) {
             cout << ascii << endl;
@@ -173,5 +182,4 @@ int main(int argc, char *argv[]) {
 
 // TODO: Extract frame delays / disposal info and save as JSON alongside frames. This will allow accurate playback timing later. (Nice to have.)
 // TODO: Try to use a C++ image library to extract GIF frames directly instead of relying on ImageMagick. (Harder :3)
-// TODO: Add option to loop animation a specific number of times. (Nice to have.)
 // TODO: Move some of the processing code into general_utils for better modularity. (Nice to have.)
