@@ -62,6 +62,9 @@ void print_help() {
          << "  Es ist basically Glücksspiel ob das Ding auf Windows Lauft viel glueck :3" << endl;
 }
 
+/**
+ * @brief Konfigurationsstruktur für die Anwendung
+ */
 struct Config {
     string ascii_chars = "@%#*+=-:. ";                      // Standard-Zeichensatz
     string tmp_frames_naming_scheme = "frame_%03d.png";     // Benennungsschema für temporäre GIF-Frames
@@ -76,6 +79,13 @@ struct Config {
     bool keep_frames = false;                               // behalte temporäre Frames standardmäßig nicht
 };
 
+/**
+ * @brief Parst die Kommandozeilenargumente und füllt die Konfigurationsstruktur
+ *
+ * @param argc Anzahl der Argumente
+ * @param argv Array der Argumente
+ * @return Gefüllte Konfigurationsstruktur
+ */
 Config parse_args(int argc, char* argv[]) {
     Config cfg;
 
@@ -114,6 +124,12 @@ Config parse_args(int argc, char* argv[]) {
     return cfg;
 }
 
+/**
+ * @brief Setzt Standardwerte für die Konfigurationsstruktur
+ *
+ * @param cfg Referenz auf die Konfigurationsstruktur
+ * @param exe_path Pfad zur ausführbaren Datei
+ */
 void set_defaults(Config &cfg, const char* exe_path) {
     if (cfg.tmp_dir.empty()) cfg.tmp_dir = "./tmp_gif_frames";
     if (cfg.image_path.empty()) {
@@ -122,6 +138,12 @@ void set_defaults(Config &cfg, const char* exe_path) {
     }
 }
 
+/**
+ * @brief Validiert die Konfigurationsstruktur
+ *
+ * @param cfg Referenz auf die Konfigurationsstruktur
+ * @throws std::runtime_error Bei ungültiger Konfiguration
+ */
 void validate_config(const Config &cfg) {
     if (cfg.ascii_chars.empty())
         throw std::runtime_error("--ascii darf nicht leer sein!");
@@ -153,6 +175,12 @@ void validate_config(const Config &cfg) {
         throw std::runtime_error("--tmp_frames_naming_scheme muss auf .png, .jpg oder .jpeg enden");
 }
 
+/**
+ * @brief Rendert das Bild in ASCII-Art basierend auf der Konfiguration
+ *
+ * @param cfg Referenz auf die Konfigurationsstruktur
+ * @return ASCII-Art als String or in the case of GIFs an empty string because the output is handled directly
+ */
 std::string render_ascii(const Config &cfg) {
     std::string ascii;
     int loops = cfg.loop;
@@ -169,6 +197,12 @@ std::string render_ascii(const Config &cfg) {
     return ascii;
 }
 
+/**
+ * @brief Gibt die ASCII-Art entweder auf der Konsole aus oder schreibt sie in eine Datei
+ *
+ * @param ascii ASCII-Art als String
+ * @param cfg Referenz auf die Konfigurationsstruktur
+ */
 void output_ascii(const std::string &ascii, const Config &cfg) {
     if (cfg.output_path.empty()) {
         std::cout << ascii << std::endl;
