@@ -10,3 +10,5 @@ add_executable(img_to_ascii
         src/gif_utils.cpp
         src/stb_impl.cpp
 )
+
+target_include_directories(img_to_ascii PRIVATE ${CMAKE_SOURCE_DIR}/include)
