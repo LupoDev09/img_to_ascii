@@ -31,5 +31,3 @@ int main(int argc, char *argv[]) {
     cout << "\033[0m" << endl;
     return 0;
 }
-
-// TODO: Try to use a C++ image library to extract GIF frames directly instead of relying on ImageMagick. (Harder OWO)
