@@ -40,6 +40,7 @@ void print_help() {
             "kombinierbar)\n"
 
         << "  --gif                                GIF-Datei als ASCII-Animation verarbeiten\n"
+        << "                                         (benötigt ImageMagick) und unterstuetzt alles an Video vormaten was ImageMagick kann\n"
 
         << "  --fps N                              Frame-Rate für GIF-Animation (Standard: 1 FPS)\n"
 
@@ -53,7 +54,7 @@ void print_help() {
 
          << "\n"
          << "\n"
-         << "Hinweis:\n"
+         << "Hinweise:\n"
          << "  Wenn kein Bildpfad angegeben wird, wird "
             "'Silly_Cat_Character_.jpg' verwendet.\n"
          << "  Für die GIF-Verarbeitung wird ImageMagick benötigt.\n"
@@ -184,6 +185,7 @@ void validate_config(const Config &cfg) {
 std::string render_ascii(const Config &cfg) {
     std::string ascii;
     int loops = cfg.loop;
+    cout << "Generiere ASCII-Art...\n";
     do {
         if (cfg.gif) {
             gif_to_ascii(cfg.image_path.string(), cfg.width, cfg.ascii_chars,

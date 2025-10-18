@@ -4,7 +4,6 @@
 
 #include <filesystem>
 #include <iostream>
-#include <fstream>
 #include <string>
 #include <vector>
 #include <chrono>
@@ -69,6 +68,8 @@ vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path &out_d
         }
         stbi_image_free(data);
         frames.push_back(out);
+    } else {
+        cout << "Frames erfolgreich extrahiert nach: " << out_dir << "\n";
     }
 
     // Sammle nur PNG-Dateien und sortiere sie
