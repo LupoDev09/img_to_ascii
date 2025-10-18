@@ -1,8 +1,6 @@
-CMake*
-cmake*
-Makefile
+build*
 *.cmake
+*.sh
 .idea
 .vs
-out 
-img_to_ascii*
+tmp*
