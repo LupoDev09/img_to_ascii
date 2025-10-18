@@ -40,10 +40,4 @@ std::string image_to_ascii_color(const std::string &filename,
     int output_width = 70,
     const std::string &ascii_chars = "@%#*+=-:. ");
 
-/**
- * @brief If compiled on windows this funktion activates ansi-escape sequences in cmd for windows
- * on other OS's it writes a warning to cerr
- */
-void enable_vt_mode();
-
 #endif //IMG_TO_ASCII_UTILS_H

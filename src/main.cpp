@@ -1,12 +1,9 @@
 //#define STB_IMAGE_WRITE_IMPLEMENTATION  // Implementation wird in stb_impl.cpp bereitgestellt
-#include <filesystem>
 #include <iostream>
 #include <string>
-#include "../include/img_utils.h"
 #include "../include/general_utils.h"
 
 using namespace std;
-namespace fs = std::filesystem;
 
 /**
  * @brief Hauptfunktion der Anwendung
