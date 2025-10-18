@@ -8,7 +8,14 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-
+/**
+ * @brief Hauptfunktion der Anwendung
+ *
+ * @param argc Anzahl der Kommandozeilenargumente
+ * @param argv Array der Kommandozeilenargumente
+ *
+ * @return Rückgabewert (0 bei Erfolg, 1 bei Fehler)
+ */
 int main(int argc, char *argv[]) {
     try {
         enable_vt_mode();
