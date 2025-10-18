@@ -84,7 +84,6 @@ string image_to_ascii(const string &filename, const int output_width, const stri
         }
         ascii += '\n';
     }
-
     stbi_image_free(img);
   return ascii;
 }
@@ -157,7 +156,6 @@ string image_to_ascii_color(const string &filename, const int output_width, cons
         }
         ascii += "\033[0m\n";// Reset am Zeilenende
     }
-
     stbi_image_free(img);
     return ascii;
 }

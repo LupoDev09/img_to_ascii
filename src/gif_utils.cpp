@@ -125,6 +125,7 @@ void gif_to_ascii(const std::string &gif_path, int width, const std::string &asc
         return ;
     }
 
+    std::cout << "\033[?25l";
     // Erzeuge ASCII für jeden Frame
     if (!colored) {
         for (size_t i = 0; i < frames.size(); ++i) {
@@ -155,7 +156,7 @@ void gif_to_ascii(const std::string &gif_path, int width, const std::string &asc
             }
         }
     }
-
+    std::cout << "\033[?25h";
     // Entferne temporäres Verzeichnis falls nicht behalten
     if (!keep_tmp) {
         try {

@@ -198,7 +198,9 @@ std::string render_ascii(const Config &cfg) {
  */
 void output_ascii(const std::string &ascii, const Config &cfg) {
     if (cfg.output_path.empty()) {
+        std::cout << "\033[?25l";
         std::cout << ascii << std::endl;
+        std::cout << "\033[?25h";
     } else {
         std::ofstream out(cfg.output_path);
         if (!out) throw std::runtime_error("Konnte Datei nicht öffnen: " + cfg.output_path.string());
