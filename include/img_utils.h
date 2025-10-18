@@ -7,11 +7,6 @@
 #include <string>
 
 /**
- * @brief Gibt die Hilfe auf der Konsole aus
- */
-void print_help();
-
-/**
  * Wandelt ein Bild in ASCII-Art um.
  *
  * @brief converts a provided img to ascii art
