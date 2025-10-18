@@ -22,9 +22,11 @@ namespace fs = std::filesystem;
  * @details Wenn ImageMagick verfügbar ist, wird "magick ... -coalesce -alpha set PNG32:..." verwendet,
  * damit die resultierenden PNGs RGBA (kein palettiertes/graues PNG) sind.
  * Falls ImageMagick nicht vorhanden ist, wird als Fallback nur die erste Frame via stb_image gespeichert.
+ *
  * @param input_gif Pfad zur Eingabe-GIF-Datei
  * @param out_dir Pfad zum Ausgabeverzeichnis für die extrahierten Frames
  * @param tmp_frames_naming_scheme Benennungsschema für temporäre GIF-Frames
+ *
  * @return Sortierter Vektor mit Pfaden zu den extrahierten PNG-Frames
 */
 vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path &out_dir, const string& tmp_frames_naming_scheme) {
@@ -102,6 +104,7 @@ vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path &out_d
  *@param out_dir Verzeichnis zum Speichern der temporären Frames
  *@param tmp_frames_naming_scheme Benennungsschema für temporäre GIF-Frames
  *@param fps Bildwiederholrate für die Animation (Frames pro Sekunde)
+ *
  *@return ASCII-Animation als String
 */
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.

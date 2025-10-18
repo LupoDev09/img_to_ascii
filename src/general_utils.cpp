@@ -83,6 +83,7 @@ void print_help(const cxxopts::Options& options) {
  *
  * @param argc Anzahl der Argumente
  * @param argv Array der Argumente
+ *
  * @return Gefüllte Konfigurationsstruktur
  */
 Config parse_args(int argc, char* argv[]) {
@@ -131,6 +132,7 @@ void set_defaults(Config &cfg, const char* exe_path) {
  * @brief Validiert die Konfigurationsstruktur
  *
  * @param cfg Referenz auf die Konfigurationsstruktur
+ *
  * @throws std::runtime_error Bei ungültiger Konfiguration
  */
 void validate_config(const Config &cfg) {
@@ -168,6 +170,7 @@ void validate_config(const Config &cfg) {
  * @brief Rendert das Bild in ASCII-Art basierend auf der Konfiguration
  *
  * @param cfg Referenz auf die Konfigurationsstruktur
+ *
  * @return ASCII-Art als String or in the case of GIFs an empty string because the output is handled directly
  */
 std::string render_ascii(const Config &cfg) {
