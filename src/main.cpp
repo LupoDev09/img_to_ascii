@@ -20,17 +20,16 @@ int main(int argc, char *argv[]) {
         set_defaults(cfg, argv[0]);
         validate_config(cfg);
 
-        std::string ascii = render_ascii(cfg);
+        const string ascii = render_ascii(cfg);
         output_ascii(ascii, cfg);
 
-    } catch (const std::exception &e) {
-        std::cerr << e.what() << "\n";
-        std::cout << "\033[0m" << std::endl;
+    } catch (const exception &e) {
+        cerr << e.what() << "\n";
+        cout << "\033[0m" << endl;
         return 1;
     }
-    std::cout << "\033[0m" << std::endl;
+    cout << "\033[0m" << endl;
     return 0;
 }
 
-// TODO: Extract frame delays / disposal info and save as JSON alongside frames. This will allow accurate playback timing later. (Nice to have.)
 // TODO: Try to use a C++ image library to extract GIF frames directly instead of relying on ImageMagick. (Harder OWO)

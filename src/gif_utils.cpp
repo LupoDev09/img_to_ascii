@@ -2,12 +2,12 @@
 // Created by lupo on 17.10.25.
 //
 
-#include <filesystem>
+#include <fstream>
 #include <iostream>
-#include <string>
 #include <vector>
-#include <chrono>
-#include <algorithm>
+#include <string>
+#include <stdexcept>
+#include <filesystem>
 #include "../include/img_utils.h"
 #include "../include/stb_image_write.h"
 #include "../include/stb_image.h"
@@ -17,79 +17,54 @@ using namespace std;
 namespace fs = std::filesystem;
 
 /**
- * @brief Extrahiere Frames aus einer GIF-Datei in ein Ausgabeverzeichnis.
+ *@brief Decodes a GIF file into individual PNG frames saved in the specified output directory.
  *
- * @details Wenn ImageMagick verfügbar ist, wird "magick ... -coalesce -alpha set PNG32:..." verwendet,
- * damit die resultierenden PNGs RGBA (kein palettiertes/graues PNG) sind.
- * Falls ImageMagick nicht vorhanden ist, wird als Fallback nur die erste Frame via stb_image gespeichert.
+ *@param gif_path Path to the input GIF file.
+ *@param out_dir Directory where extracted PNG frames will be saved.
+ *@param tmp_frames_naming_scheme Naming scheme for temporary GIF frames (e.g., "frame_%03d.png").
  *
- * @param input_gif Pfad zur Eingabe-GIF-Datei
- * @param out_dir Pfad zum Ausgabeverzeichnis für die extrahierten Frames
- * @param tmp_frames_naming_scheme Benennungsschema für temporäre GIF-Frames
- *
- * @return Sortierter Vektor mit Pfaden zu den extrahierten PNG-Frames
+ *@throws std::runtime_error If the GIF cannot be loaded or if file operations fail.
 */
-vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path &out_dir, const string& tmp_frames_naming_scheme) {
-    vector<fs::path> frames;
+void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, const std::string& tmp_frames_naming_scheme) {
+    int width, height, frames, channels;
+    int *delays = nullptr;
 
-    // Entferne altes temporäres Verzeichnis, damit keine alten Frames vorhanden sind
-    try {
-        if (fs::exists(out_dir)) {
-            fs::remove_all(out_dir);
-        }
-    } catch (const std::exception &e) {
-        cerr << "Warnung: Konnte temporäres Verzeichnis nicht löschen: " << e.what() << "\n";
+    // Datei einlesen
+    std::ifstream file(gif_path, std::ios::binary | std::ios::ate);
+    if (!file.is_open())
+        throw std::runtime_error("Konnte Datei nicht öffnen: " + gif_path);
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+    std::vector<unsigned char> buffer(size);
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), size))
+        throw std::runtime_error("Fehler beim Lesen der Datei");
+
+    // stb_image liefert flachen RGBA-Buffer für alle Frames
+    unsigned char *frames_data = stbi_load_gif_from_memory(
+        buffer.data(), static_cast<int>(size),
+        &delays, &width, &height, &frames, &channels, 4
+    );
+
+    if (!frames_data)
+        throw std::runtime_error("GIF konnte nicht geladen werden: " + std::string(stbi_failure_reason()));
+
+    fs::create_directories(out_dir);
+
+    size_t frame_size = width * height * 4; // RGBA
+    for (int i = 0; i < frames; ++i) {
+        const unsigned char *frame_ptr = frames_data + (i * frame_size);
+
+        char filename[128];
+        snprintf(filename, sizeof(filename), tmp_frames_naming_scheme.c_str(), i);
+        std::string frame_path = (out_dir / filename).string();
+
+        stbi_write_png(frame_path.c_str(), width, height, 4, frame_ptr, width * 4);
+        std::cout << "Gespeichert: " << frame_path << " (Delay: " << delays[i] << "ms)\n";
     }
 
-    // Erstelle Ausgabeverzeichnis
-    try {
-        fs::create_directories(out_dir);
-    } catch (const std::exception &e) {
-        cerr << "Fehler: Konnte Ausgabeverzeichnis nicht erstellen: " << e.what() << "\n";
-        return frames;
-    }
-
-    // ImageMagick-Aufruf: -coalesce sorgt für vollständige (composited) Frames,
-    // PNG32: erzwingt RGBA-Ausgabe (vermeidet palettierte/greyscale PNGs)
-    const string cmd = "magick \"" + input_gif.string() + "\" -coalesce -alpha set PNG32:\"" + out_dir.string() + "/" + tmp_frames_naming_scheme + "\"";
-    int rc = system(cmd.c_str());
-    if (rc != 0) {
-        // Fallback: nur erste Frame via stb_image
-        cout << "ImageMagick fehlgeschlagen oder nicht installiert; speichere als Fallback nur die erste Frame via stb_image.\n";
-        int w,h,n;
-        unsigned char* data = stbi_load(input_gif.string().c_str(), &w, &h, &n, 4); // force RGBA
-        if (!data) {
-            cerr << "stbi_load failed: " << stbi_failure_reason() << "\n";
-            return frames;
-        }
-        fs::path out = out_dir / "frame_000.png";
-        if (!stbi_write_png(out.string().c_str(), w, h, 4, data, w * 4)) {
-            cerr << "stbi_write_png failed\n";
-            stbi_image_free(data);
-            return frames;
-        }
-        stbi_image_free(data);
-        frames.push_back(out);
-    } else {
-        cout << "Frames erfolgreich extrahiert nach: " << out_dir << "\n";
-    }
-
-    // Sammle nur PNG-Dateien und sortiere sie
-    try {
-        for (const auto &entry : fs::directory_iterator(out_dir)) {
-            if (!entry.is_regular_file()) continue;
-            auto ext = entry.path().extension().string();
-            for (auto &c : ext) c = static_cast<char>(std::tolower(c));
-            if (ext == ".png") frames.push_back(entry.path());
-        }
-    } catch (const std::exception &e) {
-        cerr << "Fehler beim Lesen des Frame-Verzeichnisses: " << e.what() << "\n";
-        return frames;
-    }
-    ranges::sort(frames);
-    return frames;
+    stbi_image_free(frames_data);
+    delete[] delays;
 }
-
 
 /**
  *@brief Wandelt ein GIF in ASCII um, indem es alle extrahierten PNG-Frames der Reihe nach
@@ -119,41 +94,23 @@ void gif_to_ascii(const std::string &gif_path, int width, const std::string &asc
     }
 
     // Extrahiere Frames (ImageMagick oder Fallback)
-    const vector<fs::path> frames = extract_frames(input_gif, out_dir, tmp_frames_naming_scheme);
-    if (frames.empty()) {
-        cerr << "Keine Frames gefunden oder Fehler bei der Extraktion.\n";
-        return ;
-    }
+    decode_gif_to_frames(input_gif, out_dir, tmp_frames_naming_scheme);
 
     std::cout << "\033[?25l";
     // Erzeuge ASCII für jeden Frame
     if (!colored) {
-        for (size_t i = 0; i < frames.size(); ++i) {
-            const auto &p = frames[i];
-            try {
-                string ascii_frame = image_to_ascii(p.string(), width, ascii_chars);
-                cout << ascii_frame;
-                if (i + 1 != frames.size()) {
-                    cout << "\033[H";
-                }
-                this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
-            } catch (const std::exception &e) {
-                cerr << "Warnung: Fehler beim Verarbeiten von " << p << ": " << e.what() << "\n";
-            }
+        for (auto &f : fs::directory_iterator(out_dir.string())) {
+            cout << "\033[H"; // Cursor an den Anfang setzen
+            std::string ascii = image_to_ascii(f.path().string());
+            std::cout << ascii << std::endl;
+            this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
         }
     } else {
-        for (size_t i = 0; i < frames.size(); ++i) {
-            const auto &p = frames[i];
-            try {
-                string ascii_frame = image_to_ascii_color(p.string(), width, ascii_chars);
-                cout << ascii_frame;
-                if (i + 1 != frames.size()) {
-                    cout << "\033[H";
-                }
-                this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
-            } catch (const std::exception &e) {
-                cerr << "Warnung: Fehler beim Verarbeiten von " << p << ": " << e.what() << "\n";
-            }
+        for (auto &f : fs::directory_iterator(out_dir.string())) {
+            cout << "\033[H"; // Cursor an den Anfang setzen
+            std::string ascii = image_to_ascii_color(f.path().string(), width, ascii_chars);
+            std::cout << ascii << std::endl;
+            this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
         }
     }
     std::cout << "\033[?25h";

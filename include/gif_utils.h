@@ -9,19 +9,6 @@
 #include <vector>
 
 /**
- * @brief Extrahiere Frames aus einer GIF-Datei in ein Ausgabeverzeichnis.
- *
- * @details Wenn ImageMagick verfügbar ist, wird "magick ... -coalesce -alpha set PNG32:..." verwendet,
- * damit die resultierenden PNGs RGBA (kein palettiertes/graues PNG) sind.
- * Falls ImageMagick nicht vorhanden ist, wird als Fallback nur die erste Frame via stb_image gespeichert.
- * @param input_gif Pfad zur Eingabe-GIF-Datei
- * @param out_dir Pfad zum Ausgabeverzeichnis für die extrahierten Frames
- * @param tmp_frames_naming_scheme Benennungsschema für temporäre GIF-Frames
- * @return Sortierter Vektor mit Pfaden zu den extrahierten PNG-Frames
-*/
-std::vector<std::filesystem::path> extract_frames(const std::filesystem::path &input_gif, const std::filesystem::path &out_dir, const std::string& tmp_frames_naming_scheme = "frame_%03d.png");
-
-/**
  *@brief Wandelt ein GIF in ASCII um, indem es alle extrahierten PNG-Frames der Reihe nach
  *mit image_to_ascii() verarbeitet. Wenn keep_tmp == false, werden die temporären
  *Frames nach der Verarbeitung gelöscht (Standardverhalten).

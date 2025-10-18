@@ -160,5 +160,3 @@ string image_to_ascii_color(const string &filename, const int output_width, cons
     return ascii;
 }
 
-
-
