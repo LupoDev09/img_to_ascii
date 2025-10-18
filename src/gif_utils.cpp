@@ -100,12 +100,14 @@ vector<fs::path> extract_frames(const fs::path &input_gif, const fs::path &out_d
  *@param colored Ob die ASCII-Ausgabe in Farbe erfolgen soll
  *@param out_dir Verzeichnis zum Speichern der temporären Frames
  *@param tmp_frames_naming_scheme Benennungsschema für temporäre GIF-Frames
+ *@param fps Bildwiederholrate für die Animation (Frames pro Sekunde)
  *@return ASCII-Animation als String
 */
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
 void gif_to_ascii(const std::string &gif_path, int width, const std::string &ascii_chars, bool keep_tmp, bool colored,
     std::filesystem::path out_dir, const std::string& tmp_frames_naming_scheme, int fps) {
     const fs::path input_gif = gif_path;
+    int delay_ms = 1000 / fps;
 
     if (!fs::exists(input_gif)) {
         cerr << "Input file does not exist: " << input_gif << "\n";
@@ -129,7 +131,7 @@ void gif_to_ascii(const std::string &gif_path, int width, const std::string &asc
                 if (i + 1 != frames.size()) {
                     cout << "\033[H";
                 }
-                this_thread::sleep_for(std::chrono::seconds(fps));
+                this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
             } catch (const std::exception &e) {
                 cerr << "Warnung: Fehler beim Verarbeiten von " << p << ": " << e.what() << "\n";
             }
@@ -143,7 +145,7 @@ void gif_to_ascii(const std::string &gif_path, int width, const std::string &asc
                 if (i + 1 != frames.size()) {
                     cout << "\033[H";
                 }
-                this_thread::sleep_for(std::chrono::milliseconds(100));
+                this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
             } catch (const std::exception &e) {
                 cerr << "Warnung: Fehler beim Verarbeiten von " << p << ": " << e.what() << "\n";
             }
