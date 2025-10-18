@@ -5,10 +5,13 @@
 #ifndef IMG_TO_ASCII_GENERAL_UTILS_H
 #define IMG_TO_ASCII_GENERAL_UTILS_H
 
+#include "cxxopts.hpp"
+
 /**
  * @brief Gibt die Hilfe auf der Konsole aus
+ * @param options cxxopts::Options Objekt mit den definierten Optionen
  */
-void print_help();
+void print_help(const cxxopts::Options& options);
 
 /**
  * @brief Konfigurationsstruktur für die Anwendung

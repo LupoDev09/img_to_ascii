@@ -10,58 +10,11 @@
 #include <regex>
 #include "../include/img_utils.h"
 #include "../include/gif_utils.h"
+#include "../include/cxxopts.hpp"
 
 using namespace std;
 namespace fs = std::filesystem;
 
-
-/**
- * @brief Gibt die Hilfe auf der Konsole aus
- */
-void print_help() {
-    cout << "Usage:\n"
-         << "  img_to_ascii --img <Path_to_img> [options]\n\n"
-         << "Options:\n"
-
-        << "  -h, --help                           Zeigt diese Hilfe an\n"
-
-        << "  --img PATH                           Pfad zum Eingabebild (Standard: './Silly_Cat_Character_.jpg')\n"
-
-        << "  -w, --width N                        Breite der ASCII-Ausgabe (Standard: 70)\n"
-
-        << "  --loop N                             Anzahl der Wiederholungen der Ausgabe (Standard: 0 = einmalig)\n"
-
-        << "  --ascii CHARS                        Zeichensatz für Helligkeit (Standard: "
-            "\"@%#*+=-:. \")\n"
-
-        << "  -o, --output PATH                    Ausgabe in Datei speichern\n"
-
-        << "  --colored                            Farbausgabe im Terminal (nicht mit --output "
-            "kombinierbar)\n"
-
-        << "  --gif                                GIF-Datei als ASCII-Animation verarbeiten\n"
-        << "                                         (benötigt ImageMagick) und unterstuetzt alles an Video vormaten was ImageMagick kann\n"
-
-        << "  --fps N                              Frame-Rate für GIF-Animation (Standard: 1 FPS)\n"
-
-        << "  --keep-frames                        Temporäre extrahierte Frames bei GIF-Verarbeitung "
-            "behalten\n"
-
-        << "  --tmp_dir PATH                       Verzeichnis für temporäre GIF-Frames (Standard: "
-            "'./tmp_gif_frames')\n"
-
-        << "  --tmp_frames_naming_scheme SCHEME    Benennungsschema für temporäre GIF-Frames (derzeit nicht implementiert)\n"
-
-         << "\n"
-         << "\n"
-         << "Hinweise:\n"
-         << "  Wenn kein Bildpfad angegeben wird, wird "
-            "'Silly_Cat_Character_.jpg' verwendet.\n"
-         << "  Für die GIF-Verarbeitung wird ImageMagick benötigt.\n"
-         << "  ANSI-Farben werden nur in Terminals unterstützt, die "
-            "ANSI-Escape-Sequenzen verstehen.\n"
-         << "  Es ist basically Glücksspiel ob das Ding auf Windows Lauft viel glueck :3" << endl;
-}
 
 /**
  * @brief Konfigurationsstruktur für die Anwendung
@@ -81,6 +34,51 @@ struct Config {
 };
 
 /**
+ * @brief Setzt die Kommandozeilenoptionen mit cxxopts
+ *
+ * @return cxxopts::Options Objekt mit den definierten Optionen
+ */
+cxxopts::Options setup_options() {
+    cxxopts::Options options("img_to_ascii", "Konvertiert Bilder oder GIFs zu ASCII-Art");
+
+    options.add_options()
+        ("h,help", "Zeigt diese Hilfe an")
+        ("img", "Pfad zum Eingabebild oder GIF", cxxopts::value<std::string>())
+        ("w,width", "Breite der ASCII-Ausgabe (Standard: 70)", cxxopts::value<int>())
+        ("fps", "Frame-Rate für GIF-Animation (Standard: 1 FPS)", cxxopts::value<int>())
+        ("loop", "Anzahl der Wiederholungen (Standard: 0 = einmalig)", cxxopts::value<int>())
+        ("ascii", "ASCII-Zeichensatz (Standard: '@%#*+=-:. ')", cxxopts::value<std::string>())
+        ("o,output", "Pfad zur Ausgabedatei", cxxopts::value<std::string>())
+        ("colored", "Aktiviere farbige ASCII-Ausgabe", cxxopts::value<bool>()->default_value("false"))
+        ("gif", "Behandle Eingabe als GIF oder Video (benötigt ImageMagick)", cxxopts::value<bool>()->default_value("false"))
+        ("keep-frames", "Behalte temporäre Frames", cxxopts::value<bool>()->default_value("false"))
+        ("tmp_dir", "Temporäres Verzeichnis für GIF-Frames", cxxopts::value<std::string>())
+        ("tmp_frames_naming_scheme", "Benennungsschema für GIF-Frames", cxxopts::value<std::string>());
+
+    return options;
+}
+
+/**
+ * @brief Gibt die Hilfe auf der Konsole aus
+ * @param options cxxopts::Options Objekt mit den definierten Optionen
+ */
+void print_help(const cxxopts::Options& options) {
+    std::cout << "Usage:\n"
+              << "  img_to_ascii --img <Pfad_zum_Bild> [Optionen]\n\n";
+
+    // Automatisch generierter Hilfetext von cxxopts
+    std::cout << options.help() << "\n";
+
+    // Zusätzliche Hinweise
+    std::cout << "Hinweise:\n"
+              << "  • Wenn kein Bildpfad angegeben wird, wird 'Silly_Cat_Character_.jpg' verwendet.\n"
+              << "  • Für GIF- oder Video-Verarbeitung wird ImageMagick benötigt.\n"
+              << "  • ANSI-Farben funktionieren nur in Terminals, die Escape-Sequenzen verstehen.\n"
+              << "  • Es ist basically Glücksspiel, ob das Ding auf Windows läuft - viel Glück :3\n"
+              << std::endl;
+}
+
+/**
  * @brief Parst die Kommandozeilenargumente und füllt die Konfigurationsstruktur
  *
  * @param argc Anzahl der Argumente
@@ -88,39 +86,29 @@ struct Config {
  * @return Gefüllte Konfigurationsstruktur
  */
 Config parse_args(int argc, char* argv[]) {
+    auto options = setup_options();
+    auto result = options.parse(argc, argv);
+
+    if (result.count("help")) {
+        print_help(options);
+        std::exit(0);
+    }
+
     Config cfg;
 
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if ((arg == "-w" || arg == "--width") && i + 1 < argc) {
-            cfg.width = std::stoi(argv[++i]);
-        } else if (arg == "--fps" && i + 1 < argc) {
-            cfg.fps = std::stoi(argv[++i]);
-        } else if (arg == "--loop" && i + 1 < argc) {
-            cfg.loop = std::stoi(argv[++i]);
-        } else if ((arg == "-o" || arg == "--output") && i + 1 < argc) {
-            cfg.output_path = argv[++i];
-        } else if (arg == "--ascii" && i + 1 < argc) {
-            cfg.ascii_chars = argv[++i];
-        } else if (arg == "--colored") {
-            cfg.colored = true;
-        } else if (arg == "--gif") {
-            cfg.gif = true;
-        } else if (arg == "--keep-frames") {
-            cfg.keep_frames = true;
-        } else if (arg == "--tmp_dir" && i + 1 < argc) {
-            cfg.tmp_dir = argv[++i];
-        } else if (arg == "--tmp_frames_naming_scheme" && i + 1 < argc) {
-            cfg.tmp_frames_naming_scheme = argv[++i];
-        } else if (arg == "--img" && i + 1 < argc) {
-            cfg.image_path = argv[++i];
-        } else if (arg == "-h" || arg == "--help") {
-            print_help();
-            std::exit(0);
-        } else {
-            std::cerr << "Unbekanntes Argument: " << arg << "\n";
-        }
-    }
+    if (result.count("width")) cfg.width = result["width"].as<int>();
+    if (result.count("fps")) cfg.fps = result["fps"].as<int>();
+    if (result.count("loop")) cfg.loop = result["loop"].as<int>();
+    if (result.count("ascii")) cfg.ascii_chars = result["ascii"].as<std::string>();
+    if (result.count("output")) cfg.output_path = result["output"].as<std::string>();
+    if (result.count("img")) cfg.image_path = result["img"].as<std::string>();
+    if (result.count("tmp_dir")) cfg.tmp_dir = result["tmp_dir"].as<std::string>();
+    if (result.count("tmp_frames_naming_scheme"))
+        cfg.tmp_frames_naming_scheme = result["tmp_frames_naming_scheme"].as<std::string>();
+
+    cfg.colored = result["colored"].as<bool>();
+    cfg.gif = result["gif"].as<bool>();
+    cfg.keep_frames = result["keep-frames"].as<bool>();
 
     return cfg;
 }

@@ -21,7 +21,6 @@ int main(int argc, char *argv[]) {
 
     } catch (const std::exception &e) {
         std::cerr << e.what() << "\n";
-        print_help();
         std::cout << "\033[0m" << std::endl;
         return 1;
     }
@@ -31,4 +30,3 @@ int main(int argc, char *argv[]) {
 
 // TODO: Extract frame delays / disposal info and save as JSON alongside frames. This will allow accurate playback timing later. (Nice to have.)
 // TODO: Try to use a C++ image library to extract GIF frames directly instead of relying on ImageMagick. (Harder OWO)
-// TODO: Add an flag-parsing library for better argument handling. (Nice to have.)
