@@ -30,14 +30,14 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
     int *delays = nullptr;
 
     // Datei einlesen
-    std::ifstream file(gif_path, std::ios::binary | std::ios::ate);
+    ifstream file(gif_path, ios::binary | ios::ate);
     if (!file.is_open())
-        throw std::runtime_error("Konnte Datei nicht öffnen: " + gif_path);
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
-    std::vector<unsigned char> buffer(size);
+        throw runtime_error("Konnte Datei nicht öffnen: " + gif_path);
+    streamsize size = file.tellg();
+    file.seekg(0, ios::beg);
+    vector<unsigned char> buffer(static_cast<unsigned long>(size));
     if (!file.read(reinterpret_cast<char*>(buffer.data()), size))
-        throw std::runtime_error("Fehler beim Lesen der Datei");
+        throw runtime_error("Fehler beim Lesen der Datei");
 
     // stb_image liefert flachen RGBA-Buffer für alle Frames
     unsigned char *frames_data = stbi_load_gif_from_memory(
@@ -46,20 +46,20 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
     );
 
     if (!frames_data)
-        throw std::runtime_error("GIF konnte nicht geladen werden: " + std::string(stbi_failure_reason()));
+        throw runtime_error("GIF konnte nicht geladen werden: " + string(stbi_failure_reason()));
 
     fs::create_directories(out_dir);
 
-    size_t frame_size = width * height * 4; // RGBA
+    size_t frame_size = static_cast<size_t>(width * height * 4); // RGBA
     for (int i = 0; i < frames; ++i) {
-        const unsigned char *frame_ptr = frames_data + (i * frame_size);
+        const unsigned char *frame_ptr = frames_data + (static_cast<size_t>(i) * frame_size);
 
         char filename[128];
         snprintf(filename, sizeof(filename), tmp_frames_naming_scheme.c_str(), i);
-        std::string frame_path = (out_dir / filename).string();
+        string frame_path = (out_dir / filename).string();
 
         stbi_write_png(frame_path.c_str(), width, height, 4, frame_ptr, width * 4);
-        std::cout << "Gespeichert: " << frame_path << " (Delay: " << delays[i] << "ms)\n";
+        cout << "Gespeichert: " << frame_path << " (Delay: " << delays[i] << "ms)\n";
     }
 
     stbi_image_free(frames_data);
@@ -84,7 +84,7 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
 */
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
 void gif_to_ascii(const std::string &gif_path, int width, const std::string &ascii_chars, bool keep_tmp, bool colored,
-    std::filesystem::path out_dir, const std::string& tmp_frames_naming_scheme, int fps) {
+    const std::filesystem::path &out_dir, const std::string& tmp_frames_naming_scheme, int fps) {
     const fs::path input_gif = gif_path;
     int delay_ms = 1000 / fps;
 
@@ -96,29 +96,29 @@ void gif_to_ascii(const std::string &gif_path, int width, const std::string &asc
     // Extrahiere Frames (ImageMagick oder Fallback)
     decode_gif_to_frames(input_gif, out_dir, tmp_frames_naming_scheme);
 
-    std::cout << "\033[?25l";
+    cout << "\033[?25l";
     // Erzeuge ASCII für jeden Frame
     if (!colored) {
         for (auto &f : fs::directory_iterator(out_dir.string())) {
             cout << "\033[H"; // Cursor an den Anfang setzen
-            std::string ascii = image_to_ascii(f.path().string());
-            std::cout << ascii << std::endl;
-            this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+            string ascii = image_to_ascii(f.path().string());
+            cout << ascii << endl;
+            this_thread::sleep_for(chrono::milliseconds(delay_ms));
         }
     } else {
         for (auto &f : fs::directory_iterator(out_dir.string())) {
             cout << "\033[H"; // Cursor an den Anfang setzen
-            std::string ascii = image_to_ascii_color(f.path().string(), width, ascii_chars);
-            std::cout << ascii << std::endl;
-            this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+            string ascii = image_to_ascii_color(f.path().string(), width, ascii_chars);
+            cout << ascii << endl;
+            this_thread::sleep_for(chrono::milliseconds(delay_ms));
         }
     }
-    std::cout << "\033[?25h";
+    cout << "\033[?25h";
     // Entferne temporäres Verzeichnis falls nicht behalten
     if (!keep_tmp) {
         try {
             fs::remove_all(out_dir);
-        } catch (const std::exception &e) {
+        } catch (const exception &e) {
             cerr << "Warnung: Konnte temporäre Frames nicht löschen: " << e.what() << "\n";
         }
     } else {
