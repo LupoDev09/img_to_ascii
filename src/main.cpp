@@ -31,4 +31,3 @@ int main(int argc, char *argv[]) {
 
 // TODO: Extract frame delays / disposal info and save as JSON alongside frames. This will allow accurate playback timing later. (Nice to have.)
 // TODO: Try to use a C++ image library to extract GIF frames directly instead of relying on ImageMagick. (Harder :3)
-// TODO: Add Comments to the funktions in general_utils.h (Nice to have.)
