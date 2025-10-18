@@ -33,6 +33,7 @@ std::vector<std::filesystem::path> extract_frames(const std::filesystem::path &i
  *@param colored Ob die ASCII-Ausgabe in Farbe erfolgen soll
  *@param out_dir Verzeichnis zum Speichern der temporären Frames
  *@param tmp_frames_naming_scheme Benennungsschema für temporäre GIF-Frames
+ *@param fps Frame-Rate für die Anzeige der ASCII-Animation (in Frames pro Sekunde)
  *@return ASCII-Animation als String
 */
 
