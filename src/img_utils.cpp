@@ -21,20 +21,33 @@ void print_help() {
     cout << "Usage:\n"
          << "  img_to_ascii --img <Path_to_img> [options]\n\n"
          << "Options:\n"
-         << "  -h, --help                           Zeigt diese Hilfe an\n"
-         << "  --img PATH                           Pfad zum Eingabebild (Standard: './Silly_Cat_Character_.jpg')\n"
-         << "  -w, --width N                        Breite der ASCII-Ausgabe (Standard: 70)\n"
-         << "  --ascii CHARS                        Zeichensatz für Helligkeit (Standard: "
+
+        << "  -h, --help                           Zeigt diese Hilfe an\n"
+
+        << "  --img PATH                           Pfad zum Eingabebild (Standard: './Silly_Cat_Character_.jpg')\n"
+
+        << "  -w, --width N                        Breite der ASCII-Ausgabe (Standard: 70)\n"
+
+        << "  --ascii CHARS                        Zeichensatz für Helligkeit (Standard: "
             "\"@%#*+=-:. \")\n"
-         << "  -o, --output PATH                    Ausgabe in Datei speichern\n"
-         << "  --colored                            Farbausgabe im Terminal (nicht mit --output "
+
+        << "  -o, --output PATH                    Ausgabe in Datei speichern\n"
+
+        << "  --colored                            Farbausgabe im Terminal (nicht mit --output "
             "kombinierbar)\n"
-         << "  --gif                                GIF-Datei als ASCII-Animation verarbeiten\n"
-         << "  --keep-frames                        Temporäre extrahierte Frames bei GIF-Verarbeitung "
+
+        << "  --gif                                GIF-Datei als ASCII-Animation verarbeiten\n"
+
+        << "  --fps N                              Frame-Rate für GIF-Animation (Standard: 1 FPS)\n"
+
+        << "  --keep-frames                        Temporäre extrahierte Frames bei GIF-Verarbeitung "
             "behalten\n"
-         << "  --tmp_dir PATH                       Verzeichnis für temporäre GIF-Frames (Standard: "
+
+        << "  --tmp_dir PATH                       Verzeichnis für temporäre GIF-Frames (Standard: "
             "'./tmp_gif_frames')\n"
-         << "  --tmp_frames_naming_scheme SCHEME    Benennungsschema für temporäre GIF-Frames (derzeit nicht implementiert)\n"
+
+        << "  --tmp_frames_naming_scheme SCHEME    Benennungsschema für temporäre GIF-Frames (derzeit nicht implementiert)\n"
+
          << "\n"
          << "\n"
          << "Hinweis:\n"

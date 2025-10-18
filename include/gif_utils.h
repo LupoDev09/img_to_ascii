@@ -43,5 +43,6 @@ void gif_to_ascii(
     bool keep_tmp = false,
     bool colored = false,
     std::filesystem::path out_dir = "./tmp_gif_frames",
-    const std::string& tmp_frames_naming_scheme = "frame_%03d.png");
+    const std::string& tmp_frames_naming_scheme = "frame_%03d.png",
+    int fps = 1);
 #endif //IMG_TO_ASCII_GIF_UTILS_H

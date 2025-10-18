@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) {
         fs::path output_path;               // Ausgabe-Dateipfad wenn man --output benutzt
         fs::path tmp_dir;                   // temporäres Verzeichnis für GIF-Frames
         int width = 70;                     // Standardbreite ist 70 Zeichen
+        int fps = 1;                        // Standard Frame-Rate für GIFs
         bool colored = false;               // standardmäßig keine farbige Ausgabe
         bool gif = false;                   // standardmäßig wird nicht davon ausgegangen das der input ein GIF ist
         bool keep_frames = false;           // behalte temporäre Frames standardmäßig nicht
@@ -35,7 +36,13 @@ int main(int argc, char *argv[]) {
                 } catch (...) {
                     throw runtime_error("Ungültige Breite bei -w");
                 }
-            } else if ((arg == "-o" || arg == "--output") && i + 1 < argc) {
+            } else if (arg == "--fps" && i + 1 < argc) {
+                try {
+                    fps = stoi(argv[++i]);
+                } catch (...) {
+                    throw runtime_error("Ungültige Frame-Rate bei --fps");
+                }
+            }else if ((arg == "-o" || arg == "--output") && i + 1 < argc) {
                 output_path = fs::path(argv[++i]);
             } else if (arg == "--ascii" && i + 1 < argc) {
                 ascii_chars = argv[++i];
@@ -52,7 +59,7 @@ int main(int argc, char *argv[]) {
                 return 0;
             } else if (arg == "--tmp_frames_naming_scheme" && i + 1 < argc) {
                 tmp_frames_naming_scheme = argv[++i];
-            } else if (arg == "--img") {
+            }else if (arg == "--img") {
                 image_path = argv[++i];
             } else {
                 cerr << "Unbekanntes Argument: " << arg << endl;
@@ -107,16 +114,36 @@ int main(int argc, char *argv[]) {
             throw runtime_error("--keep-frames funktioniert nur mit --gif");
         }
 
+        if (fps <= 0) {
+            throw runtime_error("Frame-Rate muss größer als 0 sein");
+        }
+
+        if (fps != 1 && gif == false) {
+            throw runtime_error("--fps funktioniert nur mit --gif");
+        }
+
+        if (width <= 0) {
+            throw runtime_error("Breite muss größer als 0 sein");
+        }
+
+        if (width > 300) {
+            cerr << "Warnung: Breite ist sehr groß (>300). Dies könnte zu Problemen in der Anzeige führen." << endl;
+        }
+
+        if (width < 10) {
+            cerr << "Warnung: Breite ist sehr klein (<10). Die Ausgabe könnte unleserlich sein." << endl;
+        }
+
         // Check if file exists
         if (!fs::exists(image_path)) {
             throw runtime_error("Datei nicht gefunden: " + image_path.string());
         }
 
-        cout << "Lade: " << image_path << " (Breite: " << width << ")" << endl;
+        cout << "Lade: " << image_path << " (Breite: " << width << ", FPS: "<< fps << ")" << endl;
         string ascii;
         if (gif == true) {
             // gif_to_ascii gibt die Animation direkt aus, also brauchen wir den Rückgabewert nicht
-            gif_to_ascii(image_path.string(), width, ascii_chars, keep_frames, colored, tmp_dir, tmp_frames_naming_scheme);
+            gif_to_ascii(image_path.string(), width, ascii_chars, keep_frames, colored, tmp_dir, tmp_frames_naming_scheme, fps);
         } else if (colored) {
             ascii = image_to_ascii_color(image_path.string(), width, ascii_chars);
         } else {
@@ -145,4 +172,6 @@ int main(int argc, char *argv[]) {
 }
 
 // TODO: Extract frame delays / disposal info and save as JSON alongside frames. This will allow accurate playback timing later. (Nice to have.)
-// TODO: Try to use a C++ image library to extract GIF frames directly instead of relying on ImageMagick. (Harder.)
+// TODO: Try to use a C++ image library to extract GIF frames directly instead of relying on ImageMagick. (Harder :3)
+// TODO: Add option to loop animation a specific number of times. (Nice to have.)
+// TODO: Move some of the processing code into general_utils for better modularity. (Nice to have.)
