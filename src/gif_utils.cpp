@@ -45,20 +45,24 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
         &delays, &width, &height, &frames, &channels, 4
     );
 
-    if (!frames_data)
+    if (!frames_data) // Fehler beim Laden des GIFs
         throw runtime_error("GIF konnte nicht geladen werden: " + string(stbi_failure_reason()));
 
-    fs::create_directories(out_dir);
+    fs::create_directories(out_dir); // Erstelle Ausgabeverzeichnis falls nicht existent
 
     size_t frame_size = static_cast<size_t>(width * height * 4); // RGBA
     for (int i = 0; i < frames; ++i) {
+        // Zeiger auf den aktuellen Frame im flachen Buffer
         const unsigned char *frame_ptr = frames_data + (static_cast<size_t>(i) * frame_size);
 
-        char filename[128];
+        char filename[128];// Puffer für Dateinamen
+        // Erstelle Dateinamen basierend auf dem Benennungsschema
         snprintf(filename, sizeof(filename), tmp_frames_naming_scheme.c_str(), i);
         string frame_path = (out_dir / filename).string();
 
+        // Schreibe den Frame als PNG
         stbi_write_png(frame_path.c_str(), width, height, 4, frame_ptr, width * 4);
+        // Debug info
         cout << "Gespeichert: " << frame_path << " (Delay: " << delays[i] << "ms)\n";
     }
 
@@ -82,38 +86,43 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
  *
  *@return ASCII-Animation als String
 */
+// TODO: Vielleicht in kleinere funktionen aufteilen.
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
+// TODO: Eventuell Multithreading für die Frame-Verarbeitung implementieren.
 void gif_to_ascii(const std::string &gif_path, const int width, const std::string &ascii_chars,const bool keep_tmp, const bool colored,
     const std::filesystem::path &out_dir, const std::string& tmp_frames_naming_scheme, const int fps) {
-    const fs::path input_gif = gif_path;
-    const int delay_ms = 1000 / fps;
 
+    const fs::path input_gif = gif_path;    // GIF-pfad als filesystem path übersetzen
+    const int delay_ms = 1000 / fps;        // Verzögerung zwischen Frames in Millisekunden
+
+    // Überprüfe ob die Eingabedatei existiert
     if (!fs::exists(input_gif)) {
         cerr << "Input file does not exist: " << input_gif << "\n";
         return ;
     }
 
-    // Extrahiere Frames (ImageMagick oder Fallback)
+    // Extrahiere Frames aus dem GIF
     decode_gif_to_frames(input_gif, out_dir, tmp_frames_naming_scheme);
 
     cout << "\033[?25l";
     // Erzeuge ASCII für jeden Frame
     if (!colored) {
+        // Gehe durch alle extrahierten Frames im Verzeichnis
         for (auto &f : fs::directory_iterator(out_dir.string())) {
-            cout << "\033[H"; // Cursor an den Anfang setzen
-            string ascii = image_to_ascii(f.path().string());
-            cout << ascii << endl;
-            this_thread::sleep_for(chrono::milliseconds(delay_ms));
+            cout << "\033[H";                                                   // Cursor an den Anfang setzen
+            string ascii = image_to_ascii(f.path().string());           // frame in ascii umwandeln
+            cout << ascii << endl;                                              // Ausgabe des ASCII
+            this_thread::sleep_for(chrono::milliseconds(delay_ms));        // Warte für die Frame-Rate
         }
     } else {
         for (auto &f : fs::directory_iterator(out_dir.string())) {
-            cout << "\033[H"; // Cursor an den Anfang setzen
-            string ascii = image_to_ascii_color(f.path().string(), width, ascii_chars);
-            cout << ascii << endl;
-            this_thread::sleep_for(chrono::milliseconds(delay_ms));
+            cout << "\033[H";                                                                   // Cursor an den Anfang setzen
+            string ascii = image_to_ascii_color(f.path().string(), width, ascii_chars); // frame in ascii umwandeln
+            cout << ascii << endl;                                                              // Ausgabe des ASCII
+            this_thread::sleep_for(chrono::milliseconds(delay_ms));                        // Warte für die Frame-Rate
         }
     }
-    cout << "\033[?25h";
+    cout << "\033[?25h";    // Zeige den Cursor wieder
     // Entferne temporäres Verzeichnis falls nicht behalten
     if (!keep_tmp) {
         try {
