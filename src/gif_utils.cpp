@@ -114,7 +114,6 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
  *@return ASCII-Animation als String
 */
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
-// TODO: Eventuell Multithreading für die Frame-Verarbeitung implementieren.
 void gif_to_ascii(const std::string &gif_path, const int width, const std::string &ascii_chars,const bool keep_tmp, const bool colored,
     const std::filesystem::path &out_dir, const std::string& tmp_frames_naming_scheme, const int fps) {
 

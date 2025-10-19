@@ -34,4 +34,3 @@ int main(const int argc, char *argv[]) {
 
 // TODO: Besseres Logging hinzufügen. (Maybe with a flagg?)
 // TODO: Unit-Tests für einzelne Module schreiben.
-// TODO: Performance-Optimierungen prüfen, insbesondere bei der GIF-Verarbeitung.
