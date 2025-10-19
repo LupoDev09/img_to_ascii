@@ -5,9 +5,9 @@
 
 
 // stb_image headers (Implementierung befindet sich in stb_impl.cpp)
-#include <string>
 #include <filesystem>
 #include <iostream>
+#include <string>
 #include "../include/img_utils.h"
 #include "../include/stb_image.h"
 
