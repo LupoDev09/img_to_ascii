@@ -29,14 +29,14 @@ namespace fs = std::filesystem;
  */
 string image_to_ascii(const string &filename, const int output_width, const string &ascii_chars ) {
     int width, height, channels_in_file;
-    constexpr int desired_channels = 4; // force RGBA so we always have at least RGB
+    constexpr int desired_channels = 4; // Erzwinge RGBA
     unsigned char *img =
             stbi_load(filename.c_str(), &width, &height, &channels_in_file, desired_channels);
     if (!img) {
         throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
     }
 
-    constexpr int used_channels = desired_channels; // buffer is returned with this many channels
+    constexpr int used_channels = desired_channels; // buffer wird mit dieser Menge an kanälen zurückgegeben
     if (channels_in_file < 3) {
         // Warnung, aber nicht fatal: wir haben durch forced channels trotzdem RGB
         cerr << "Warnung: Quelldatei hat nur " << channels_in_file << " Kanäle; konvertiere zu RGB.\n";
@@ -48,6 +48,7 @@ string image_to_ascii(const string &filename, const int output_width, const stri
     // 0.55 für Konsolen-Zeichenhöhe korrigiert
 
     string ascii;
+    // Reserviere Platz im Voraus für Performance
     ascii.reserve(static_cast<unsigned long>(output_width * output_height + output_height));
 
     // Schrittgrößen fürs Sampling (Skalierung)
@@ -103,23 +104,26 @@ string image_to_ascii(const string &filename, const int output_width, const stri
  */
 string image_to_ascii_color(const string &filename, const int output_width, const string &ascii_chars) {
     int width, height, channels_in_file;
-    constexpr int desired_channels = 4; // force RGBA
+    constexpr int desired_channels = 4; // Erzwinge RGBA
     unsigned char *img =
             stbi_load(filename.c_str(), &width, &height, &channels_in_file, desired_channels);
     if (!img) {
         throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
     }
 
-    constexpr  int used_channels = desired_channels;
+    constexpr  int used_channels = desired_channels; // buffer wird mit dieser Menge an kanälen zurückgegeben
     if (channels_in_file < 3) {
+        // Warnung, aber nicht fatal: wir haben durch forced channels trotzdem RGB
         cerr << "Warnung: Quelldatei hat nur " << channels_in_file << " Kanäle; konvertiere zu RGB.\n";
     }
 
+    // Zielhöhe proportional skalieren
     const float aspect_ratio = static_cast<float>(height) / static_cast<float>(width);
     const int output_height = static_cast<int>(static_cast<float>(output_width) * aspect_ratio * 0.55f);
+    // 0.55 für Konsolen-Zeichenhöhe korrigiert
 
     string ascii;
-    ascii.reserve(static_cast<unsigned long> (output_width * output_height * 30));// Platz für ANSI-Codes
+    ascii.reserve(static_cast<unsigned long> (output_width * output_height * 30));  // Platz für ANSI-Codes
 
     const float x_step = static_cast<float>(width) / static_cast<float>(output_width);
     const float y_step = static_cast<float>(height) / static_cast<float>(output_height);
@@ -147,16 +151,15 @@ string image_to_ascii_color(const string &filename, const int output_width, cons
             // Grauwert → Zeichen auswählen
             const unsigned char gray = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
             const unsigned long char_index = static_cast<unsigned long>(gray * static_cast<double>(ascii_chars.size() - 1) / 255.0);
-            const char c = ascii_chars[char_index];
+            const char index_char = ascii_chars[char_index];
 
             // ANSI 24-Bit Farbcodes (Vordergrundfarbe)
             ascii += "\033[38;2;" + to_string(r) + ";" + to_string(g) + ";" +
                      to_string(b) + "m";
-            ascii.push_back(c);
+            ascii.push_back(index_char);
         }
         ascii += "\033[0m\n";// Reset am Zeilenende
     }
     stbi_image_free(img);
     return ascii;
 }
-
