@@ -142,10 +142,10 @@ void gif_to_ascii(const std::string &gif_path, const int width, const std::strin
     verbose("tmp_frames_naming_scheme = " + tmp_frames_naming_scheme);
     verbose("fps = " + to_string(fps));
 
-    const fs::path input_gif = gif_path;    // GIF-pfad als filesystem path übersetzen
+    const string& input_gif = gif_path;    // GIF-pfad als filesystem path übersetzen
     const int delay_ms = 1000 / fps;        // Verzögerung zwischen Frames in Millisekunden
 
-    verbose("input_gif = " + input_gif.string());
+    verbose("input_gif = " + input_gif);
     verbose("fps = " + to_string(fps));
     verbose("delay_ms = " + to_string(delay_ms));
 

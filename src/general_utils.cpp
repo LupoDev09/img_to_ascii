@@ -236,7 +236,10 @@ void output_ascii(const std::string &ascii, const Config &cfg) {
 
 #if defined(_WIN32)
 // Special shit for windows because without this shit it won't work :3
+#define NOMINMAX
+#define byte win_byte_override
 #include <windows.h>
+#undef byte
 #include <io.h>
 #include <fcntl.h>
 
