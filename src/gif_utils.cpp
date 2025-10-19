@@ -57,17 +57,17 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
     std::mutex cout_mutex;
 
     // Zwischenspeicher für parallel vorbereitete Frames
-    std::vector<std::vector<unsigned char>> frames_buffers(frames);
+    std::vector<std::vector<unsigned char>> frames_buffers(static_cast<unsigned long>(frames));
 
     // Parallel die Frames kopieren
     std::vector<std::future<void>> futures;
-    int max_threads = std::thread::hardware_concurrency();
+    unsigned int max_threads = std::thread::hardware_concurrency();
     if(max_threads == 0) max_threads = 4; // fallback
 
     for (int i = 0; i < frames; ++i) {
         futures.push_back(std::async(std::launch::async, [&, i]() {
-            const unsigned char* src = frames_data + (size_t(i) * frame_size);
-            frames_buffers[i].assign(src, src + frame_size);
+            const unsigned char* src = frames_data + (static_cast<size_t>(i) * frame_size);
+            frames_buffers[static_cast<unsigned long>(i)].assign(src, src + frame_size);
         }));
 
         // Limitieren der gleichzeitig laufenden Threads
@@ -84,7 +84,7 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
         char filename[128];
         snprintf(filename, sizeof(filename), tmp_frames_naming_scheme.c_str(), i);
         std::string frame_path = (out_dir / filename).string();
-        stbi_write_png(frame_path.c_str(), width, height, 4, frames_buffers[i].data(), width * 4);
+        stbi_write_png(frame_path.c_str(), width, height, 4, frames_buffers[static_cast<unsigned long>(i)].data(), width * 4);
 
         // Debug-Ausgabe
         {
