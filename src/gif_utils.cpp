@@ -2,17 +2,18 @@
 // Created by lupo on 17.10.25.
 //
 
-#include <fstream>
+#include <filesystem>
+#include <stdexcept>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <string>
-#include <stdexcept>
-#include <filesystem>
+#include <thread>
+#include <future>
+#include <mutex>
 #include "../include/img_utils.h"
 #include "../include/stb_image_write.h"
 #include "../include/stb_image.h"
-#include "thread"
-
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -45,25 +46,51 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
         &delays, &width, &height, &frames, &channels, 4
     );
 
-    if (!frames_data) // Fehler beim Laden des GIFs
+    if (!frames_data)
         throw runtime_error("GIF konnte nicht geladen werden: " + string(stbi_failure_reason()));
 
-    fs::create_directories(out_dir); // Erstelle Ausgabeverzeichnis falls nicht existent
+    fs::create_directories(out_dir); // Ausgabeverzeichnis erstellen
 
     size_t frame_size = static_cast<size_t>(width * height * 4); // RGBA
+
+    // Mutex für thread-safe Debug-Ausgabe
+    std::mutex cout_mutex;
+
+    // Zwischenspeicher für parallel vorbereitete Frames
+    std::vector<std::vector<unsigned char>> frames_buffers(static_cast<unsigned long>(frames));
+
+    // Parallel die Frames kopieren
+    std::vector<std::future<void>> futures;
+    unsigned int max_threads = std::thread::hardware_concurrency();
+    if(max_threads == 0) max_threads = 4; // fallback
+
     for (int i = 0; i < frames; ++i) {
-        // Zeiger auf den aktuellen Frame im flachen Buffer
-        const unsigned char *frame_ptr = frames_data + (static_cast<size_t>(i) * frame_size);
+        futures.push_back(std::async(std::launch::async, [&, i]() {
+            const unsigned char* src = frames_data + (static_cast<size_t>(i) * frame_size);
+            frames_buffers[static_cast<unsigned long>(i)].assign(src, src + frame_size);
+        }));
 
-        char filename[128];// Puffer für Dateinamen
-        // Erstelle Dateinamen basierend auf dem Benennungsschema
+        // Limitieren der gleichzeitig laufenden Threads
+        if (futures.size() >= static_cast<size_t>(max_threads)) {
+            for (auto &f : futures) f.get();
+            futures.clear();
+        }
+    }
+    // Restliche Threads warten lassen
+    for (auto &f : futures) f.get();
+
+    // Frames seriell schreiben, garantiert richtige Reihenfolge
+    for (int i = 0; i < frames; ++i) {
+        char filename[128];
         snprintf(filename, sizeof(filename), tmp_frames_naming_scheme.c_str(), i);
-        string frame_path = (out_dir / filename).string();
+        std::string frame_path = (out_dir / filename).string();
+        stbi_write_png(frame_path.c_str(), width, height, 4, frames_buffers[static_cast<unsigned long>(i)].data(), width * 4);
 
-        // Schreibe den Frame als PNG
-        stbi_write_png(frame_path.c_str(), width, height, 4, frame_ptr, width * 4);
-        // Debug info
-        cout << "Gespeichert: " << frame_path << " (Delay: " << delays[i] << "ms)\n";
+        // Debug-Ausgabe
+        {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "Gespeichert: " << frame_path << " (Delay: " << delays[i] << "ms)\n";
+        }
     }
 
     stbi_image_free(frames_data);
@@ -87,7 +114,6 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
  *@return ASCII-Animation als String
 */
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
-// TODO: Eventuell Multithreading für die Frame-Verarbeitung implementieren.
 void gif_to_ascii(const std::string &gif_path, const int width, const std::string &ascii_chars,const bool keep_tmp, const bool colored,
     const std::filesystem::path &out_dir, const std::string& tmp_frames_naming_scheme, const int fps) {
 
@@ -115,7 +141,7 @@ void gif_to_ascii(const std::string &gif_path, const int width, const std::strin
         }
     } else {
         for (auto &f : fs::directory_iterator(out_dir.string())) {
-            cout << "\033[H";                                                                   // Cursor an den Anfang setzen
+            //cout << "\033[H";                                                                   // Cursor an den Anfang setzen
             string ascii = image_to_ascii_color(f.path().string(), width, ascii_chars); // frame in ascii umwandeln
             cout << ascii << endl;                                                              // Ausgabe des ASCII
             this_thread::sleep_for(chrono::milliseconds(delay_ms));                        // Warte für die Frame-Rate
