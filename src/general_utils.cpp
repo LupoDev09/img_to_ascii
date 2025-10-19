@@ -63,6 +63,7 @@ cxxopts::Options setup_options() {
  * @param options cxxopts::Options Objekt mit den definierten Optionen
  */
 void print_help(const cxxopts::Options& options) {
+    // Grundlegende Verwendung
     std::cout << "Usage:\n"
               << "  img_to_ascii --img <Pfad_zum_Bild> [Optionen]\n\n";
 
@@ -86,19 +87,23 @@ void print_help(const cxxopts::Options& options) {
  * @return Gefüllte Konfigurationsstruktur
  */
 Config parse_args(const int argc, char* argv[]) {
-    auto options = setup_options();
-    const auto result = options.parse(argc, argv);
+    auto options = setup_options();                 // Optionen einrichten
+    const auto result = options.parse(argc, argv);  // Argumente parsen
 
-    if (result.count("help")) {
+    if (result.count("help")) {                // Hilfe anzeigen
         print_help(options);
-        std::exit(0);
+        std::exit(0);                         // Programm beenden nach Anzeige der Hilfe
     }
 
-    Config cfg;
+    Config cfg;  // Konfigurationsstruktur initialisieren
 
+    // Fülle die Konfigurationsstruktur basierend auf den geparsten Argumenten
+    // Int Werte
     if (result.count("width")) cfg.width = result["width"].as<int>();
     if (result.count("fps")) cfg.fps = result["fps"].as<int>();
     if (result.count("loop")) cfg.loop = result["loop"].as<int>();
+
+    // String Werte
     if (result.count("ascii")) cfg.ascii_chars = result["ascii"].as<std::string>();
     if (result.count("output")) cfg.output_path = result["output"].as<std::string>();
     if (result.count("img")) cfg.image_path = result["img"].as<std::string>();
@@ -106,6 +111,7 @@ Config parse_args(const int argc, char* argv[]) {
     if (result.count("tmp-frames-naming-scheme"))
         cfg.tmp_frames_naming_scheme = result["tmp-frames-naming-scheme"].as<std::string>();
 
+    // Boolesche Flags
     cfg.colored = result["colored"].as<bool>();
     cfg.gif = result["gif"].as<bool>();
     cfg.keep_frames = result["keep-frames"].as<bool>();
@@ -177,12 +183,17 @@ std::string render_ascii(const Config &cfg) {
     int loops = cfg.loop;
     cout << "Generiere ASCII-Art...\n";
     do {
+        // GIF-Verarbeitung
         if (cfg.gif) {
             gif_to_ascii(cfg.image_path.string(), cfg.width, cfg.ascii_chars,
                          cfg.keep_frames, cfg.colored, cfg.tmp_dir, cfg.tmp_frames_naming_scheme, cfg.fps);
-        } else if (cfg.colored) {
+        }
+        // Einzelbild-mit-Farbe-Verarbeitung
+        else if (cfg.colored) {
             ascii = image_to_ascii_color(cfg.image_path.string(), cfg.width, cfg.ascii_chars);
-        } else {
+        }
+        // Normale Einzelbild-Verarbeitung
+        else {
             ascii = image_to_ascii(cfg.image_path.string(), cfg.width, cfg.ascii_chars);
         }
     } while (loops-- > 0);
@@ -197,12 +208,16 @@ std::string render_ascii(const Config &cfg) {
  */
 void output_ascii(const std::string &ascii, const Config &cfg) {
     if (cfg.output_path.empty()) {
-        std::cout << "\033[?25l";
-        std::cout << ascii << std::endl;
-        std::cout << "\033[?25h";
+        std::cout << "\033[?25l";       // Verstecke den Cursor
+        std::cout << ascii << std::endl;// Ausgabe auf der Konsole
+        std::cout << "\033[?25h";       // Zeige den Cursor wieder
     } else {
-        std::ofstream out(cfg.output_path);
+        std::ofstream out(cfg.output_path);// Ausgabe in Datei
+
+        // Fehler beim Öffnen der Datei
         if (!out) throw std::runtime_error("Konnte Datei nicht öffnen: " + cfg.output_path.string());
+
+        // Schreibe ASCII-Art in die Datei
         out << ascii;
         std::cout << "ASCII-Art in Datei geschrieben: " << cfg.output_path << std::endl;
     }
