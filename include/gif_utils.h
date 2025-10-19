@@ -6,7 +6,6 @@
 #define IMG_TO_ASCII_GIF_UTILS_H
 #include <filesystem>
 #include <string>
-#include <vector>
 
 /**
  *@brief Wandelt ein GIF in ASCII um, indem es alle extrahierten PNG-Frames der Reihe nach

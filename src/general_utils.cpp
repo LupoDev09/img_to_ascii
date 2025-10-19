@@ -26,7 +26,7 @@ struct Config {
     std::filesystem::path output_path;                      // Ausgabe-Dateipfad wenn man --output benutzt
     std::filesystem::path tmp_dir;                          // temporäres Verzeichnis für GIF-Frames
     int width = 70;                                         // Standardbreite ist 70 Zeichen
-    int fps = 1;                                            // Standard Frame-Rate für GIFs
+    int fps = 10;                                           // Standard Frame-Rate für GIFs
     int loop = 0;                                           // Standardmäßig 0 Loop (einmalige ausgabe)
     bool colored = false;                                   // standardmäßig keine farbige Ausgabe
     bool gif = false;                                       // standardmäßig wird nicht davon ausgegangen das der input ein GIF ist
@@ -45,15 +45,15 @@ cxxopts::Options setup_options() {
         ("h,help", "Zeigt diese Hilfe an")
         ("img", "Pfad zum Eingabebild oder GIF", cxxopts::value<std::string>())
         ("w,width", "Breite der ASCII-Ausgabe (Standard: 70)", cxxopts::value<int>())
-        ("fps", "Frame-Rate für GIF-Animation (Standard: 1 FPS)", cxxopts::value<int>())
+        ("fps", "Frame-Rate für GIF-Animation (Standard: 10 FPS)", cxxopts::value<int>())
         ("loop", "Anzahl der Wiederholungen (Standard: 0 = einmalig)", cxxopts::value<int>())
         ("ascii", "ASCII-Zeichensatz (Standard: '@%#*+=-:. ')", cxxopts::value<std::string>())
         ("o,output", "Pfad zur Ausgabedatei", cxxopts::value<std::string>())
         ("colored", "Aktiviere farbige ASCII-Ausgabe", cxxopts::value<bool>()->default_value("false"))
-        ("gif", "Behandle Eingabe als GIF oder Video (benötigt ImageMagick)", cxxopts::value<bool>()->default_value("false"))
+        ("gif", "Behandle Eingabe als GIF oder Video", cxxopts::value<bool>()->default_value("false"))
         ("keep-frames", "Behalte temporäre Frames", cxxopts::value<bool>()->default_value("false"))
-        ("tmp_dir", "Temporäres Verzeichnis für GIF-Frames", cxxopts::value<std::string>())
-        ("tmp_frames_naming_scheme", "Benennungsschema für GIF-Frames", cxxopts::value<std::string>());
+        ("tmp-dir", "Temporäres Verzeichnis für GIF-Frames", cxxopts::value<std::string>())
+        ("tmp-frames-naming-scheme", "Benennungsschema für GIF-Frames", cxxopts::value<std::string>());
 
     return options;
 }
@@ -72,7 +72,6 @@ void print_help(const cxxopts::Options& options) {
     // Zusätzliche Hinweise
     std::cout << "Hinweise:\n"
               << "  • Wenn kein Bildpfad angegeben wird, wird 'Silly_Cat_Character_.jpg' verwendet.\n"
-              << "  • Für GIF- oder Video-Verarbeitung wird ImageMagick benötigt.\n"
               << "  • ANSI-Farben funktionieren nur in Terminals, die Escape-Sequenzen verstehen.\n"
               << "  • Es ist basically Glücksspiel, ob das Ding auf Windows läuft - viel Glück :3\n"
               << std::endl;
@@ -103,9 +102,9 @@ Config parse_args(int argc, char* argv[]) {
     if (result.count("ascii")) cfg.ascii_chars = result["ascii"].as<std::string>();
     if (result.count("output")) cfg.output_path = result["output"].as<std::string>();
     if (result.count("img")) cfg.image_path = result["img"].as<std::string>();
-    if (result.count("tmp_dir")) cfg.tmp_dir = result["tmp_dir"].as<std::string>();
-    if (result.count("tmp_frames_naming_scheme"))
-        cfg.tmp_frames_naming_scheme = result["tmp_frames_naming_scheme"].as<std::string>();
+    if (result.count("tmp-dir")) cfg.tmp_dir = result["tmp-dir"].as<std::string>();
+    if (result.count("tmp-frames-naming-scheme"))
+        cfg.tmp_frames_naming_scheme = result["tmp-frames-naming-scheme"].as<std::string>();
 
     cfg.colored = result["colored"].as<bool>();
     cfg.gif = result["gif"].as<bool>();
@@ -148,7 +147,7 @@ void validate_config(const Config &cfg) {
     if (cfg.fps <= 0)
         throw std::runtime_error("Frame-Rate muss größer als 0 sein");
 
-    if (cfg.fps != 1 && !cfg.gif)
+    if (cfg.fps != 10 && !cfg.gif)
         throw std::runtime_error("--fps funktioniert nur mit --gif");
 
     if (cfg.width <= 0) throw std::runtime_error("Breite muss größer als 0 sein");
