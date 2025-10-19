@@ -105,7 +105,7 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
         // Debug-Ausgabe
         {
             std::lock_guard<std::mutex> lock(cout_mutex);
-            std::cout << "Gespeichert: " << frame_path << " (Delay: " << delays[i] << "ms)\n";
+            verbose("Gespeichert Frame " + to_string(i) + " als " + frame_path + " mit Delay " + to_string(delays[i]) + " ms");
         }
     }
 
@@ -175,7 +175,7 @@ void gif_to_ascii(const std::string &gif_path, const int width, const std::strin
         }
     } else {
         for (auto &f : fs::directory_iterator(out_dir.string())) {
-            //cout << "\033[H";                                                                   // Cursor an den Anfang setzen
+            cout << "\033[H";                                                                   // Cursor an den Anfang setzen
             string ascii = image_to_ascii_color(f.path().string(), width, ascii_chars);   // frame in ascii umwandeln
             cout << ascii << endl;                                                                // Ausgabe des ASCII
             verbose("Wrote colored frame: " + f.path().string());
