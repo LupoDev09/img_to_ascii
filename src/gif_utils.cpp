@@ -83,10 +83,10 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
  *@return ASCII-Animation als String
 */
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
-void gif_to_ascii(const std::string &gif_path, int width, const std::string &ascii_chars, bool keep_tmp, bool colored,
-    const std::filesystem::path &out_dir, const std::string& tmp_frames_naming_scheme, int fps) {
+void gif_to_ascii(const std::string &gif_path, const int width, const std::string &ascii_chars,const bool keep_tmp, const bool colored,
+    const std::filesystem::path &out_dir, const std::string& tmp_frames_naming_scheme, const int fps) {
     const fs::path input_gif = gif_path;
-    int delay_ms = 1000 / fps;
+    const int delay_ms = 1000 / fps;
 
     if (!fs::exists(input_gif)) {
         cerr << "Input file does not exist: " << input_gif << "\n";

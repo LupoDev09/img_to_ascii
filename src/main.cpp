@@ -13,7 +13,7 @@ using namespace std;
  *
  * @return Rückgabewert (0 bei Erfolg, 1 bei Fehler)
  */
-int main(int argc, char *argv[]) {
+int main(const int argc, char *argv[]) {
     try {
         enable_vt_mode();
         Config cfg = parse_args(argc, argv);

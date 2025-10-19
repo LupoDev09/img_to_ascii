@@ -85,9 +85,9 @@ void print_help(const cxxopts::Options& options) {
  *
  * @return Gefüllte Konfigurationsstruktur
  */
-Config parse_args(int argc, char* argv[]) {
+Config parse_args(const int argc, char* argv[]) {
     auto options = setup_options();
-    auto result = options.parse(argc, argv);
+    const auto result = options.parse(argc, argv);
 
     if (result.count("help")) {
         print_help(options);
@@ -122,7 +122,7 @@ Config parse_args(int argc, char* argv[]) {
 void set_defaults(Config &cfg, const char* exe_path) {
     if (cfg.tmp_dir.empty()) cfg.tmp_dir = "./tmp_gif_frames";
     if (cfg.image_path.empty()) {
-        fs::path exe_dir = fs::absolute(exe_path).parent_path();
+        const fs::path exe_dir = fs::absolute(exe_path).parent_path();
         cfg.image_path = exe_dir / "Silly_Cat_Character_.jpg";
     }
 }
