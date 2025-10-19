@@ -2,7 +2,16 @@ cmake_minimum_required(VERSION 3.25)
 project(img_to_ascii)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# ---------------------------------------------------------
+# Catch2 finden
+# ---------------------------------------------------------
+find_package(Catch2 3 REQUIRED)
+
+# ---------------------------------------------------------
+# Hauptprogramm
+# ---------------------------------------------------------
 add_executable(img_to_ascii
         src/main.cpp
         src/general_utils.cpp
@@ -13,3 +22,27 @@ add_executable(img_to_ascii
 )
 
 target_include_directories(img_to_ascii PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+# ---------------------------------------------------------
+# Tests
+# ---------------------------------------------------------
+# Test-Executable
+add_executable(tests
+        tests/test_cli.cpp
+)
+
+# Catch2 verlinken
+target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
+
+# Deine Includes auch für Tests verfügbar machen
+target_include_directories(tests PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+# Tests mit deinem Hauptprogramm linken (optional, falls du intern testest)
+# target_link_libraries(tests PRIVATE img_to_ascii)
+
+# ---------------------------------------------------------
+# CTest-Integration aktivieren
+# ---------------------------------------------------------
+include(CTest)
+include(Catch)
+catch_discover_tests(tests)
