@@ -32,5 +32,4 @@ int main(const int argc, char *argv[]) {
     return 0;
 }
 
-// TODO: Besseres Logging hinzufügen. (Maybe with a flagg?)
 // TODO: Unit-Tests für einzelne Module schreiben.
