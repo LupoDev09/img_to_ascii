@@ -15,19 +15,24 @@ using namespace std;
  */
 int main(const int argc, char *argv[]) {
     try {
-        enable_vt_mode();
-        Config cfg = parse_args(argc, argv);
-        set_defaults(cfg, argv[0]);
-        validate_config(cfg);
+        enable_vt_mode();                       // ANSI-Escape-Sequenzen aktivieren (Windows)
+        Config cfg = parse_args(argc, argv);    // Kommandozeilenargumente parsen
+        set_defaults(cfg, argv[0]);          // Standardwerte setzen
+        validate_config(cfg);                   // Konfiguration validieren
 
-        const string ascii = render_ascii(cfg);
-        output_ascii(ascii, cfg);
+        const string ascii = render_ascii(cfg); // ASCII-Art generieren
+        output_ascii(ascii, cfg);               // ASCII-Art ausgeben
 
     } catch (const exception &e) {
-        cerr << e.what() << "\n";
-        cout << "\033[0m" << endl;
+        cerr << e.what() << "\n";               // Fehler ausgeben
+        cout << "\033[0m" << endl;              // ANSI-Reset
         return 1;
     }
-    cout << "\033[0m" << endl;
+    cout << "\033[0m" << endl;                  // ANSI-Reset
     return 0;
 }
+
+// TODO: Besseres Logging hinzufügen. (Maybe with a flagg?)
+// TODO: Unit-Tests für einzelne Module schreiben.
+// TODO: Performance-Optimierungen prüfen, insbesondere bei der GIF-Verarbeitung.
+// TODO: Dokumentation vereinheitlichen auf eine sprache.
