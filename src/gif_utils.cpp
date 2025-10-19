@@ -86,7 +86,6 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
  *
  *@return ASCII-Animation als String
 */
-// TODO: Vielleicht in kleinere funktionen aufteilen.
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
 // TODO: Eventuell Multithreading für die Frame-Verarbeitung implementieren.
 void gif_to_ascii(const std::string &gif_path, const int width, const std::string &ascii_chars,const bool keep_tmp, const bool colored,
@@ -95,7 +94,7 @@ void gif_to_ascii(const std::string &gif_path, const int width, const std::strin
     const fs::path input_gif = gif_path;    // GIF-pfad als filesystem path übersetzen
     const int delay_ms = 1000 / fps;        // Verzögerung zwischen Frames in Millisekunden
 
-    // Überprüfe ob die Eingabedatei existiert
+    // Überprüfe, ob die Eingabedatei existiert
     if (!fs::exists(input_gif)) {
         cerr << "Input file does not exist: " << input_gif << "\n";
         return ;
