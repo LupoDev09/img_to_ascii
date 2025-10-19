@@ -10,6 +10,7 @@
 #include <string>
 #include "../include/img_utils.h"
 #include "../include/stb_image.h"
+#include "../include/verbose.h"
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -28,6 +29,11 @@ namespace fs = std::filesystem;
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
  */
 string image_to_ascii(const string &filename, const int output_width, const string &ascii_chars ) {
+    verbose("img_to_ascii called with parameters:");
+    verbose("filename = " + filename);
+    verbose("output_width = " + to_string(output_width));
+    verbose("ascii_chars = " + ascii_chars);
+
     int width, height, channels_in_file;
     constexpr int desired_channels = 4; // Erzwinge RGBA
     unsigned char *img =
@@ -35,7 +41,7 @@ string image_to_ascii(const string &filename, const int output_width, const stri
     if (!img) {
         throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
     }
-
+    verbose("img loaded");
     constexpr int used_channels = desired_channels; // buffer wird mit dieser Menge an kanälen zurückgegeben
     if (channels_in_file < 3) {
         // Warnung, aber nicht fatal: wir haben durch forced channels trotzdem RGB
@@ -50,11 +56,13 @@ string image_to_ascii(const string &filename, const int output_width, const stri
     string ascii;
     // Reserviere Platz im Voraus für Performance
     ascii.reserve(static_cast<unsigned long>(output_width * output_height + output_height));
+    verbose("reserved space for ascii string");
 
     // Schrittgrößen fürs Sampling (Skalierung)
     const float x_step = static_cast<float>(width) / static_cast<float>(output_width);
     const float y_step = static_cast<float>(height) / static_cast<float>(output_height);
 
+    verbose("prosesing pixels");
     for (int y = 0; y < output_height; y++) {
         for (int x = 0; x < output_width; x++) {
             const int px = static_cast<int>(static_cast<float>(x) * x_step);
@@ -86,6 +94,7 @@ string image_to_ascii(const string &filename, const int output_width, const stri
         ascii += '\n';
     }
     stbi_image_free(img);
+    verbose("finished processing pixels");
   return ascii;
 }
 
@@ -103,6 +112,11 @@ string image_to_ascii(const string &filename, const int output_width, const stri
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
  */
 string image_to_ascii_color(const string &filename, const int output_width, const string &ascii_chars) {
+    verbose("image_to_ascii_color called with parameters:");
+    verbose("filename = " + filename);
+    verbose("output_width = " + to_string(output_width));
+    verbose("ascii_chars = " + ascii_chars);
+
     int width, height, channels_in_file;
     constexpr int desired_channels = 4; // Erzwinge RGBA
     unsigned char *img =
@@ -110,6 +124,7 @@ string image_to_ascii_color(const string &filename, const int output_width, cons
     if (!img) {
         throw runtime_error("Fehler: Bild konnte nicht geladen werden!");
     }
+    verbose("img loaded");
 
     constexpr  int used_channels = desired_channels; // buffer wird mit dieser Menge an kanälen zurückgegeben
     if (channels_in_file < 3) {
@@ -124,10 +139,12 @@ string image_to_ascii_color(const string &filename, const int output_width, cons
 
     string ascii;
     ascii.reserve(static_cast<unsigned long> (output_width * output_height * 30));  // Platz für ANSI-Codes
+    verbose("reserved space for ascii string");
 
     const float x_step = static_cast<float>(width) / static_cast<float>(output_width);
     const float y_step = static_cast<float>(height) / static_cast<float>(output_height);
 
+    verbose("prosesing pixels");
     for (int y = 0; y < output_height; y++) {
         for (int x = 0; x < output_width; x++) {
             const int px = static_cast<int>(static_cast<float>(x) * x_step);
@@ -161,5 +178,6 @@ string image_to_ascii_color(const string &filename, const int output_width, cons
         ascii += "\033[0m\n";// Reset am Zeilenende
     }
     stbi_image_free(img);
+    verbose("prosesd pixels");
     return ascii;
 }

@@ -11,6 +11,7 @@
 #include "../include/img_utils.h"
 #include "../include/gif_utils.h"
 #include "../include/cxxopts.hpp"
+#include "../include/verbose.h"
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -53,7 +54,8 @@ cxxopts::Options setup_options() {
         ("gif", "Behandle Eingabe als GIF oder Video", cxxopts::value<bool>()->default_value("false"))
         ("keep-frames", "Behalte temporäre Frames", cxxopts::value<bool>()->default_value("false"))
         ("tmp-dir", "Temporäres Verzeichnis für GIF-Frames", cxxopts::value<std::string>())
-        ("tmp-frames-naming-scheme", "Benennungsschema für GIF-Frames", cxxopts::value<std::string>());
+        ("tmp-frames-naming-scheme", "Benennungsschema für GIF-Frames", cxxopts::value<std::string>())
+        ("verbose, v", "Aktiviere Verbose modus", cxxopts::value<bool>()->default_value("false"));
 
     return options;
 }
@@ -115,7 +117,9 @@ Config parse_args(const int argc, char* argv[]) {
     cfg.colored = result["colored"].as<bool>();
     cfg.gif = result["gif"].as<bool>();
     cfg.keep_frames = result["keep-frames"].as<bool>();
+    VERBOSE_MODE = result["verbose"].as<bool>();
 
+    verbose("Parsed Flags");
     return cfg;
 }
 
@@ -131,6 +135,7 @@ void set_defaults(Config &cfg, const char* exe_path) {
         const fs::path exe_dir = fs::absolute(exe_path).parent_path();
         cfg.image_path = exe_dir / "Silly_Cat_Character_.jpg";
     }
+    verbose("set defaults");
 }
 
 /**
@@ -169,6 +174,7 @@ void validate_config(const Config &cfg) {
         cfg.tmp_frames_naming_scheme.find(".jpg") == std::string::npos &&
         cfg.tmp_frames_naming_scheme.find(".jpeg") == std::string::npos)
         throw std::runtime_error("--tmp_frames_naming_scheme muss auf .png, .jpg oder .jpeg enden");
+    verbose("Validated config");
 }
 
 /**
@@ -185,6 +191,7 @@ std::string render_ascii(const Config &cfg) {
     do {
         // GIF-Verarbeitung
         if (cfg.gif) {
+            // GIF wird direkt ausgegeben, kein Rückgabewert
             gif_to_ascii(cfg.image_path.string(), cfg.width, cfg.ascii_chars,
                          cfg.keep_frames, cfg.colored, cfg.tmp_dir, cfg.tmp_frames_naming_scheme, cfg.fps);
         }
@@ -197,6 +204,7 @@ std::string render_ascii(const Config &cfg) {
             ascii = image_to_ascii(cfg.image_path.string(), cfg.width, cfg.ascii_chars);
         }
     } while (loops-- > 0);
+    verbose("Rendered ASCII");
     return ascii;
 }
 
@@ -211,6 +219,7 @@ void output_ascii(const std::string &ascii, const Config &cfg) {
         std::cout << "\033[?25l";       // Verstecke den Cursor
         std::cout << ascii << std::endl;// Ausgabe auf der Konsole
         std::cout << "\033[?25h";       // Zeige den Cursor wieder
+        verbose("Wrote ASCII to console");
     } else {
         std::ofstream out(cfg.output_path);// Ausgabe in Datei
 
@@ -220,6 +229,7 @@ void output_ascii(const std::string &ascii, const Config &cfg) {
         // Schreibe ASCII-Art in die Datei
         out << ascii;
         std::cout << "ASCII-Art in Datei geschrieben: " << cfg.output_path << std::endl;
+        verbose("Wrote ASCII to file");
     }
 }
 

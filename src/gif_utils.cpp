@@ -14,6 +14,8 @@
 #include "../include/img_utils.h"
 #include "../include/stb_image_write.h"
 #include "../include/stb_image.h"
+#include "../include/verbose.h"
+
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -27,6 +29,11 @@ namespace fs = std::filesystem;
  *@throws std::runtime_error If the GIF cannot be loaded or if file operations fail.
 */
 void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, const std::string& tmp_frames_naming_scheme) {
+    verbose("decode_gif_to_frames called with");
+    verbose("gif_path = " + gif_path);
+    verbose("out_dir = " + out_dir.string());
+    verbose("tmp_frames_naming_scheme = " + tmp_frames_naming_scheme);
+
     int width, height, frames, channels;
     int *delays = nullptr;
 
@@ -40,6 +47,8 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
     if (!file.read(reinterpret_cast<char*>(buffer.data()), size))
         throw runtime_error("Fehler beim Lesen der Datei");
 
+    verbose("GIF-Datei eingelesen, Größe: " + to_string(size) + " Bytes");
+
     // stb_image liefert flachen RGBA-Buffer für alle Frames
     unsigned char *frames_data = stbi_load_gif_from_memory(
         buffer.data(), static_cast<int>(size),
@@ -48,10 +57,13 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
 
     if (!frames_data)
         throw runtime_error("GIF konnte nicht geladen werden: " + string(stbi_failure_reason()));
+    verbose("Loaded GIF: " + to_string(frames) + " frames, " + to_string(width) + "x" + to_string(height) + ", " + to_string(channels) + " channels");
 
     fs::create_directories(out_dir); // Ausgabeverzeichnis erstellen
+    verbose("passed create_directories");
 
     size_t frame_size = static_cast<size_t>(width * height * 4); // RGBA
+    verbose("frame_size = " + std::to_string(frame_size));
 
     // Mutex für thread-safe Debug-Ausgabe
     std::mutex cout_mutex;
@@ -64,6 +76,7 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
     unsigned int max_threads = std::thread::hardware_concurrency();
     if(max_threads == 0) max_threads = 4; // fallback
 
+    verbose("Starting to process frames with max_threads = " + std::to_string(max_threads));
     for (int i = 0; i < frames; ++i) {
         futures.push_back(std::async(std::launch::async, [&, i]() {
             const unsigned char* src = frames_data + (static_cast<size_t>(i) * frame_size);
@@ -78,9 +91,12 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
     }
     // Restliche Threads warten lassen
     for (auto &f : futures) f.get();
+    verbose("Processed frames");
 
+    verbose("Writing frames to disk...");
     // Frames seriell schreiben, garantiert richtige Reihenfolge
     for (int i = 0; i < frames; ++i) {
+        verbose("Writing frame " + to_string(i));
         char filename[128];
         snprintf(filename, sizeof(filename), tmp_frames_naming_scheme.c_str(), i);
         std::string frame_path = (out_dir / filename).string();
@@ -116,20 +132,37 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
 void gif_to_ascii(const std::string &gif_path, const int width, const std::string &ascii_chars,const bool keep_tmp, const bool colored,
     const std::filesystem::path &out_dir, const std::string& tmp_frames_naming_scheme, const int fps) {
+    verbose("giff_to_ascii called with parameters:");
+    verbose("gif_path = " + gif_path);
+    verbose("width = " + to_string(width));
+    verbose("ascii_chars = " + ascii_chars);
+    verbose("keep_tmp = " + string(keep_tmp ? "true" : "false"));
+    verbose("colored = " + string(colored ? "true" : "false"));
+    verbose("out_dir = " + out_dir.string());
+    verbose("tmp_frames_naming_scheme = " + tmp_frames_naming_scheme);
+    verbose("fps = " + to_string(fps));
 
     const fs::path input_gif = gif_path;    // GIF-pfad als filesystem path übersetzen
     const int delay_ms = 1000 / fps;        // Verzögerung zwischen Frames in Millisekunden
+
+    verbose("input_gif = " + input_gif.string());
+    verbose("fps = " + to_string(fps));
+    verbose("delay_ms = " + to_string(delay_ms));
 
     // Überprüfe, ob die Eingabedatei existiert
     if (!fs::exists(input_gif)) {
         cerr << "Input file does not exist: " << input_gif << "\n";
         return ;
     }
+    verbose("File exists check passed");
 
     // Extrahiere Frames aus dem GIF
     decode_gif_to_frames(input_gif, out_dir, tmp_frames_naming_scheme);
 
+    verbose("Frames extracted to: " + out_dir.string());
+
     cout << "\033[?25l";
+    verbose("Hide Cursor");
     // Erzeuge ASCII für jeden Frame
     if (!colored) {
         // Gehe durch alle extrahierten Frames im Verzeichnis
@@ -137,21 +170,25 @@ void gif_to_ascii(const std::string &gif_path, const int width, const std::strin
             cout << "\033[H";                                                   // Cursor an den Anfang setzen
             string ascii = image_to_ascii(f.path().string());           // frame in ascii umwandeln
             cout << ascii << endl;                                              // Ausgabe des ASCII
+            verbose("wrote frame: " + f.path().string());
             this_thread::sleep_for(chrono::milliseconds(delay_ms));        // Warte für die Frame-Rate
         }
     } else {
         for (auto &f : fs::directory_iterator(out_dir.string())) {
             //cout << "\033[H";                                                                   // Cursor an den Anfang setzen
-            string ascii = image_to_ascii_color(f.path().string(), width, ascii_chars); // frame in ascii umwandeln
-            cout << ascii << endl;                                                              // Ausgabe des ASCII
-            this_thread::sleep_for(chrono::milliseconds(delay_ms));                        // Warte für die Frame-Rate
+            string ascii = image_to_ascii_color(f.path().string(), width, ascii_chars);   // frame in ascii umwandeln
+            cout << ascii << endl;                                                                // Ausgabe des ASCII
+            verbose("Wrote colored frame: " + f.path().string());
+            this_thread::sleep_for(chrono::milliseconds(delay_ms));                          // Warte für die Frame-Rate
         }
     }
     cout << "\033[?25h";    // Zeige den Cursor wieder
+    verbose("Curser is shown again");
     // Entferne temporäres Verzeichnis falls nicht behalten
     if (!keep_tmp) {
         try {
             fs::remove_all(out_dir);
+            verbose("Removed temporary frames in: " + out_dir.string());
         } catch (const exception &e) {
             cerr << "Warnung: Konnte temporäre Frames nicht löschen: " << e.what() << "\n";
         }
