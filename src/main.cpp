@@ -31,5 +31,3 @@ int main(const int argc, char *argv[]) {
     cout << "\033[0m" << endl;                  // ANSI-Reset
     return 0;
 }
-
-// TODO: Unit-Tests für einzelne Module schreiben.
