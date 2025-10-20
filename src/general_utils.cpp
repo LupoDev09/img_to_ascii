@@ -164,6 +164,15 @@ void validate_config(const Config &cfg) {
 
     if (cfg.width <= 0) throw std::runtime_error("Breite muss größer als 0 sein");
 
+    if (cfg.width > 500 && cfg.width < 1000)
+        std::cout << "Warnung: Eine sehr große Breite kann die Anzeige in der Konsole beeinträchtigen.\n";
+
+    if (cfg.width >= 1000)
+        throw std::runtime_error("Breite zu groß! Bitte einen Wert unter 1000 wählen.");
+
+    if (cfg.loop < 0)
+        throw std::runtime_error("Loop-Wert muss größer oder gleich 0 sein");
+
     if (!fs::exists(cfg.image_path))
         throw std::runtime_error("Datei nicht gefunden: " + cfg.image_path.string());
 
