@@ -244,7 +244,6 @@ void output_ascii(const std::string &ascii, const Config &cfg) {
 }
 
 #if defined(_WIN32)
-// Special shit for windows because without this shit it won't work :3
 #define NOMINMAX
 #define byte win_byte_override
 #include <windows.h>
@@ -253,8 +252,7 @@ void output_ascii(const std::string &ascii, const Config &cfg) {
 #include <fcntl.h>
 
 /**
- * @brief If compiled on windows this funktion activates ansi-escape sequences in cmd for windows
- * on other OS's it writes a warning to cerr
+ * @brief Enables Virtual Terminal (ANSI Escape) handling on Windows.
  */
 void enable_vt_mode() {
     _setmode(_fileno(stdout), _O_TEXT);
@@ -268,9 +266,5 @@ void enable_vt_mode() {
     if (!SetConsoleMode(hOut, dwMode)) {
         std::cerr << "Warnung: ANSI-Farben werden eventuell nicht unterstützt.\n";
     }
-}
-#else
-void enable_vt_mode() {
-    cerr << "Ether you are not on Windows or something went wrong while compiling" << endl;
 }
 #endif

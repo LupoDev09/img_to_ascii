@@ -15,7 +15,9 @@ using namespace std;
  */
 int main(const int argc, char *argv[]) {
     try {
+#if defined(_WIN32)
         enable_vt_mode();                       // ANSI-Escape-Sequenzen aktivieren (Windows)
+#endif
         Config cfg = parse_args(argc, argv);    // Kommandozeilenargumente parsen
         set_defaults(cfg, argv[0]);          // Standardwerte setzen
         validate_config(cfg);                   // Konfiguration validieren

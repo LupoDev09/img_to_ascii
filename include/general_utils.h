@@ -71,10 +71,11 @@ std::string render_ascii(const Config &cfg);
  */
 void output_ascii(const std::string &ascii, const Config &cfg);
 
+#if defined(_WIN32)
 /**
- * @brief If compiled on windows this funktion activates ansi-escape sequences in cmd for windows
- * on other OS's it writes a warning to cerr
+ * @brief Enables Virtual Terminal (ANSI Escape) handling on Windows.
  */
 void enable_vt_mode();
+#endif
 
 #endif //IMG_TO_ASCII_GENERAL_UTILS_H
