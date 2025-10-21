@@ -22,6 +22,7 @@ struct Config {
     std::filesystem::path image_path;                       // Pfad zum Eingabebild
     std::filesystem::path output_path;                      // Ausgabe-Dateipfad wenn man --output benutzt
     std::filesystem::path tmp_dir;                          // temporäres Verzeichnis für GIF-Frames
+    std::filesystem::path load_config;						// Lade eine config
     int width = 70;                                         // Standardbreite ist 70 Zeichen
     int fps = 10;                                           // Standard Frame-Rate für GIFs
     int loop = 0;                                           // Standardmäßig 0 Loop (einmalige ausgabe)
@@ -70,6 +71,8 @@ std::string render_ascii(const Config &cfg);
  * @param cfg Referenz auf die Konfigurationsstruktur
  */
 void output_ascii(const std::string &ascii, const Config &cfg);
+
+void overwrite_cfg_with_json_conf(Config &cfg, const std::string &json_path);
 
 #if defined(_WIN32)
 /**

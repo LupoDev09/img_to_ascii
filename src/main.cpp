@@ -19,6 +19,9 @@ int main(const int argc, char *argv[]) {
         enable_vt_mode();                       // ANSI-Escape-Sequenzen aktivieren (Windows)
 #endif
         Config cfg = parse_args(argc, argv);    // Kommandozeilenargumente parsen
+        if (cfg.load_config != ""){
+            overwrite_cfg_with_json_conf(cfg, cfg.load_config); // Falls angegeben, Konfiguration aus JSON laden
+        }
         set_defaults(cfg);                   	// Standardwerte setzen
         validate_config(cfg);                   // Konfiguration validieren
 
