@@ -15,9 +15,11 @@
 #include "../include/stb_image_write.h"
 #include "../include/stb_image.h"
 #include "../include/verbose.h"
+#include <../include/nlohmann/json.hpp>
 
 using namespace std;
 namespace fs = std::filesystem;
+using json = nlohmann::json;
 
 /**
  *@brief Decodes a GIF file into individual PNG frames saved in the specified output directory.
@@ -131,7 +133,7 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
 */
 // TODO: Später Frame-Metadaten (Delays) extrahieren und als JSON speichern.
 void gif_to_ascii(const std::string &gif_path, const int width, const std::string &ascii_chars,const bool keep_tmp, const bool colored,
-    const std::filesystem::path &out_dir, const std::string& tmp_frames_naming_scheme, const int fps) {
+    const std::filesystem::path &out_dir, const std::string& tmp_frames_naming_scheme, const int fps, const bool write_json) {
     verbose("giff_to_ascii called with parameters:");
     verbose("gif_path = " + gif_path);
     verbose("width = " + to_string(width));
@@ -196,4 +198,25 @@ void gif_to_ascii(const std::string &gif_path, const int width, const std::strin
         cout << "Frames behalten in: " << out_dir << "\n";
     }
 
+    if (write_json) {
+        json data = {
+            {"fps", fps,},
+            {"file", gif_path},
+            {"width", width},
+            {"ascii", ascii_chars},
+            {"output_dir", out_dir},
+            {"naming_scheme", tmp_frames_naming_scheme}
+        };
+        std::filesystem::path metadata_path = out_dir.parent_path() / "meta_data.json";
+        std::ofstream out_file(metadata_path);
+
+        if (!out_file) {
+            std::cerr << "Could not open output file: " << metadata_path << "\n";
+            return;
+        }
+
+        out_file << data.dump(4);
+        std::cout << "Saved JSON to " << metadata_path << std::endl;
+
+    }
 }
