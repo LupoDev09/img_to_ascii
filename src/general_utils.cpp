@@ -12,10 +12,11 @@
 #include "../include/gif_utils.h"
 #include "../include/cxxopts.hpp"
 #include "../include/verbose.h"
+#include "../include/nlohmann/json.hpp"
 
 using namespace std;
 namespace fs = std::filesystem;
-
+using json = nlohmann::json;
 
 /**
  * @brief Konfigurationsstruktur für die Anwendung
@@ -26,6 +27,7 @@ struct Config {
     std::filesystem::path image_path;                       // Pfad zum Eingabebild
     std::filesystem::path output_path;                      // Ausgabe-Dateipfad wenn man --output benutzt
     std::filesystem::path tmp_dir;                          // temporäres Verzeichnis für GIF-Frames
+	std::filesystem::path load_config;						// Lade eine config
     int width = 70;                                         // Standardbreite ist 70 Zeichen
     int fps = 10;                                           // Standard Frame-Rate für GIFs
     int loop = 0;                                           // Standardmäßig 0 Loop (einmalige ausgabe)
@@ -57,7 +59,8 @@ cxxopts::Options setup_options() {
         ("tmp-dir", "Temporäres Verzeichnis für GIF-Frames", cxxopts::value<std::string>())
         ("tmp-frames-naming-scheme", "Benennungsschema für GIF-Frames", cxxopts::value<std::string>())
         ("verbose, v", "Aktiviere Verbose modus", cxxopts::value<bool>()->default_value("false"))
-        ("write-json", "schreibe meta daten in json", cxxopts::value<bool>()->default_value("false"));
+        ("write-json", "schreibe meta daten in json", cxxopts::value<bool>()->default_value("false"))
+		("load-config", "lade eine config", cxxopts::value<std::string>()->default_value(""));
     return options;
 }
 
@@ -113,6 +116,7 @@ Config parse_args(const int argc, char* argv[]) {
     if (result.count("tmp-dir")) cfg.tmp_dir = result["tmp-dir"].as<std::string>();
     if (result.count("tmp-frames-naming-scheme"))
         cfg.tmp_frames_naming_scheme = result["tmp-frames-naming-scheme"].as<std::string>();
+	if (result.count("load-config")) cfg.load_config = result["load-config"].as<std::string>();
 
     // Boolesche Flags
     cfg.colored = result["colored"].as<bool>();
@@ -131,8 +135,8 @@ Config parse_args(const int argc, char* argv[]) {
  * @param cfg Referenz auf die Konfigurationsstruktur
  */
 void set_defaults(Config &cfg) {
-    if (cfg.tmp_dir.empty()) cfg.tmp_dir = fs::relative("./tmp_gif_frames");
-    if (cfg.image_path.empty()) {
+    if (cfg.tmp_dir.empty()) cfg.tmp_dir = fs::relative("./tmp_gif_frames"); verbose("set tmp_dir default");
+    if (cfg.image_path.empty()) { verbose("set image_path default");
         const fs::path exe_dir = fs::current_path();
         cfg.image_path = exe_dir / "Silly_Cat_Character_.jpg";
         cout << "Kein Bildpfad angegeben, verwende Standardbild: " << cfg.image_path << endl;
@@ -175,7 +179,10 @@ void validate_config(const Config &cfg) {
         throw std::runtime_error("Loop-Wert muss größer oder gleich 0 sein");
 
     if (!fs::exists(cfg.image_path))
-        throw std::runtime_error("Datei nicht gefunden: " + cfg.image_path.string());
+        throw std::runtime_error("Bild nicht gefunden: " + cfg.image_path.string());
+
+    if (!fs::exists(cfg.load_config) && cfg.load_config != "")
+        throw std::runtime_error("Config nicht gefunden: " +cfg.load_config.string());
 
     // tmp_frames_naming_scheme Checks
     if (const std::regex re("%0?\\d*d"); !std::regex_search(cfg.tmp_frames_naming_scheme, re))
@@ -243,6 +250,35 @@ void output_ascii(const std::string &ascii, const Config &cfg) {
     }
 }
 
+void overwrite_cfg_with_json_conf(Config &cfg, const std::string &json_path) {
+    std::ifstream file(json_path);
+    if (!file.is_open()) {
+        std::cerr << "Fehler: Konnte " << json_path << " nicht öffnen!\n";
+        return;
+    }
+
+    json j;
+    try {
+        file >> j;
+    } catch (const std::exception &e) {
+        std::cerr << "Fehler beim Einlesen der JSON-Datei: " << e.what() << "\n";
+        return;
+    }
+
+    // Werte prüfen und überschreiben, falls sie existieren
+    if (j.contains("ascii_chars")) cfg.ascii_chars = j["ascii_chars"].get<std::string>();
+    if (j.contains("tmp_frames_naming_scheme")) cfg.tmp_frames_naming_scheme = j["tmp_frames_naming_scheme"].get<std::string>();
+    if (j.contains("image_path")) cfg.image_path = j["image_path"].get<std::string>();
+    if (j.contains("output_path")) cfg.output_path = j["output_path"].get<std::string>();
+    if (j.contains("tmp_dir")) cfg.tmp_dir = j["tmp_dir"].get<std::string>();
+    if (j.contains("width")) cfg.width = j["width"].get<int>();
+    if (j.contains("fps")) cfg.fps = j["fps"].get<int>();
+    if (j.contains("loop")) cfg.loop = j["loop"].get<bool>();
+    if (j.contains("colored")) cfg.colored = j["colored"].get<bool>();
+    if (j.contains("gif")) cfg.gif = j["gif"].get<bool>();
+    if (j.contains("keep_frames")) cfg.keep_frames = j["keep_frames"].get<bool>();
+    if (j.contains("write_json")) cfg.write_json = j["write_json"].get<bool>();
+}
 #if defined(_WIN32)
 #define NOMINMAX
 #define byte win_byte_override
