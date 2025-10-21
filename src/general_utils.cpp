@@ -177,8 +177,7 @@ void validate_config(const Config &cfg) {
         throw std::runtime_error("Datei nicht gefunden: " + cfg.image_path.string());
 
     // tmp_frames_naming_scheme Checks
-    std::regex re("%0?\\d*d");
-    if (!std::regex_search(cfg.tmp_frames_naming_scheme, re))
+    if (const std::regex re("%0?\\d*d"); !std::regex_search(cfg.tmp_frames_naming_scheme, re))
         throw std::runtime_error("--tmp_frames_naming_scheme muss ein '%d'-Platzhalter enthalten");
     if (cfg.tmp_frames_naming_scheme.find(".png") == std::string::npos &&
         cfg.tmp_frames_naming_scheme.find(".jpg") == std::string::npos &&
