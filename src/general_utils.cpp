@@ -96,7 +96,7 @@ Config parse_args(const int argc, char* argv[]) {
 
     if (result.count("help")) {                // Hilfe anzeigen
         print_help(options);
-        std::exit(0);                         // Programm beenden nach Anzeige der Hilfe
+        std::exit(0);                         // Program beenden nach Anzeige der Hilfe
     }
 
     Config cfg;  // Konfigurationsstruktur initialisieren
@@ -130,9 +130,8 @@ Config parse_args(const int argc, char* argv[]) {
  * @brief Setzt Standardwerte für die Konfigurationsstruktur
  *
  * @param cfg Referenz auf die Konfigurationsstruktur
- * @param exe_path Pfad zur ausführbaren Datei
  */
-void set_defaults(Config &cfg, const char* exe_path) {
+void set_defaults(Config &cfg) {
     if (cfg.tmp_dir.empty()) cfg.tmp_dir = fs::relative("./tmp_gif_frames");
     if (cfg.image_path.empty()) {
         const fs::path exe_dir = fs::current_path();

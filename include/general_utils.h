@@ -45,7 +45,7 @@ Config parse_args(int argc, char* argv[]);
  * @param cfg Referenz auf die Konfigurationsstruktur
  * @param exe_path Pfad zur ausführbaren Datei
  */
-void set_defaults(Config &cfg, const char* exe_path);
+void set_defaults(Config &cfg);
 
 /**
  * @brief Validiert die Konfigurationsstruktur
