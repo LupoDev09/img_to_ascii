@@ -15,7 +15,7 @@
 #include "../include/stb_image_write.h"
 #include "../include/stb_image.h"
 #include "../include/verbose.h"
-#include <../include/nlohmann/json.hpp>
+#include "../include/nlohmann/json.hpp"
 
 using namespace std;
 using namespace nlohmann;
