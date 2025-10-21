@@ -21,8 +21,8 @@ namespace fs = std::filesystem;
  * @brief Konfigurationsstruktur für die Anwendung
  */
 struct Config {
-    string ascii_chars = "@%#*+=-:. ";                      // Standard-Zeichensatz
-    string tmp_frames_naming_scheme = "frame_%03d.png";     // Benennungsschema für temporäre GIF-Frames
+    std::string ascii_chars = "@%#*+=-:. ";                 // Standard-Zeichensatz
+    std::string tmp_frames_naming_scheme = "frame_%03d.png";// Benennungsschema für temporäre GIF-Frames
     std::filesystem::path image_path;                       // Pfad zum Eingabebild
     std::filesystem::path output_path;                      // Ausgabe-Dateipfad wenn man --output benutzt
     std::filesystem::path tmp_dir;                          // temporäres Verzeichnis für GIF-Frames
@@ -57,7 +57,8 @@ cxxopts::Options setup_options() {
         ("tmp-dir", "Temporäres Verzeichnis für GIF-Frames", cxxopts::value<std::string>())
         ("tmp-frames-naming-scheme", "Benennungsschema für GIF-Frames", cxxopts::value<std::string>())
         ("verbose, v", "Aktiviere Verbose modus", cxxopts::value<bool>()->default_value("false"))
-        ("write-json, j", "schreibe mehtha daten in json", cxxopts::value<bool>()->default_value("false"));
+        ("write-json, wj", "schreibe meta daten in json", cxxopts::value<bool>()->default_value("false"))
+        ("load-json, lj", "lade meta data von json", cxxopts::value<std::string>());
     return options;
 }
 

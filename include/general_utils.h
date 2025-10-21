@@ -17,17 +17,17 @@ void print_help(const cxxopts::Options& options);
  * @brief Konfigurationsstruktur für die Anwendung
  */
 struct Config {
-    std::string ascii_chars = "@%#*+=-:. ";                     // Standard-Zeichensatz
-    std::string tmp_frames_naming_scheme = "frame_%03d.png";    // Benennungsschema für temporäre GIF-Frames
-    std::filesystem::path image_path;                           // Pfad zum Eingabebild
-    std::filesystem::path output_path;                          // Ausgabe-Dateipfad wenn man --output benutzt
-    std::filesystem::path tmp_dir;                              // temporäres Verzeichnis für GIF-Frames
-    int width = 70;                                             // Standardbreite ist 70 Zeichen
-    int fps = 1;                                                // Standard Frame-Rate für GIFs
-    int loop = 0;                                               // Standardmäßig 0 Loop (einmalige ausgabe)
-    bool colored = false;                                       // standardmäßig keine farbige Ausgabe
-    bool gif = false;                                           // standardmäßig wird nicht davon ausgegangen das der input ein GIF ist
-    bool keep_frames = false;                                   // behalte temporäre Frames standardmäßig nicht
+    std::string ascii_chars = "@%#*+=-:. ";                 // Standard-Zeichensatz
+    std::string tmp_frames_naming_scheme = "frame_%03d.png";// Benennungsschema für temporäre GIF-Frames
+    std::filesystem::path image_path;                       // Pfad zum Eingabebild
+    std::filesystem::path output_path;                      // Ausgabe-Dateipfad wenn man --output benutzt
+    std::filesystem::path tmp_dir;                          // temporäres Verzeichnis für GIF-Frames
+    int width = 70;                                         // Standardbreite ist 70 Zeichen
+    int fps = 10;                                           // Standard Frame-Rate für GIFs
+    int loop = 0;                                           // Standardmäßig 0 Loop (einmalige ausgabe)
+    bool colored = false;                                   // standardmäßig keine farbige Ausgabe
+    bool gif = false;                                       // standardmäßig wird nicht davon ausgegangen das der input ein GIF ist
+    bool keep_frames = false;                               // behalte temporäre Frames standardmäßig nicht
 };
 
 /**

@@ -19,7 +19,7 @@
 
 using namespace std;
 namespace fs = std::filesystem;
-using json = nlohmann::json;
+using namespace nlohmann;
 
 /**
  *@brief Decodes a GIF file into individual PNG frames saved in the specified output directory.
@@ -128,6 +128,7 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
  *@param out_dir Verzeichnis zum Speichern der temporären Frames
  *@param tmp_frames_naming_scheme Benennungsschema für temporäre GIF-Frames
  *@param fps Bildwiederholrate für die Animation (Frames pro Sekunde)
+ *@param write_json Ob eine json mit den methadaten geschrieben werden soll
  *
  *@return ASCII-Animation als String
 */
