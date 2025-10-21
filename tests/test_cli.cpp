@@ -39,7 +39,7 @@ TEST_CASE("Optionen werden erkannt und Fehler korrekt ausgegeben", "[cli]") {
 // Check for various invalid inputs and ensure proper error messages are shown
 TEST_CASE("Ungültige Eingabedatei wird korrekt behandelt", "[cli]") {
     std::string output = run_cmd("./img_to_ascii --img nonexistent_file.jpg");
-    REQUIRE(output.find("Datei nicht gefunden") != std::string::npos);
+    REQUIRE(output.find("Bild nicht gefunden") != std::string::npos);
 }
 
 TEST_CASE("Ungültige Breite wird korrekt behandelt", "[cli]") {
@@ -104,7 +104,7 @@ TEST_CASE("Keine Ausgabeoptionen angegeben", "[cli]") {
 // Zusätzliche Testfälle für Bildoptionen
 TEST_CASE("Ungültiger Bildpfad wird korrekt behandelt", "[cli]") {
     std::string output = run_cmd("./img_to_ascii --img invalid_image.jpg");
-    REQUIRE(output.find("Datei nicht gefunden") != std::string::npos);
+    REQUIRE(output.find("Bild nicht gefunden") != std::string::npos);
 }
 
 TEST_CASE("GIF-Option ohne Bilddatei wird korrekt behandelt", "[cli]") {
