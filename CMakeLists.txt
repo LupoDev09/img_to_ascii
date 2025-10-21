@@ -32,6 +32,7 @@ add_executable(tests
         tests/test_utils.cpp
         tests/test_invalid_inputs.cpp
         tests/test_gif_stuff.cpp
+        tests/test_conifg.cpp
 )
 
 # Catch2 verlinken
