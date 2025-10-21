@@ -18,8 +18,9 @@
 #include <../include/nlohmann/json.hpp>
 
 using namespace std;
-namespace fs = std::filesystem;
 using namespace nlohmann;
+using namespace this_thread;
+namespace fs = std::filesystem;
 
 /**
  *@brief Decodes a GIF file into individual PNG frames saved in the specified output directory.
@@ -145,7 +146,7 @@ void gif_to_ascii(const std::string &gif_path, const int width, const std::strin
     verbose("tmp_frames_naming_scheme = " + tmp_frames_naming_scheme);
     verbose("fps = " + to_string(fps));
 
-    const string& input_gif = gif_path;    // GIF-pfad als filesystem path übersetzen
+    const string& input_gif = gif_path;    	// GIF-pfad als filesystem path übersetzen
     const int delay_ms = 1000 / fps;        // Verzögerung zwischen Frames in Millisekunden
 
     verbose("input_gif = " + input_gif);
@@ -171,21 +172,21 @@ void gif_to_ascii(const std::string &gif_path, const int width, const std::strin
         // Gehe durch alle extrahierten Frames im Verzeichnis
         for (auto &f : fs::directory_iterator(out_dir.string())) {
             cout << "\033[H";                                                   // Cursor an den Anfang setzen
-            string ascii = image_to_ascii(f.path().string());           // frame in ascii umwandeln
+            string ascii = image_to_ascii(f.path().string());           		// frame in ascii umwandeln
             cout << ascii << endl;                                              // Ausgabe des ASCII
             verbose("wrote frame: " + f.path().string());
-            this_thread::sleep_for(chrono::milliseconds(delay_ms));        // Warte für die Frame-Rate
+            sleep_for(chrono::milliseconds(delay_ms));        					// Warte für die Frame-Rate
         }
     } else {
         for (auto &f : fs::directory_iterator(out_dir.string())) {
             cout << "\033[H";                                                                   // Cursor an den Anfang setzen
-            string ascii = image_to_ascii_color(f.path().string(), width, ascii_chars);   // frame in ascii umwandeln
-            cout << ascii << endl;                                                                // Ausgabe des ASCII
+            string ascii = image_to_ascii_color(f.path().string(), width, ascii_chars);		    // frame in ascii umwandeln
+            cout << ascii << endl;                                                              // Ausgabe des ASCII
             verbose("Wrote colored frame: " + f.path().string());
-            this_thread::sleep_for(chrono::milliseconds(delay_ms));                          // Warte für die Frame-Rate
+            sleep_for(chrono::milliseconds(delay_ms));                          				// Warte für die Frame-Rate
         }
     }
-    cout << "\033[?25h";    // Zeige den Cursor wieder
+    cout << "\033[?25h";    			// Zeige den Cursor wieder
     verbose("Curser is shown again");
     // Entferne temporäres Verzeichnis falls nicht behalten
     if (!keep_tmp) {
@@ -200,6 +201,7 @@ void gif_to_ascii(const std::string &gif_path, const int width, const std::strin
     }
 
     if (write_json) {
+		// defieniere json struktur und füge die daten ein
         json data = {
             {"fps", fps,},
             {"file", gif_path},
@@ -208,16 +210,15 @@ void gif_to_ascii(const std::string &gif_path, const int width, const std::strin
             {"output_dir", out_dir},
             {"naming_scheme", tmp_frames_naming_scheme}
         };
-        std::filesystem::path metadata_path = out_dir.parent_path() / "meta_data.json";
-        std::ofstream out_file(metadata_path);
+        fs::path metadata_path = out_dir.parent_path() / "meta_data.json"; // json path
+        ofstream out_file(metadata_path);	// json file
 
         if (!out_file) {
-            std::cerr << "Could not open output file: " << metadata_path << "\n";
-            return;
+            cerr << "Could not open output file: " << metadata_path << "\n";
+            return;// exit wenn fehler
         }
 
-        out_file << data.dump(4);
-        std::cout << "Saved JSON to " << metadata_path << std::endl;
-
+        out_file << data.dump(4);	// schreibe json file mit space indentation
+        cout << "Saved JSON to " << metadata_path << std::endl;
     }
 }

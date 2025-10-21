@@ -57,8 +57,7 @@ cxxopts::Options setup_options() {
         ("tmp-dir", "Temporäres Verzeichnis für GIF-Frames", cxxopts::value<std::string>())
         ("tmp-frames-naming-scheme", "Benennungsschema für GIF-Frames", cxxopts::value<std::string>())
         ("verbose, v", "Aktiviere Verbose modus", cxxopts::value<bool>()->default_value("false"))
-        ("write-json, wj", "schreibe meta daten in json", cxxopts::value<bool>()->default_value("false"))
-        ("load-json, lj", "lade meta data von json", cxxopts::value<std::string>());
+        ("write-json, wj", "schreibe meta daten in json", cxxopts::value<bool>()->default_value("false"));
     return options;
 }
 
@@ -94,9 +93,9 @@ Config parse_args(const int argc, char* argv[]) {
     auto options = setup_options();                 // Optionen einrichten
     const auto result = options.parse(argc, argv);  // Argumente parsen
 
-    if (result.count("help")) {                // Hilfe anzeigen
+    if (result.count("help")) {                		// Hilfe anzeigen
         print_help(options);
-        std::exit(0);                         // Program beenden nach Anzeige der Hilfe
+        std::exit(0);                         		// Program beenden nach Anzeige der Hilfe
     }
 
     Config cfg;  // Konfigurationsstruktur initialisieren
@@ -196,7 +195,7 @@ void validate_config(const Config &cfg) {
  * @return ASCII-Art als String or in the case of GIFs an empty string because the output is handled directly
  */
 std::string render_ascii(const Config &cfg) {
-    std::string ascii;
+    std::string ascii = "";
     int loops = cfg.loop;
     cout << "Generiere ASCII-Art...\n";
     do {
@@ -227,9 +226,9 @@ std::string render_ascii(const Config &cfg) {
  */
 void output_ascii(const std::string &ascii, const Config &cfg) {
     if (cfg.output_path.empty()) {
-        std::cout << "\033[?25l";       // Verstecke den Cursor
-        std::cout << ascii << std::endl;// Ausgabe auf der Konsole
-        std::cout << "\033[?25h";       // Zeige den Cursor wieder
+        std::cout << "\033[?25l";       	// Verstecke den Cursor
+        std::cout << ascii << std::endl;	// Ausgabe auf der Konsole
+        std::cout << "\033[?25h";       	// Zeige den Cursor wieder
         verbose("Wrote ASCII to console");
     } else {
         std::ofstream out(cfg.output_path);// Ausgabe in Datei

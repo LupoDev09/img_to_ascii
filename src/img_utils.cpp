@@ -126,7 +126,7 @@ string image_to_ascii_color(const string &filename, const int output_width, cons
     }
     verbose("img loaded");
 
-    constexpr  int used_channels = desired_channels; // buffer wird mit dieser Menge an kanälen zurückgegeben
+    constexpr int used_channels = desired_channels; // buffer wird mit dieser Menge an kanälen zurückgegeben
     if (channels_in_file < 3) {
         // Warnung, aber nicht fatal: wir haben durch forced channels trotzdem RGB
         cerr << "Warnung: Quelldatei hat nur " << channels_in_file << " Kanäle; konvertiere zu RGB.\n";

@@ -37,8 +37,6 @@ target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 # Deine Includes auch für Tests verfügbar machen
 target_include_directories(tests PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
-# Tests mit deinem Hauptprogramm linken (optional, falls du intern testest)
-# target_link_libraries(tests PRIVATE img_to_ascii)
 
 # ---------------------------------------------------------
 # CTest-Integration aktivieren

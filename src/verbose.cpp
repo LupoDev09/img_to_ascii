@@ -2,4 +2,4 @@
 // Created by lupo on 19.10.25.
 //
 #include "../include/verbose.h"
-bool VERBOSE_MODE = false;
+bool VERBOSE_MODE = false; // default value for verbose is false

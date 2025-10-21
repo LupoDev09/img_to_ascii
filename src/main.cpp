@@ -19,7 +19,7 @@ int main(const int argc, char *argv[]) {
         enable_vt_mode();                       // ANSI-Escape-Sequenzen aktivieren (Windows)
 #endif
         Config cfg = parse_args(argc, argv);    // Kommandozeilenargumente parsen
-        set_defaults(cfg);                   // Standardwerte setzen
+        set_defaults(cfg);                   	// Standardwerte setzen
         validate_config(cfg);                   // Konfiguration validieren
 
         const string ascii = render_ascii(cfg); // ASCII-Art generieren
