@@ -5,17 +5,7 @@
 #include <array>
 #include <memory>
 #include <iostream>
-
-std::string run_cmd(const std::string& cmd) {
-    std::array<char, 128> buffer{};
-    std::string result;
-    // stderr (2) -> stdout (1) umleiten
-    std::unique_ptr<FILE, decltype(+pclose)> pipe(popen((cmd + " 2>&1").c_str(), "r"), +pclose);
-    if (!pipe) throw std::runtime_error("popen() failed!");
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
-        result += buffer.data();
-    return result;
-}
+#include "test_utils.h"
 
 // Testfälle für die CLI-Optionen
 TEST_CASE("Help wird korrekt angezeigt", "[cli]") {
@@ -36,37 +26,6 @@ TEST_CASE("Optionen werden erkannt und Fehler korrekt ausgegeben", "[cli]") {
     REQUIRE(output.find("--fps funktioniert nur mit --gif") != std::string::npos);
 }
 
-// Check for various invalid inputs and ensure proper error messages are shown
-TEST_CASE("Ungültige Eingabedatei wird korrekt behandelt", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --img nonexistent_file.jpg");
-    REQUIRE(output.find("Bild nicht gefunden") != std::string::npos);
-}
-
-TEST_CASE("Ungültige Breite wird korrekt behandelt", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --width -50");
-    REQUIRE(output.find("Breite muss größer als 0 sein") != std::string::npos);
-}
-
-TEST_CASE("Ungültige FPS wird korrekt behandelt", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --gif --fps 0");
-    REQUIRE(output.find("Frame-Rate muss größer als 0 sein") != std::string::npos);
-}
-
-TEST_CASE("Ungültige ASCII-Zeichenfolge wird korrekt behandelt", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --ascii \"\"");
-    REQUIRE(output.find("--ascii darf nicht leer sein") != std::string::npos);
-}
-
-TEST_CASE("Inkompatible Optionen werden korrekt behandelt", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --colored --output ascii.txt");
-    REQUIRE(output.find("--colored und --output sind nicht kompatibel") != std::string::npos);
-}
-
-TEST_CASE("Keep-Frames ohne GIF wird korrekt behandelt", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --keep-frames");
-    REQUIRE(output.find("--keep-frames funktioniert nur mit --gif") != std::string::npos);
-}
-
 // Zusätzliche Testfälle für temporäre Frame-Optionen
 TEST_CASE("Ungültiges Benennungsschema für temporäre Frames wird korrekt behandelt", "[cli]") {
     std::string output = run_cmd("./img_to_ascii --gif --tmp-frames-naming-scheme frame_%03d.txt");
@@ -82,12 +41,6 @@ TEST_CASE("Ungültiges Benennungsschema ohne Platzhalter wird korrekt behandelt"
 TEST_CASE("Farbausgabe mit ungültigem Dateityp wird korrekt behandelt", "[cli]") {
     std::string output = run_cmd("./img_to_ascii --colored --output ascii.txt");
     REQUIRE(output.find("--colored und --output sind nicht kompatibel") != std::string::npos);
-}
-
-// Zusätzliche Testfälle für GIF-Optionen
-TEST_CASE("Loop-Option mit ungültigem Wert wird korrekt behandelt", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --gif --loop -1");
-    REQUIRE(output.find("Loop-Wert muss größer oder gleich 0 sein") != std::string::npos);
 }
 
 // Zusätzliche Testfälle für Ausgabeoptionen
@@ -107,11 +60,6 @@ TEST_CASE("Ungültiger Bildpfad wird korrekt behandelt", "[cli]") {
     REQUIRE(output.find("Bild nicht gefunden") != std::string::npos);
 }
 
-TEST_CASE("GIF-Option ohne Bilddatei wird korrekt behandelt", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --gif");
-    REQUIRE(output.find("GIF konnte nicht geladen werden: not GIF") != std::string::npos);
-}
-
 // Zusätzliche Testfälle für Breitenoptionen
 TEST_CASE("Breite als nicht-numerischer Wert wird korrekt behandelt", "[cli]") {
     std::string output = run_cmd("./img_to_ascii --width abc");
@@ -129,16 +77,15 @@ TEST_CASE("Sehr große Breite wird korrekt behandelt", "[cli]") {
     REQUIRE(output.find("Breite zu groß! Bitte einen Wert unter 1000 wählen.") != std::string::npos);
 }
 
-// Zusätzliche Testfälle für FPS-Optionen
-TEST_CASE("FPS als nicht-numerischer Wert wird korrekt behandelt", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --gif --fps abc");
-    REQUIRE(output.find("Argument") != std::string::npos);
-    REQUIRE(output.find("failed to parse") != std::string::npos);
-}
 
 // Zusätzliche Testfälle für Loop-Optionen
 TEST_CASE("Loop als nicht-numerischer Wert wird korrekt behandelt", "[cli]") {
     std::string output = run_cmd("./img_to_ascii --gif --loop abc");
     REQUIRE(output.find("Argument") != std::string::npos);
     REQUIRE(output.find("failed to parse") != std::string::npos);
+}
+
+TEST_CASE("Loop-Option mit ungültigem Wert wird korrekt behandelt", "[cli]") {
+    std::string output = run_cmd("./img_to_ascii --gif --loop -1");
+    REQUIRE(output.find("Loop-Wert muss größer oder gleich 0 sein") != std::string::npos);
 }

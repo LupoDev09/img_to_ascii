@@ -29,6 +29,9 @@ target_include_directories(img_to_ascii PRIVATE ${CMAKE_SOURCE_DIR}/include)
 # Test-Executable
 add_executable(tests
         tests/test_cli.cpp
+        tests/test_utils.cpp
+        tests/test_invalid_inputs.cpp
+        tests/test_gif_stuff.cpp
 )
 
 # Catch2 verlinken
