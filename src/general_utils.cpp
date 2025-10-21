@@ -57,7 +57,7 @@ cxxopts::Options setup_options() {
         ("tmp-dir", "Temporäres Verzeichnis für GIF-Frames", cxxopts::value<std::string>())
         ("tmp-frames-naming-scheme", "Benennungsschema für GIF-Frames", cxxopts::value<std::string>())
         ("verbose, v", "Aktiviere Verbose modus", cxxopts::value<bool>()->default_value("false"))
-        ("write-json, wj", "schreibe meta daten in json", cxxopts::value<bool>()->default_value("false"));
+        ("write-json", "schreibe meta daten in json", cxxopts::value<bool>()->default_value("false"));
     return options;
 }
 
