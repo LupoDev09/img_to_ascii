@@ -21,8 +21,8 @@ namespace fs = std::filesystem;
  * @brief Konfigurationsstruktur für die Anwendung
  */
 struct Config {
-    string ascii_chars = "@%#*+=-:. ";                      // Standard-Zeichensatz
-    string tmp_frames_naming_scheme = "frame_%03d.png";     // Benennungsschema für temporäre GIF-Frames
+    std::string ascii_chars = "@%#*+=-:. ";                 // Standard-Zeichensatz
+    std::string tmp_frames_naming_scheme = "frame_%03d.png";// Benennungsschema für temporäre GIF-Frames
     std::filesystem::path image_path;                       // Pfad zum Eingabebild
     std::filesystem::path output_path;                      // Ausgabe-Dateipfad wenn man --output benutzt
     std::filesystem::path tmp_dir;                          // temporäres Verzeichnis für GIF-Frames
@@ -32,6 +32,7 @@ struct Config {
     bool colored = false;                                   // standardmäßig keine farbige Ausgabe
     bool gif = false;                                       // standardmäßig wird nicht davon ausgegangen das der input ein GIF ist
     bool keep_frames = false;                               // behalte temporäre Frames standardmäßig nicht
+    bool write_json = false;                                // schreibe methadaten in json
 };
 
 /**
@@ -55,8 +56,9 @@ cxxopts::Options setup_options() {
         ("keep-frames", "Behalte temporäre Frames", cxxopts::value<bool>()->default_value("false"))
         ("tmp-dir", "Temporäres Verzeichnis für GIF-Frames", cxxopts::value<std::string>())
         ("tmp-frames-naming-scheme", "Benennungsschema für GIF-Frames", cxxopts::value<std::string>())
-        ("verbose, v", "Aktiviere Verbose modus", cxxopts::value<bool>()->default_value("false"));
-
+        ("verbose, v", "Aktiviere Verbose modus", cxxopts::value<bool>()->default_value("false"))
+        ("write-json, wj", "schreibe meta daten in json", cxxopts::value<bool>()->default_value("false"))
+        ("load-json, lj", "lade meta data von json", cxxopts::value<std::string>());
     return options;
 }
 
@@ -118,6 +120,7 @@ Config parse_args(const int argc, char* argv[]) {
     cfg.gif = result["gif"].as<bool>();
     cfg.keep_frames = result["keep-frames"].as<bool>();
     VERBOSE_MODE = result["verbose"].as<bool>();
+    cfg.write_json = result["write-json"].as<bool>();
 
     verbose("Parsed Flags");
     return cfg;
@@ -202,7 +205,7 @@ std::string render_ascii(const Config &cfg) {
         if (cfg.gif) {
             // GIF wird direkt ausgegeben, kein Rückgabewert
             gif_to_ascii(cfg.image_path.string(), cfg.width, cfg.ascii_chars,
-                         cfg.keep_frames, cfg.colored, cfg.tmp_dir, cfg.tmp_frames_naming_scheme, cfg.fps);
+                         cfg.keep_frames, cfg.colored, cfg.tmp_dir, cfg.tmp_frames_naming_scheme, cfg.fps, cfg.write_json);
         }
         // Einzelbild-mit-Farbe-Verarbeitung
         else if (cfg.colored) {
