@@ -22,8 +22,8 @@ int main(const int argc, char *argv[]) {
         if (cfg.load_config != ""){
 
             if (std::filesystem::exists(cfg.load_config)){
-                cout << "Konfigurationsdatei geladen: " << cfg.load_config << "\n";
-                cout << "Aktuelle Konfiguration:\n"
+                cout << "Konfigurationsdatei geladen: " << cfg.load_config << "\n"
+                     << "Aktuelle Konfiguration:\n"
                      << "  Bildpfad: " << cfg.image_path << "\n"
                      << "  Breite: " << cfg.width << "\n"
                      << "  ASCII-Zeichen: " << cfg.ascii_chars << "\n"
