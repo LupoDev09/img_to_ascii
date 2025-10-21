@@ -37,6 +37,8 @@ struct Config {
     bool write_json = false;                                // schreibe methadaten in json
 };
 
+void overwrite_cfg_with_json_conf(Config &cfg, const std::string &json_path);
+
 /**
  * @brief Setzt die Kommandozeilenoptionen mit cxxopts
  *
@@ -102,6 +104,9 @@ Config parse_args(const int argc, char* argv[]) {
     }
 
     Config cfg;  // Konfigurationsstruktur initialisieren
+    if (result.count("load-config")) cfg.load_config = result["load-config"].as<std::string>();
+    if (cfg.load_config != "")
+        overwrite_cfg_with_json_conf(cfg, cfg.load_config.string());
 
     // Fülle die Konfigurationsstruktur basierend auf den geparsten Argumenten
     // Int Werte
@@ -116,14 +121,13 @@ Config parse_args(const int argc, char* argv[]) {
     if (result.count("tmp-dir")) cfg.tmp_dir = result["tmp-dir"].as<std::string>();
     if (result.count("tmp-frames-naming-scheme"))
         cfg.tmp_frames_naming_scheme = result["tmp-frames-naming-scheme"].as<std::string>();
-	if (result.count("load-config")) cfg.load_config = result["load-config"].as<std::string>();
 
     // Boolesche Flags
-    cfg.colored = result["colored"].as<bool>();
-    cfg.gif = result["gif"].as<bool>();
-    cfg.keep_frames = result["keep-frames"].as<bool>();
+    if (result.count("colored")) cfg.colored = result["colored"].as<bool>();
+    if (result.count("gif")) cfg.gif = result["gif"].as<bool>();
+    if (result.count("keep-frames")) cfg.keep_frames = result["keep-frames"].as<bool>();
+    if (result.count("write-json")) cfg.write_json = result["write-json"].as<bool>();
     VERBOSE_MODE = result["verbose"].as<bool>();
-    cfg.write_json = result["write-json"].as<bool>();
 
     verbose("Parsed Flags");
     return cfg;
@@ -135,8 +139,9 @@ Config parse_args(const int argc, char* argv[]) {
  * @param cfg Referenz auf die Konfigurationsstruktur
  */
 void set_defaults(Config &cfg) {
-    if (cfg.tmp_dir.empty()) cfg.tmp_dir = fs::relative("./tmp_gif_frames"); verbose("set tmp_dir default");
-    if (cfg.image_path.empty()) { verbose("set image_path default");
+    if (cfg.tmp_dir.empty()) cfg.tmp_dir = "./tmp_gif_frames"; verbose("set tmp_dir default");
+    if (cfg.image_path.empty()) {
+        verbose("set image_path default");
         const fs::path exe_dir = fs::current_path();
         cfg.image_path = exe_dir / "Silly_Cat_Character_.jpg";
         cout << "Kein Bildpfad angegeben, verwende Standardbild: " << cfg.image_path << endl;
@@ -273,7 +278,7 @@ void overwrite_cfg_with_json_conf(Config &cfg, const std::string &json_path) {
     if (j.contains("tmp_dir")) cfg.tmp_dir = j["tmp_dir"].get<std::string>();
     if (j.contains("width")) cfg.width = j["width"].get<int>();
     if (j.contains("fps")) cfg.fps = j["fps"].get<int>();
-    if (j.contains("loop")) cfg.loop = j["loop"].get<bool>();
+    if (j.contains("loop")) cfg.loop = j["loop"].get<int>();
     if (j.contains("colored")) cfg.colored = j["colored"].get<bool>();
     if (j.contains("gif")) cfg.gif = j["gif"].get<bool>();
     if (j.contains("keep_frames")) cfg.keep_frames = j["keep_frames"].get<bool>();

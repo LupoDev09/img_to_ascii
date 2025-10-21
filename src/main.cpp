@@ -20,8 +20,23 @@ int main(const int argc, char *argv[]) {
 #endif
         Config cfg = parse_args(argc, argv);    // Kommandozeilenargumente parsen
         if (cfg.load_config != ""){
-            overwrite_cfg_with_json_conf(cfg, cfg.load_config); // Falls angegeben, Konfiguration aus JSON laden
+
+            if (std::filesystem::exists(cfg.load_config)){
+                cout << "Konfigurationsdatei geladen: " << cfg.load_config << "\n";
+                cout << "Aktuelle Konfiguration:\n"
+                     << "  Bildpfad: " << cfg.image_path << "\n"
+                     << "  Breite: " << cfg.width << "\n"
+                     << "  ASCII-Zeichen: " << cfg.ascii_chars << "\n"
+                     << "  Farbig: " << (cfg.colored ? "Ja" : "Nein") << "\n"
+                     << "  GIF-Modus: " << (cfg.gif ? "Ja" : "Nein") << "\n"
+                     << "  Frame-Rate: " << cfg.fps << "\n"
+                     << "  Loop: " << cfg.loop
+                     << endl;
+            } else {
+                throw runtime_error("Config nicht gefunden: " + cfg.load_config.string());
+            }
         }
+
         set_defaults(cfg);                   	// Standardwerte setzen
         validate_config(cfg);                   // Konfiguration validieren
 
