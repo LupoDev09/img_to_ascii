@@ -130,7 +130,7 @@ Config parse_args(const int argc, char* argv[]) {
  * @param exe_path Pfad zur ausführbaren Datei
  */
 void set_defaults(Config &cfg, const char* exe_path) {
-    if (cfg.tmp_dir.empty()) cfg.tmp_dir = "./tmp_gif_frames";
+    if (cfg.tmp_dir.empty()) cfg.tmp_dir = fs::relative("./tmp_gif_frames");
     if (cfg.image_path.empty()) {
         const fs::path exe_dir = fs::current_path();
         cfg.image_path = exe_dir / "Silly_Cat_Character_.jpg";
