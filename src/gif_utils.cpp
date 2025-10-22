@@ -28,10 +28,11 @@ namespace fs = std::filesystem;
  *@param gif_path Path to the input GIF file.
  *@param out_dir Directory where extracted PNG frames will be saved.
  *@param tmp_frames_naming_scheme Naming scheme for temporary GIF frames (e.g., "frame_%03d.png").
+ *@param width_progress_bar Width of the progress bar displayed during frame extraction. (Internal used with the provided width for ASCII output.)
  *
  *@throws std::runtime_error If the GIF cannot be loaded or if file operations fail.
 */
-void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, const std::string& tmp_frames_naming_scheme) {
+void decode_gif_to_frames( const std::string &gif_path, const fs::path &out_dir, const std::string& tmp_frames_naming_scheme, const int& width_progress_bar ) {
     verbose("decode_gif_to_frames called with");
     verbose("gif_path = " + gif_path);
     verbose("out_dir = " + out_dir.string());
@@ -98,12 +99,25 @@ void decode_gif_to_frames(const std::string &gif_path, const fs::path &out_dir, 
 
     verbose("Writing frames to disk...");
     // Frames seriell schreiben, garantiert richtige Reihenfolge
+    int bar_width = width_progress_bar / 2; // Fortschrittsbalken Breite
     for (int i = 0; i < frames; ++i) {
         verbose("Writing frame " + to_string(i));
         char filename[128];
         snprintf(filename, sizeof(filename), tmp_frames_naming_scheme.c_str(), i);
         std::string frame_path = (out_dir / filename).string();
         stbi_write_png(frame_path.c_str(), width, height, 4, frames_buffers[static_cast<unsigned long>(i)].data(), width * 4);
+
+        float progress = static_cast<float>(i + 1) / static_cast<float>(frames);    // Fortschritt
+        int pos = static_cast<int>(bar_width * progress);                           // Fortschrittsbalken Position
+
+        cout << "[";// Fortschrittsbalken starten
+        for (int j = 0; j < bar_width; ++j) {
+            if (j < pos) cout << "=";           // Gefüllter Teil
+            else if (j == pos) cout << ">";     // Aktuelle Position
+            else cout << " ";                   // Ungefüllter Teil
+        }
+        cout << "] " << static_cast<int>(progress * 100.0f) << " %\r";      // Fortschrittsbalken beenden + Fortschritt in Prozent + an den anfang der Zeile springen
+        cout.flush();
 
         // Debug-Ausgabe
         {
@@ -161,7 +175,7 @@ void gif_to_ascii(const std::string &gif_path, const int width, const std::strin
     verbose("File exists check passed");
 
     // Extrahiere Frames aus dem GIF
-    decode_gif_to_frames(input_gif, out_dir, tmp_frames_naming_scheme);
+    decode_gif_to_frames(input_gif, out_dir, tmp_frames_naming_scheme, width);
 
     verbose("Frames extracted to: " + out_dir.string());
 
