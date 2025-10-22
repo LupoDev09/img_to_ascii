@@ -2,7 +2,6 @@
 // Created by lupo on 21.10.25.
 //
 #include <catch2/catch_all.hpp>
-#include <cstdlib>
 #include <string>
 #include <array>
 #include <memory>

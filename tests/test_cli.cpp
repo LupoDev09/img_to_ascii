@@ -2,7 +2,6 @@
 #include <catch2/catch_all.hpp>
 #include <cstdlib>
 #include <string>
-#include <array>
 #include <memory>
 #include <iostream>
 #include "test_utils.h"
@@ -28,12 +27,12 @@ TEST_CASE("Optionen werden erkannt und Fehler korrekt ausgegeben", "[cli]") {
 
 // Zusätzliche Testfälle für temporäre Frame-Optionen
 TEST_CASE("Ungültiges Benennungsschema für temporäre Frames wird korrekt behandelt", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --gif --tmp-frames-naming-scheme frame_%03d.txt");
+    std::string output = run_cmd("./img_to_ascii --img ../funny.gif --gif --tmp-frames-naming-scheme frame_%03d.txt");
     REQUIRE(output.find("--tmp_frames_naming_scheme muss auf .png, .jpg oder .jpeg enden") != std::string::npos);
 }
 
 TEST_CASE("Ungültiges Benennungsschema ohne Platzhalter wird korrekt behandelt", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --gif --tmp-frames-naming-scheme frame.png");
+    std::string output = run_cmd("./img_to_ascii --img ../funny.gif --gif --tmp-frames-naming-scheme frame.png");
     REQUIRE(output.find("--tmp_frames_naming_scheme muss ein '%d'-Platzhalter enthalten") != std::string::npos);
 }
 
@@ -45,12 +44,12 @@ TEST_CASE("Farbausgabe mit ungültigem Dateityp wird korrekt behandelt", "[cli]"
 
 // Zusätzliche Testfälle für Ausgabeoptionen
 TEST_CASE("Ungültiger Ausgabepfad wird korrekt behandelt", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --output /invalid_path/ascii.txt");
+    std::string output = run_cmd("./img_to_ascii --img ../Silly_Cat_Character_.jpg --output /invalid_path/ascii.txt");
     REQUIRE(output.find("Konnte Datei nicht öffnen: ") != std::string::npos);
 }
 
 TEST_CASE("Keine Ausgabeoptionen angegeben", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --img Silly_Cat_Character_.jpg --width 80");
+    std::string output = run_cmd("./img_to_ascii --img ../Silly_Cat_Character_.jpg --width 80");
     REQUIRE(output.find("ASCII-Art") != std::string::npos);
 }
 

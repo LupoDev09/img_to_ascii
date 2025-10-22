@@ -5,7 +5,6 @@
 #include <catch2/catch_all.hpp>
 #include <cstdlib>
 #include <string>
-#include <array>
 #include <memory>
 #include <iostream>
 #include "test_utils.h"
