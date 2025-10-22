@@ -19,9 +19,11 @@
  *
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
  */
-std::string image_to_ascii(const std::string &filename,
+std::string image_to_ascii(
+    const std::string& filename,
     int output_width = 70,
-    const std::string &ascii_chars = "@%#*+=-:. ");
+    const std::string& ascii_chars = "@%#*+=-:. "
+);
 
 /**
  * Wandelt ein Bild in ASCII-Art mit farbe um.
@@ -36,8 +38,10 @@ std::string image_to_ascii(const std::string &filename,
  *
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
  */
-std::string image_to_ascii_color(const std::string &filename,
+std::string image_to_ascii_color(
+    const std::string& filename,
     int output_width = 70,
-    const std::string &ascii_chars = "@%#*+=-:. ");
+    const std::string& ascii_chars = "@%#*+=-:. "
+);
 
 #endif //IMG_TO_ASCII_UTILS_H

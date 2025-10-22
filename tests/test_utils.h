@@ -6,5 +6,5 @@
 #define IMG_TO_ASCII_TEST_UTILS_H
 #pragma once
 #include <string>
-std::string run_cmd(const std::string& cmd);
-#endif //IMG_TO_ASCII_TEST_UTILS_H
+std::string run_cmd(const std::string &cmd);
+#endif // IMG_TO_ASCII_TEST_UTILS_H
