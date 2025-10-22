@@ -102,6 +102,7 @@ cxxopts::Options setup_options() {
 
 /**
  * @brief Gibt die Hilfe auf der Konsole aus
+ *
  * @param options cxxopts::Options Objekt mit den definierten Optionen
  */
 void print_help(const cxxopts::Options& options) {

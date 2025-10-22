@@ -72,6 +72,12 @@ std::string render_ascii(const Config &cfg);
  */
 void output_ascii(const std::string &ascii, const Config &cfg);
 
+/**
+ * @brief Überschreibt die Konfigurationsstruktur mit Werten aus einer JSON-Datei
+ *
+ * @param cfg Referenz auf die Konfigurationsstruktur
+ * @param json_path Pfad zur JSON-Konfigurationsdatei
+ */
 void overwrite_cfg_with_json_conf(Config &cfg, const std::string &json_path);
 
 #if defined(_WIN32)
