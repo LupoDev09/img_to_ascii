@@ -187,7 +187,7 @@ void gif_to_ascii(const std::string &gif_path, const int width, const std::strin
         }
     }
     cout << "\033[?25h";    			// Zeige den Cursor wieder
-    verbose("Curser is shown again");
+    verbose("Curser is shown again"); //
     // Entferne temporäres Verzeichnis falls nicht behalten
     if (!keep_tmp) {
         try {
