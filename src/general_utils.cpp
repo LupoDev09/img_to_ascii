@@ -36,7 +36,7 @@ struct Config {
     bool keep_frames = false;                               // behalte temporäre Frames standardmäßig nicht
     bool write_json = false;                                // schreibe methadaten in json
 };
-
+//
 void overwrite_cfg_with_json_conf(Config &cfg, const std::string &json_path);
 
 /**

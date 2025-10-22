@@ -2,7 +2,7 @@
 // Created by lupo on 17.10.25.
 //
 
-
+//
 
 // stb_image headers (Implementierung befindet sich in stb_impl.cpp)
 #include <filesystem>
