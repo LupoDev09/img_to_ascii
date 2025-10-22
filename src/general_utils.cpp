@@ -37,7 +37,41 @@ struct Config {
     bool write_json = false;                                // schreibe methadaten in json
 };
 
-void overwrite_cfg_with_json_conf(Config &cfg, const std::string &json_path);
+/**
+ * @brief Überschreibt die Konfigurationsstruktur mit Werten aus einer JSON-Datei
+ *
+ * @param cfg Referenz auf die Konfigurationsstruktur
+ * @param json_path Pfad zur JSON-Konfigurationsdatei
+ */
+void overwrite_cfg_with_json_conf(Config &cfg, const std::string &json_path) {
+    std::ifstream file(json_path);
+    if (!file.is_open()) {
+        std::cerr << "Fehler: Konnte " << json_path << " nicht öffnen!\n";
+        return;
+    }
+
+    json j;
+    try {
+        file >> j;
+    } catch (const std::exception &e) {
+        std::cerr << "Fehler beim Einlesen der JSON-Datei: " << e.what() << "\n";
+        return;
+    }
+
+    // Werte prüfen und überschreiben, falls sie existieren
+    if (j.contains("ascii_chars")) cfg.ascii_chars = j["ascii_chars"].get<std::string>();
+    if (j.contains("tmp_frames_naming_scheme")) cfg.tmp_frames_naming_scheme = j["tmp_frames_naming_scheme"].get<std::string>();
+    if (j.contains("image_path")) cfg.image_path = j["image_path"].get<std::string>();
+    if (j.contains("output_path")) cfg.output_path = j["output_path"].get<std::string>();
+    if (j.contains("tmp_dir")) cfg.tmp_dir = j["tmp_dir"].get<std::string>();
+    if (j.contains("width")) cfg.width = j["width"].get<int>();
+    if (j.contains("fps")) cfg.fps = j["fps"].get<int>();
+    if (j.contains("loop")) cfg.loop = j["loop"].get<int>();
+    if (j.contains("colored")) cfg.colored = j["colored"].get<bool>();
+    if (j.contains("gif")) cfg.gif = j["gif"].get<bool>();
+    if (j.contains("keep_frames")) cfg.keep_frames = j["keep_frames"].get<bool>();
+    if (j.contains("write_json")) cfg.write_json = j["write_json"].get<bool>();
+}
 
 /**
  * @brief Setzt die Kommandozeilenoptionen mit cxxopts
@@ -255,35 +289,6 @@ void output_ascii(const std::string &ascii, const Config &cfg) {
     }
 }
 
-void overwrite_cfg_with_json_conf(Config &cfg, const std::string &json_path) {
-    std::ifstream file(json_path);
-    if (!file.is_open()) {
-        std::cerr << "Fehler: Konnte " << json_path << " nicht öffnen!\n";
-        return;
-    }
-
-    json j;
-    try {
-        file >> j;
-    } catch (const std::exception &e) {
-        std::cerr << "Fehler beim Einlesen der JSON-Datei: " << e.what() << "\n";
-        return;
-    }
-
-    // Werte prüfen und überschreiben, falls sie existieren
-    if (j.contains("ascii_chars")) cfg.ascii_chars = j["ascii_chars"].get<std::string>();
-    if (j.contains("tmp_frames_naming_scheme")) cfg.tmp_frames_naming_scheme = j["tmp_frames_naming_scheme"].get<std::string>();
-    if (j.contains("image_path")) cfg.image_path = j["image_path"].get<std::string>();
-    if (j.contains("output_path")) cfg.output_path = j["output_path"].get<std::string>();
-    if (j.contains("tmp_dir")) cfg.tmp_dir = j["tmp_dir"].get<std::string>();
-    if (j.contains("width")) cfg.width = j["width"].get<int>();
-    if (j.contains("fps")) cfg.fps = j["fps"].get<int>();
-    if (j.contains("loop")) cfg.loop = j["loop"].get<int>();
-    if (j.contains("colored")) cfg.colored = j["colored"].get<bool>();
-    if (j.contains("gif")) cfg.gif = j["gif"].get<bool>();
-    if (j.contains("keep_frames")) cfg.keep_frames = j["keep_frames"].get<bool>();
-    if (j.contains("write_json")) cfg.write_json = j["write_json"].get<bool>();
-}
 #if defined(_WIN32)
 #define NOMINMAX
 #define byte win_byte_override
