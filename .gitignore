@@ -5,3 +5,4 @@
 .vs
 tmp*
 *Testing*
+CMakeFiles

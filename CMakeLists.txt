@@ -4,10 +4,7 @@ project(img_to_ascii)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# ---------------------------------------------------------
-# Catch2 finden
-# ---------------------------------------------------------
-find_package(Catch2 3 REQUIRED)
+option(BUILD_TESTS "Baue die Tests mit Catch2" ON)
 
 # ---------------------------------------------------------
 # Hauptprogramm
@@ -27,24 +24,27 @@ target_include_directories(img_to_ascii PRIVATE ${CMAKE_SOURCE_DIR}/include)
 # Tests
 # ---------------------------------------------------------
 # Test-Executable
-add_executable(tests
-        tests/test_cli.cpp
-        tests/test_utils.cpp
-        tests/test_invalid_inputs.cpp
-        tests/test_gif_stuff.cpp
-        tests/test_conifg.cpp
-)
+if (BUILD_TESTS)
+    find_package(Catch2 3 REQUIRED)
+    add_executable(tests
+            tests/test_cli.cpp
+            tests/test_utils.cpp
+            tests/test_invalid_inputs.cpp
+            tests/test_gif_stuff.cpp
+            tests/test_config.cpp
+    )
 
-# Catch2 verlinken
-target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
+    # Catch2 verlinken
+    target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 
-# Deine Includes auch für Tests verfügbar machen
-target_include_directories(tests PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    # Deine Includes auch für Tests verfügbar machen
+    target_include_directories(tests PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 
-# ---------------------------------------------------------
-# CTest-Integration aktivieren
-# ---------------------------------------------------------
-include(CTest)
-include(Catch)
-catch_discover_tests(tests)
+    # ---------------------------------------------------------
+    # CTest-Integration aktivieren
+    # ---------------------------------------------------------
+    include(CTest)
+    include(Catch)
+    catch_discover_tests(tests)
+endif ()
