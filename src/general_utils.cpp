@@ -35,6 +35,7 @@ struct Config {
     bool gif = false;                                       // standardmäßig wird nicht davon ausgegangen das der input ein GIF ist
     bool keep_frames = false;                               // behalte temporäre Frames standardmäßig nicht
     bool write_json = false;                                // schreibe methadaten in json
+    bool no_output = false;                                 // gib keinen output aus (für debuging)
 };
 
 /**
@@ -96,7 +97,8 @@ cxxopts::Options setup_options() {
         ("tmp-frames-naming-scheme", "Benennungsschema für GIF-Frames", cxxopts::value<std::string>())
         ("verbose, v", "Aktiviere Verbose modus", cxxopts::value<bool>()->default_value("false"))
         ("write-json", "schreibe meta daten in json", cxxopts::value<bool>()->default_value("false"))
-		("load-config", "lade eine config", cxxopts::value<std::string>()->default_value(""));
+		("load-config", "lade eine config", cxxopts::value<std::string>()->default_value(""))
+        ("no-output", "gib kein bild aus fuers debugen", cxxopts::value<bool>()->default_value("false"));
     return options;
 }
 
@@ -162,6 +164,7 @@ Config parse_args(const int argc, char* argv[]) {
     if (result.count("gif")) cfg.gif = result["gif"].as<bool>();
     if (result.count("keep-frames")) cfg.keep_frames = result["keep-frames"].as<bool>();
     if (result.count("write-json")) cfg.write_json = result["write-json"].as<bool>();
+    if (result.count("no-output")) cfg.no_output = result["no-output"].as<bool>();
     VERBOSE_MODE = result["verbose"].as<bool>();
 
     verbose("Parsed Flags");
@@ -242,6 +245,7 @@ void validate_config(const Config &cfg) {
  * @return ASCII-Art als String or in the case of GIFs an empty string because the output is handled directly
  */
 std::string render_ascii(const Config &cfg) {
+    if (cfg.no_output) std::exit(0);
     std::string ascii = "";
     int loops = cfg.loop;
     cout << "Generiere ASCII-Art...\n";

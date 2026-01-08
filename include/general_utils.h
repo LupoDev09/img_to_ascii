@@ -29,6 +29,7 @@ struct Config {
     bool colored = false;                                   // standardmäßig keine farbige Ausgabe
     bool gif = false;                                       // standardmäßig wird nicht davon ausgegangen das der input ein GIF ist
     bool keep_frames = false;                               // behalte temporäre Frames standardmäßig nicht
+    bool no_output = false;                                 // gib keinen output aus (für debuging)
 };
 
 /**

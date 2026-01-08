@@ -1,7 +1,7 @@
-//#define STB_IMAGE_WRITE_IMPLEMENTATION  // Implementation wird in stb_impl.cpp bereitgestellt
+// #define STB_IMAGE_WRITE_IMPLEMENTATION  // Implementation wird in stb_impl.cpp bereitgestellt
+#include "../include/general_utils.h"
 #include <iostream>
 #include <string>
-#include "../include/general_utils.h"
 
 using namespace std;
 
@@ -16,12 +16,12 @@ using namespace std;
 int main(const int argc, char *argv[]) {
     try {
 #if defined(_WIN32)
-        enable_vt_mode();                       // ANSI-Escape-Sequenzen aktivieren (Windows)
+        enable_vt_mode();// ANSI-Escape-Sequenzen aktivieren (Windows)
 #endif
-        Config cfg = parse_args(argc, argv);    // Kommandozeilenargumente parsen
-        if (cfg.load_config != ""){
+        Config cfg = parse_args(argc, argv);// Kommandozeilenargumente parsen
+        if (cfg.load_config != "") {
 
-            if (std::filesystem::exists(cfg.load_config)){
+            if (std::filesystem::exists(cfg.load_config)) {
                 cout << "Konfigurationsdatei geladen: " << cfg.load_config << "\n"
                      << "Aktuelle Konfiguration:\n"
                      << "  Bildpfad: " << cfg.image_path << "\n"
@@ -37,17 +37,20 @@ int main(const int argc, char *argv[]) {
             }
         }
 
-        set_defaults(cfg);                   // Standardwerte setzen
-        validate_config(cfg);                   // Konfiguration validieren
+        set_defaults(cfg);   // Standardwerte setzen
+        validate_config(cfg);// Konfiguration validieren
 
-        const string ascii = render_ascii(cfg); // ASCII-Art generieren
-        output_ascii(ascii, cfg);               // ASCII-Art ausgeben
+        const string ascii = render_ascii(cfg);// ASCII-Art generieren
+
+        if (cfg.no_output == true) return 0;// Wenn no_output auf true nich ausgeben sondern abbrechen
+
+        output_ascii(ascii, cfg);// ASCII-Art ausgeben
 
     } catch (const exception &e) {
-        cerr << e.what() << "\n";               // Fehler ausgeben
-        cout << "\033[0m" << endl;              // ANSI-Reset
+        cerr << e.what() << "\n"; // Fehler ausgeben
+        cout << "\033[0m" << endl;// ANSI-Reset
         return 1;
     }
-    cout << "\033[0m" << endl;                  // ANSI-Reset
+    cout << "\033[0m" << endl;// ANSI-Reset
     return 0;
 }
