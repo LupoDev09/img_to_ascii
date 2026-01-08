@@ -14,9 +14,9 @@ extern bool VERBOSE_MODE;
 // Hilfsfunktion für verbose-Ausgaben
 inline void verbose(const std::string &msg) {
     if (VERBOSE_MODE) {
-        std::cerr << "[verbose] " << msg << "\n";
+        std::clog << "[verbose] " << msg << "\n";
     }
 }
 
 
-#endif //IMG_TO_ASCII_VERBOSE_H
+#endif// IMG_TO_ASCII_VERBOSE_H
