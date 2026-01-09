@@ -2,18 +2,14 @@
 // Created by lupo on 17.10.25.
 //
 
-
-
 // stb_image headers (Implementierung befindet sich in stb_impl.cpp)
-#include <filesystem>
-#include <iostream>
-#include <string>
 #include "../include/img_utils.h"
 #include "../include/stb_image.h"
 #include "../include/verbose.h"
+#include <iostream>
+#include <string>
 
 using namespace std;
-namespace fs = std::filesystem;
 
 /**
  * Wandelt ein Bild in ASCII-Art um.
@@ -28,7 +24,7 @@ namespace fs = std::filesystem;
  *
  * @throws std::runtime_error Falls das Bild nicht geladen werden kann oder zu wenige Kanäle hat.
  */
-string image_to_ascii(const string &filename, const int output_width, const string &ascii_chars ) {
+string image_to_ascii(const string &filename, const int output_width, const string &ascii_chars) {
     verbose("img_to_ascii called with parameters:");
     verbose("filename = " + filename);
     verbose("output_width = " + to_string(output_width));
@@ -95,7 +91,7 @@ string image_to_ascii(const string &filename, const int output_width, const stri
     }
     stbi_image_free(img);
     verbose("finished processing pixels");
-  return ascii;
+    return ascii;
 }
 
 /**
@@ -138,7 +134,7 @@ string image_to_ascii_color(const string &filename, const int output_width, cons
     // 0.55 für Konsolen-Zeichenhöhe korrigiert
 
     string ascii;
-    ascii.reserve(static_cast<unsigned long> (output_width * output_height * 30));  // Platz für ANSI-Codes
+    ascii.reserve(static_cast<unsigned long>(output_width * output_height * 30)); // Platz für ANSI-Codes
     verbose("reserved space for ascii string");
 
     const float x_step = static_cast<float>(width) / static_cast<float>(output_width);
