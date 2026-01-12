@@ -117,7 +117,7 @@ void print_help(const cxxopts::Options& options) {
 
     // Zusätzliche Hinweise
     std::cout << "Hinweise:\n"
-              << "  • Wenn kein Bildpfad angegeben wird, wird 'Silly_Cat_Character_.jpg' verwendet.\n"
+              << "  • Wenn kein Bildpfad angegeben wird, wird 'Silly_Cat_Character.jpg' verwendet.\n"
               << "  • ANSI-Farben funktionieren nur in Terminals, die Escape-Sequenzen verstehen.\n"
               << "  • Es ist basically Glücksspiel, ob das Ding auf Windows läuft - viel Glück :3\n"
               << std::endl;
@@ -181,7 +181,7 @@ void set_defaults(Config &cfg) {
     if (cfg.image_path.empty()) {
         verbose("set image_path default");
         const fs::path exe_dir = fs::current_path();
-        cfg.image_path = exe_dir / "Silly_Cat_Character_.jpg";
+        cfg.image_path = exe_dir / "Silly_Cat_Character.jpg";
         cout << "Kein Bildpfad angegeben, verwende Standardbild: " << cfg.image_path << endl;
     }
     verbose("set defaults");

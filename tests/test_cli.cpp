@@ -16,7 +16,7 @@ TEST_CASE("Help wird korrekt angezeigt", "[cli]") {
 
 TEST_CASE("Standardwerte werden korrekt gesetzt", "[cli]") {
     std::string output = run_cmd("./img_to_ascii");
-    REQUIRE(output.find("Silly_Cat_Character_.jpg") != std::string::npos);
+    REQUIRE(output.find("Silly_Cat_Character.jpg") != std::string::npos);
 }
 
 TEST_CASE("Optionen werden erkannt und Fehler korrekt ausgegeben", "[cli]") {
@@ -44,12 +44,12 @@ TEST_CASE("Farbausgabe mit ungültigem Dateityp wird korrekt behandelt", "[cli]"
 
 // Zusätzliche Testfälle für Ausgabeoptionen
 TEST_CASE("Ungültiger Ausgabepfad wird korrekt behandelt", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --img ../Silly_Cat_Character_.jpg --output /invalid_path/ascii.txt");
+    std::string output = run_cmd("./img_to_ascii --img ../Silly_Cat_Character.jpg --output /invalid_path/ascii.txt");
     REQUIRE(output.find("Konnte Datei nicht öffnen: ") != std::string::npos);
 }
 
 TEST_CASE("Keine Ausgabeoptionen angegeben", "[cli]") {
-    std::string output = run_cmd("./img_to_ascii --img ../Silly_Cat_Character_.jpg --width 80");
+    std::string output = run_cmd("./img_to_ascii --img ../Silly_Cat_Character.jpg --width 80");
     REQUIRE(output.find("ASCII-Art") != std::string::npos);
 }
 
