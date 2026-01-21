@@ -68,6 +68,9 @@ inline std::string convert_to_ascii(const char c, const unsigned char r, const u
  */
 std::vector<unsigned char> load_file(const std::string& path) {
     std::ifstream file(path, std::ios::binary);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open file: " + path);
+    }
     return std::vector<unsigned char>(
         std::istreambuf_iterator<char>(file),
         std::istreambuf_iterator<char>()
@@ -249,7 +252,8 @@ int main(const int argc, char** argv) {
         );
 
         if (!gif) {
-            std::cerr << "Failed to load GIF\n";
+            std::cerr << "Failed to load gif '" << img_path
+                  << "': " << stbi_failure_reason() << std::endl;
             return 1;
         }
 
@@ -263,32 +267,37 @@ int main(const int argc, char** argv) {
 
         // lambda funktion für die threads
         auto render_chunk = [&](const int start_f, const int end_f) {
-            for (int f = start_f; f < end_f; ++f) {
-                const unsigned char* frame = gif + f * width * height * 3;
+            try {
+                for (int f = start_f; f < end_f; ++f) {
+                    const unsigned char* frame = gif + f * width * height * 3;
 
-                // Nutze deine Chunked-Multithreading-Version für die Zeilen
-                processed_frames[f] = render_frame_ascii_to_string(
-                    frame, width, height,
-                    target_width, target_height,
-                    use_color
-                );
+                    // Nutze deine Chunked-Multithreading-Version für die Zeilen
+                    processed_frames[f] = render_frame_ascii_to_string(
+                        frame, width, height,
+                        target_width, target_height,
+                        use_color
+                    );
 
-                // Fortschritt erhöhen
-                ++frames_done;
+                    // Fortschritt erhöhen
+                    ++frames_done;
 
-                // Fortschrittsanzeige anzeigen
-                {
-                    const int progress = static_cast<int>((frames_done.load() * 100) / frames);
-                    std::lock_guard<std::mutex> lock(cout_mutex);
-                    std::cout << "\rGenerating frames: ["
-                              << std::string(progress / 2, '=')
-                              << std::string(50 - progress / 2, ' ')
-                              << "] " << progress << "% "
-                              << std::flush;
-                    if (frames_done.load() == frames) {
-                        std::cout << std::endl;
+                    // Fortschrittsanzeige anzeigen
+                    {
+                        const int progress = static_cast<int>((frames_done.load() * 100) / frames);
+                        std::lock_guard<std::mutex> lock(cout_mutex);
+                        std::cout << "\rGenerating frames: ["
+                                  << std::string(progress / 2, '=')
+                                  << std::string(50 - progress / 2, ' ')
+                                  << "] " << progress << "% "
+                                  << std::flush;
+                        if (frames_done.load() == frames) {
+                            std::cout << std::endl;
+                        }
                     }
                 }
+            } catch (std::exception& e) {
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cerr << "Thread error: " << e.what() << std::endl;
             }
         };
         std::cout << '\n' << std::endl;
@@ -339,7 +348,8 @@ int main(const int argc, char** argv) {
     unsigned char* img = stbi_load(img_path.c_str(), &width, &height, &channels, 3);
 
     if (!img) {
-        std::cerr << "Error while loading the image from " << img_path << std::endl;
+        std::cerr << "Failed to load image '" << img_path
+                  << "': " << stbi_failure_reason() << std::endl;
         return 1;
     }
     verbose("loaded image: " + img_path);
