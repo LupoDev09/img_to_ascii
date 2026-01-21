@@ -54,6 +54,11 @@ inline std::string convert_to_ascii(const char c, const unsigned char r, const u
     return output;
 }
 
+/**
+ *
+ * @param path the path to load the file from
+ * @return a vector with the frames
+ */
 std::vector<unsigned char> load_file(const std::string& path) {
     std::ifstream file(path, std::ios::binary);
     return std::vector<unsigned char>(
@@ -62,11 +67,21 @@ std::vector<unsigned char> load_file(const std::string& path) {
     );
 }
 
+/**
+ * @param img the image/frame to render
+ * @param width the actual width from the image/frame
+ * @param height the actual height from the image/frame
+ * @param target_width the targeted width in the consol
+ * @param target_height the targeted height in the consol
+ * @param use_color weather to use color in the production to rander
+ * @param no_output weather to put the rendered stuff on the consol
+ * @return
+ */
 int render_frame_ascii(const unsigned char *img, const int width, const int height, int target_width, int target_height, const bool use_color, const bool no_output) {
     constexpr float y_aspect = 2.0f;
 
     bool width_set  = target_width  > 0;
-    bool height_set = target_height > 0;
+    const bool height_set = target_height > 0;
 
     // Default
     if (!width_set && !height_set) {
@@ -93,10 +108,9 @@ int render_frame_ascii(const unsigned char *img, const int width, const int heig
     }
 
     verbose("start rendering frame");
+    std::string frame;
+    frame.reserve(target_width * target_height);
     for (int y = 0; y < target_height; ++y) {
-        std::string line;
-        line.reserve(target_width * (use_color ? 20 : 1));
-
         for (int x = 0; x < target_width; ++x) {
             const int src_x = std::min(static_cast<int>(x * scale_x), width  - 1);
             const int src_y = std::min(static_cast<int>(y * scale_y), height - 1);
@@ -108,12 +122,12 @@ int render_frame_ascii(const unsigned char *img, const int width, const int heig
             const unsigned char b = img[idx + 2];
 
             const char ascii = brightness_to_ascii(r, g, b);
-            line.append(convert_to_ascii(ascii, r, g, b, use_color));
+            frame.append(convert_to_ascii(ascii, r, g, b, use_color));
         }
 
-        if (!no_output)
-            std::cout << line << '\n';
+        frame.append("\n");
     }
+    std::cout << frame;
     return target_height;
 }
 
@@ -194,6 +208,11 @@ int main(const int argc, char** argv) {
     int target_height = choices["height"].as<int>();
     int fps_override = choices["fps"].as<int>();
     int loops = choices["loop"].as<int>();
+    if (loops < 0) {
+        std::cerr << "loop has to be at least 0 using default 0" << std::endl;
+        loops = 0;
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+    }
 
     auto lower = img_path;
     std::ranges::transform(lower, lower.begin(), ::tolower);
@@ -236,7 +255,8 @@ int main(const int argc, char** argv) {
         if (loops > 0) {
             verbose(std::string("Will render ") + std::to_string(loops + 1) + " times");
         }
-        for (int _ = 0; _ <= loops; _++) {
+        // loop mindestens 1-mal aber bis zu loops
+        for (int _ = 0; _ < loops+1; _++) {
             for (int f = 0; f < frames; ++f) {
                 if (!choices.count("no-output")) {
                     std::cout << "\033[H";   // Cursor Home
