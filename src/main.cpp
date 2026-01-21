@@ -6,6 +6,8 @@
 #include <vector>
 #include <chrono>
 #include <algorithm>
+#include <atomic>
+#include <mutex>
 
 // Provided header
 #include <cxxopts.hpp>
@@ -16,6 +18,10 @@
 
 // ASCII-character from dark → bright
 std::string ASCII;
+
+// for the progressbar
+std::atomic<int> frames_done{0};
+std::mutex cout_mutex;
 
 /**
  * @brief converts the brightness from the img to the corresponding ascii value from the ASCII var
@@ -75,7 +81,6 @@ std::vector<unsigned char> load_file(const std::string& path) {
  * @param target_width the targeted width in the consol
  * @param target_height the targeted height in the consol
  * @param use_color weather to use color in the production to rander
- * @param no_output weather to put the rendered stuff on the consol
  * @return
  */
 std::string render_frame_ascii_to_string(const unsigned char *img, const int width, const int height,
@@ -267,8 +272,26 @@ int main(const int argc, char** argv) {
                     target_width, target_height,
                     use_color
                 );
+
+                // Fortschritt erhöhen
+                ++frames_done;
+
+                // Fortschrittsanzeige anzeigen
+                {
+                    const int progress = static_cast<int>((frames_done.load() * 100) / frames);
+                    std::lock_guard<std::mutex> lock(cout_mutex);
+                    std::cout << "\rGenerating frames: ["
+                              << std::string(progress / 2, '=')
+                              << std::string(50 - progress / 2, ' ')
+                              << "] " << progress << "% "
+                              << std::flush;
+                    if (frames_done.load() == frames) {
+                        std::cout << std::endl;
+                    }
+                }
             }
         };
+        std::cout << '\n' << std::endl;
 
         // Thread-Chunking über Frames
         int chunk_size = std::max(1, frames / static_cast<int>(max_threads));
