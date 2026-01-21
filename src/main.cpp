@@ -78,13 +78,13 @@ std::vector<unsigned char> load_file(const std::string& path) {
  * @param no_output weather to put the rendered stuff on the consol
  * @return
  */
-int render_frame_ascii(const unsigned char *img, const int width, const int height, int target_width, int target_height, const bool use_color, const bool no_output) {
+int render_frame_ascii(const unsigned char *img, const int width, const int height,
+                       int target_width, int target_height, const bool use_color, const bool no_output) {
     constexpr float y_aspect = 2.0f;
 
     bool width_set  = target_width  > 0;
     const bool height_set = target_height > 0;
 
-    // Default
     if (!width_set && !height_set) {
         target_width = 55;
         width_set = true;
@@ -92,7 +92,6 @@ int render_frame_ascii(const unsigned char *img, const int width, const int heig
 
     // calculate scale x and scale y
     float scale_x, scale_y;
-
     if (width_set && height_set) {
         scale_x = static_cast<float>(width)  / target_width;
         scale_y = static_cast<float>(height) / target_height;
@@ -106,40 +105,40 @@ int render_frame_ascii(const unsigned char *img, const int width, const int heig
         target_width = static_cast<int>(width / scale_x);
     }
 
-    // Speicher für die Zeilen
     std::vector<std::string> lines(target_height);
 
-    // Anzahl Threads auf Hardware-Kerne beschränken
+    // Hardware-Kerne
     const unsigned int max_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads;
 
-    for (int y = 0; y < target_height; ++y) {
-        // Falls wir zu viele Threads haben, warten wir, bis welche fertig sind
-        while (threads.size() >= max_threads) {
-            threads.front().join();
-            threads.erase(threads.begin());
-        }
+    // Chunk Größe: wie viele Zeilen pro Thread
+    int chunk_size = std::max(1, target_height / static_cast<int>(max_threads));
 
-        threads.emplace_back([&, y]() {
-            std::string line;
-            line.reserve(target_width * (use_color ? 10 : 1)); // reservieren für Farben
-            for (int x = 0; x < target_width; ++x) {
-                const int src_x = std::min(static_cast<int>(x * scale_x), width - 1);
-                const int src_y = std::min(static_cast<int>(y * scale_y), height - 1);
-                const int idx = (src_y * width + src_x) * 3;
+    for (int start_y = 0; start_y < target_height; start_y += chunk_size) {
+        int end_y = std::min(start_y + chunk_size, target_height);
 
-                const unsigned char r = img[idx];
-                const unsigned char g = img[idx + 1];
-                const unsigned char b = img[idx + 2];
+        threads.emplace_back([&, start_y, end_y]() {
+            for (int y = start_y; y < end_y; ++y) {
+                std::string line;
+                line.reserve(target_width * (use_color ? 10 : 1));
+                for (int x = 0; x < target_width; ++x) {
+                    const int src_x = std::min(static_cast<int>(x * scale_x), width - 1);
+                    const int src_y = std::min(static_cast<int>(y * scale_y), height - 1);
+                    const int idx = (src_y * width + src_x) * 3;
 
-                const char ascii = brightness_to_ascii(r, g, b);
-                line.append(convert_to_ascii(ascii, r, g, b, use_color));
+                    const unsigned char r = img[idx];
+                    const unsigned char g = img[idx + 1];
+                    const unsigned char b = img[idx + 2];
+
+                    const char ascii = brightness_to_ascii(r, g, b);
+                    line.append(convert_to_ascii(ascii, r, g, b, use_color));
+                }
+                lines[y] = line;
             }
-            lines[y] = line;
         });
     }
 
-    // Alle Threads fertig machen lassen
+    // Alle Threads fertigstellen
     for (auto &t : threads) t.join();
 
     // Zeilen zusammenfügen
