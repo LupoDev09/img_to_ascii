@@ -128,7 +128,8 @@ int main(const int argc, char** argv) {
     ("c,color", "Enable ANSI truecolor output")
     ("ascii", "change the ASCII alphabet to use from dark -> bright ", cxxopts::value<std::string>()->default_value("@%#*+=-:. "))
     ("v, verbose", "activate verbose mode")
-    ("no-output", "render but do not print anything to the console");
+    ("no-output", "render but do not print anything to the console")
+    ("fps", "Force frames per second (overrides GIF timing)", cxxopts::value<int>()->default_value("0"));
 
     // setting values from the CLI Part
     const auto choices = options.parse(argc, argv);
@@ -153,6 +154,10 @@ int main(const int argc, char** argv) {
         int height_val = choices["height"].as<int>();
         std::string height_str = (height_val == 0) ? "not provided using default" : std::to_string(height_val);
 
+        // FPS
+        int fps_val = choices["fps"].as<int>();
+        std::string fps_overide_str = (fps_val == 0) ? "not provided using default" : std::to_string(fps_val);
+
         // color
         std::string color_str = choices.count("color") ? "yes" : "no";
 
@@ -167,6 +172,7 @@ int main(const int argc, char** argv) {
             << "\t  img   = " << img_str << '\n'
             << "\t  width = " << width_str << '\n'
             << "\t  height= " << height_str << '\n'
+            << "\t  fps   = " << fps_overide_str << '\n'
             << "\t  color = " << color_str << '\n'
             << "\t  output = " << output_str << '\n'
             << "\t  ascii = " << ascii_str << '\n';
@@ -180,12 +186,12 @@ int main(const int argc, char** argv) {
     const bool use_color = choices.count("color") > 0;
     int target_width  = choices["width"].as<int>();
     int target_height = choices["height"].as<int>();
+    int fps_override = choices["fps"].as<int>();
 
     auto lower = img_path;
     std::ranges::transform(lower, lower.begin(), ::tolower);
-    bool is_gif = lower.ends_with(".gif");
 
-    if (is_gif) {
+    if (lower.ends_with(".gif")) {
         verbose("Detected GIF");
 
         // Load file
@@ -216,16 +222,17 @@ int main(const int argc, char** argv) {
         verbose("GIF loaded, frames: " + std::to_string(frames));
         verbose("hiding cursor");
         std::cout << "\033[?25l";
-
+        using clock = std::chrono::steady_clock;
+        auto next_frame_time = clock::now();
+        int rendered_height;
         for (int f = 0; f < frames; ++f) {
             if (!choices.count("no-output")) {
                 std::cout << "\033[H";   // Cursor Home
                 std::cout << "\033[J";   // Clear screen
             }
-            unsigned char* frame =
-                gif + f * width * height * 3;
+            unsigned char* frame = gif + f * width * height * 3;
 
-            int rendered_height = render_frame_ascii(
+            rendered_height = render_frame_ascii(
                 frame,
                 width,
                 height,
@@ -235,19 +242,38 @@ int main(const int argc, char** argv) {
                 choices.count("no-output")
             );
 
-            // Frame delay (GIF uses 1/100 sec)
-            int delay_ms = delays ? delays[f] * 10 : 100;
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(delay_ms)
-            );
-
             // Cursor hoch für Animation
-            if (!choices.count("no-output")) {
+            if (f < frames - 1 && !choices.count("no-output")) {
                 std::cout << "\033[" << rendered_height << "A";
                 std::cout << "\r";
             }
+            // FPS
+            if (fps_override > 0) {
+                next_frame_time += std::chrono::milliseconds(1000 / fps_override);
+                std::this_thread::sleep_until(next_frame_time);
+            } else {
+                int delay_ms = delays ? delays[f] * 10 : 100;
+                std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+            }
+            if (!choices.count("no-output")) {
+                // Cursor unter das letzte Frame setzen
+                std::cout << "\033[" << rendered_height << "B";
+
+                // Neue Zeile, damit Shell nicht im Bild landet
+                std::cout << '\n';
+            }
+
         }
+        // Animation finished
+        if (!choices.count("no-output")) {
+            std::cout << "\033[0m";                 // reset colors
+            std::cout << "\033[" << rendered_height << "B";
+            std::cout << '\n';
+        }
+
         std::cout << "\033[?25h";
+        std::cout.flush();
+
         verbose("Showing cursor again");
 
         STBI_FREE(gif);
