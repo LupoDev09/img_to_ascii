@@ -3,9 +3,12 @@
 #include <cxxopts.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
+#include "verbose.h"
+
+
 #include <stb_image.h>
 
-// ASCII-Zeichen von dunkel → hell
+// ASCII-character from dark → bright
 std::string ASCII;
 
 /**
@@ -18,7 +21,7 @@ std::string ASCII;
 inline char brightness_to_ascii(const unsigned char r, const unsigned char g, const unsigned char b) {
     // Wahrnehmungs-korrekte Helligkeit
     const float brightness = 0.2126f * static_cast<float>(r) + 0.7152f * static_cast<float>(g) + 0.0722f * static_cast<float>(b);
-    const unsigned long  index = (brightness / 255.0f) * (ASCII.size() - 1); // Do not fix this casting issue it will brake everything
+    const unsigned long  index = (brightness / 255.0f) * (ASCII.size() - 1); // Do not fix this casting issue it will brake everything :3
     return ASCII[index];
 }
 
@@ -30,7 +33,7 @@ inline char brightness_to_ascii(const unsigned char r, const unsigned char g, co
  * @param b the color value for blue
  * @param color if the output should be colored
  */
-inline std::string convert_to_ascii(char c, unsigned char r, unsigned char g, unsigned char b, bool color) {
+inline std::string convert_to_ascii(const char c, const unsigned char r, const unsigned char g, const unsigned char b, const bool color) {
     std::string output;
     if (color) {
         // 24-bit Truecolor: \033[38;2;<r>;<g>;<b>m
@@ -55,7 +58,7 @@ int main(const int argc, char** argv) {
     ("w,width", "Target output width", cxxopts::value<int>()->default_value("0"))
     ("h,height", "Target output height", cxxopts::value<int>()->default_value("0"))
     ("c,color", "Enable ANSI truecolor output")
-    ("ascii", "change the ASCII alphabet to use", cxxopts::value<std::string>()->default_value("@%#*+=-:. "));
+    ("ascii", "change the ASCII alphabet to use from dark -> bright ", cxxopts::value<std::string>()->default_value("@%#*+=-:. "));
 
     // setting values from the CLI Part
     const auto choices = options.parse(argc, argv);
@@ -75,7 +78,7 @@ int main(const int argc, char** argv) {
     unsigned char* img = stbi_load(img_path.c_str(), &width, &height, &channels, 3);
 
     if (!img) {
-        std::cerr << "Fehler beim Laden des Bildes\n";
+        std::cerr << "Error while loading the image\n";
         return 1;
     }
 
@@ -93,9 +96,9 @@ int main(const int argc, char** argv) {
     float scale_x;
     float scale_y;
 
-    // Zielgröße berechnen
+    // Calculate target size
     if (width_set && height_set) {
-        // Stretch (explizit)
+        // Stretch (explict)
         scale_x = static_cast<float>(width)  / static_cast<float>(target_width);
         scale_y = static_cast<float>(height) / static_cast<float>(target_height);
     }
@@ -113,6 +116,7 @@ int main(const int argc, char** argv) {
     // Rendering
     for (int y = 0; y < target_height; ++y) {
         std::string line;
+        line.reserve(target_width * (use_color ? 20 : 1)); // Reserve space for the string per line
         for (int x = 0; x < target_width; ++x) {
 
             int src_x = static_cast<int>(static_cast<float>(x) * scale_x);
@@ -131,7 +135,7 @@ int main(const int argc, char** argv) {
 
             line.append(convert_to_ascii(ascii, r, g, b, use_color));
         }
-        std::cout << line << "\033[0m\n";
+        std::cout << line << '\n';
     }
 
     stbi_image_free(img);
