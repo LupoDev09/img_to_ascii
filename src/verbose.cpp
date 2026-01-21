@@ -1,5 +1,5 @@
 //
 // Created by lupo on 19.10.25.
 //
-#include "../include/verbose.h"
+#include <verbose.h>
 bool VERBOSE_MODE = false; // default value for verbose is false
