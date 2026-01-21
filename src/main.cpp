@@ -57,7 +57,8 @@ int main(const int argc, char** argv) {
     ("h,height", "Target output height", cxxopts::value<int>()->default_value("0"))
     ("c,color", "Enable ANSI truecolor output")
     ("ascii", "change the ASCII alphabet to use from dark -> bright ", cxxopts::value<std::string>()->default_value("@%#*+=-:. "))
-    ("v, verbose", "activate verbose mode");
+    ("v, verbose", "activate verbose mode")
+    ("no-output", "render but do not print anything to the console");
 
     // setting values from the CLI Part
     const auto choices = options.parse(argc, argv);
@@ -85,6 +86,9 @@ int main(const int argc, char** argv) {
         // color
         std::string color_str = choices.count("color") ? "yes" : "no";
 
+        // output
+        std::string output_str = choices.count("no-output") ? "no" : "yes";
+
         // ASCII
         std::string ascii_str = choices["ascii"].as<std::string>();
 
@@ -94,6 +98,7 @@ int main(const int argc, char** argv) {
             << "\t  width = " << width_str << '\n'
             << "\t  height= " << height_str << '\n'
             << "\t  color = " << color_str << '\n'
+            << "\t  output = " << output_str << '\n'
             << "\t  ascii = " << ascii_str << '\n';
 
         verbose(oss.str());
@@ -169,7 +174,8 @@ int main(const int argc, char** argv) {
 
             line.append(convert_to_ascii(ascii, r, g, b, use_color));
         }
-        std::cout << line << '\n';
+        if (!choices.count("no-output"))
+            std::cout << line << '\n';
     }
     verbose("Rendered");
 
