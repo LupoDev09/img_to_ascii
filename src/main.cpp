@@ -8,6 +8,13 @@
 // ASCII-Zeichen von dunkel → hell
 const std::string ASCII = "@%#*+=-:. ";
 
+/**
+ * @brief converts the brightness from the img to the corresponding ascii value from the ASCII var
+ * @param r the value for red
+ * @param g the value for green
+ * @param b the value for blue
+ * @return returns the corresponding char from the global ASCII var
+ */
 inline char brightness_to_ascii(const unsigned char r, const unsigned char g, const unsigned char b) {
     // Wahrnehmungs-korrekte Helligkeit
     const float brightness = 0.2126f * static_cast<float>(r) + 0.7152f * static_cast<float>(g) + 0.0722f * static_cast<float>(b);
@@ -15,14 +22,39 @@ inline char brightness_to_ascii(const unsigned char r, const unsigned char g, co
     return ASCII[index];
 }
 
+/**
+ * @brief output helper-funktion to output the ascii
+ * @param c the char to use
+ * @param r the color value for red
+ * @param g the color value for green
+ * @param b the color value for blue
+ * @param color if the output should be colored
+ */
+inline void print_ascii(char c, unsigned char r, unsigned char g, unsigned char b, bool color) {
+    if (color) {
+        // 24-bit Truecolor: \033[38;2;<r>;<g>;<b>m
+        std::cout << "\033[38;2;"
+                  << static_cast<int>(r) << ";"
+                  << static_cast<int>(g) << ";"
+                  << static_cast<int>(b) << "m"
+                  << c
+                  << "\033[0m";
+    } else {
+        std::cout << c;
+    }
+}
+
+
 int main(const int argc, char** argv) {
     cxxopts::Options options("img_to_ascii", "My try to rewrite my img to ascii tool");
     options.add_options()
     ("help", "produce help message")
     ("img", "The image to load", cxxopts::value<std::string>()->default_value("Silly_Cat_Character.jpg"))
     ("w,width", "Target output width", cxxopts::value<int>()->default_value("0"))
-    ("h,height", "Target output height", cxxopts::value<int>()->default_value("0"));
+    ("h,height", "Target output height", cxxopts::value<int>()->default_value("0"))
+    ("c,color", "Enable ANSI truecolor output");
 
+    // setting values from the CLI Part
     const auto choices = options.parse(argc, argv);
     if (choices.count("help")) {
         std::cout << options.help() << std::endl;
@@ -31,7 +63,7 @@ int main(const int argc, char** argv) {
 
     // because the default image is set in the option we cann ignore the case that img is not provided
     const std::string img_path = choices["img"].as<std::string>();
-
+    const bool use_color = choices.count("color") > 0;
     int target_width  = choices["width"].as<int>();
     int target_height = choices["height"].as<int>();
 
@@ -86,15 +118,18 @@ int main(const int argc, char** argv) {
 
             const int index = (src_y * width + src_x) * 3;
 
-            std::cout << brightness_to_ascii(
-                img[index],
-                img[index + 1],
-                img[index + 2]
-            );
+            const unsigned char r = img[index];
+            const unsigned char g = img[index + 1];
+            const unsigned char b = img[index + 2];
+
+            const char ascii = brightness_to_ascii(r, g, b);
+
+            print_ascii(ascii, r, g, b, use_color);
         }
         std::cout << '\n';
     }
 
+    std::cout << "\033[0m" << std::endl;
     stbi_image_free(img);
     return 0;
 }
