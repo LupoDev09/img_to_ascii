@@ -1,56 +1,62 @@
-// #define STB_IMAGE_WRITE_IMPLEMENTATION  // Implementation wird in stb_impl.cpp bereitgestellt
-#include "../include/general_utils.h"
 #include <iostream>
 #include <string>
+#include <cxxopts.hpp>
 
-using namespace std;
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
-/**
- * @brief Hauptfunktion der Anwendung
- *
- * @param argc Anzahl der Kommandozeilenargumente
- * @param argv Array der Kommandozeilenargumente
- *
- * @return Rückgabewert (0 bei Erfolg, 1 bei Fehler)
- */
-int main(const int argc, char *argv[]) {
-    try {
-#if defined(_WIN32)
-        enable_vt_mode();// ANSI-Escape-Sequenzen aktivieren (Windows)
-#endif
-        Config cfg = parse_args(argc, argv);// Kommandozeilenargumente parsen
-        if (cfg.load_config != "") {
+// ASCII-Zeichen von dunkel → hell
+const std::string ASCII = "@%#*+=-:. ";
 
-            if (std::filesystem::exists(cfg.load_config)) {
-                cout << "Konfigurationsdatei geladen: " << cfg.load_config << "\n"
-                     << "Aktuelle Konfiguration:\n"
-                     << "  Bildpfad: " << cfg.image_path << "\n"
-                     << "  Breite: " << cfg.width << "\n"
-                     << "  ASCII-Zeichen: " << cfg.ascii_chars << "\n"
-                     << "  Farbig: " << (cfg.colored ? "Ja" : "Nein") << "\n"
-                     << "  GIF-Modus: " << (cfg.gif ? "Ja" : "Nein") << "\n"
-                     << "  Frame-Rate: " << cfg.fps << "\n"
-                     << "  Loop: " << cfg.loop
-                     << endl;
-            } else {
-                throw runtime_error("Config nicht gefunden: " + cfg.load_config.string());
-            }
-        }
+char brightness_to_ascii(const unsigned char r, const unsigned char g, const unsigned char b) {
+    // Wahrnehmungs-korrekte Helligkeit
+    const size_t brightness = 0.2126f * r + 0.7152f * g + 0.0722f * b;
+    const size_t index = (brightness / 255.0f) * (ASCII.size() - 1);
+    return ASCII[index];
+}
 
-        set_defaults(cfg);   // Standardwerte setzen
-        validate_config(cfg);// Konfiguration validieren
+int main(int argc, char** argv) {
+    cxxopts::Options options("img_to_ascii", "My try to rewrite my img to ascii tool");
+    options.add_options()
+    ("h,help", "produce help message")
+    ("img", "The image to load", cxxopts::value<std::string>()->default_value("Silly_Cat_Character.jpg"));
 
-        const string ascii = render_ascii(cfg);// ASCII-Art generieren
+    const auto choices = options.parse(argc, argv);
+    std::string img_path;
+    if (choices.count("help")) {
+        std::cout << options.help() << std::endl;
+        return 0;
+    }
 
-        if (cfg.no_output == true) return 0;// Wenn no_output auf true nich ausgeben sondern abbrechen
+    if (choices.count("img")) {
+        img_path = choices["img"].as<std::string>();
+    } else {
+        img_path = "Silly_Cat_Character.jpg";
+    }
 
-        output_ascii(ascii, cfg);// ASCII-Art ausgeben
+    int width, height, channels;
+    unsigned char* img = stbi_load(img_path.c_str(), &width, &height, &channels, 3);
 
-    } catch (const exception &e) {
-        cerr << e.what() << "\n"; // Fehler ausgeben
-        cout << "\033[0m" << endl;// ANSI-Reset
+    if (!img) {
+        std::cerr << "Fehler beim Laden des Bildes\n";
         return 1;
     }
-    cout << "\033[0m" << endl;// ANSI-Reset
+
+    // Terminal-Zeichen sind höher als breit → Y-Skalierung
+    constexpr int y_step = 2;
+
+    for (int y = 0; y < height; y += y_step) {
+        for (int x = 0; x < width; x++) {
+            const int index = (y * width + x) * 3;
+            const unsigned char r = img[index];
+            const unsigned char g = img[index + 1];
+            const unsigned char b = img[index + 2];
+
+            std::cout << brightness_to_ascii(r, g, b);
+        }
+        std::cout << '\n';
+    }
+
+    stbi_image_free(img);
     return 0;
 }

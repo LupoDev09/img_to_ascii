@@ -11,10 +11,6 @@ option(BUILD_TESTS "Baue die Tests mit Catch2" ON)
 # ---------------------------------------------------------
 add_executable(img_to_ascii
         src/main.cpp
-        src/general_utils.cpp
-        src/img_utils.cpp
-        src/gif_utils.cpp
-        src/stb_impl.cpp
         src/verbose.cpp
 )
 
