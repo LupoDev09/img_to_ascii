@@ -1,11 +1,9 @@
 #include <iostream>
 #include <string>
 #include <cxxopts.hpp>
-
-#define STB_IMAGE_IMPLEMENTATION
 #include "verbose.h"
 
-
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 // ASCII-character from dark → bright
@@ -58,13 +56,47 @@ int main(const int argc, char** argv) {
     ("w,width", "Target output width", cxxopts::value<int>()->default_value("0"))
     ("h,height", "Target output height", cxxopts::value<int>()->default_value("0"))
     ("c,color", "Enable ANSI truecolor output")
-    ("ascii", "change the ASCII alphabet to use from dark -> bright ", cxxopts::value<std::string>()->default_value("@%#*+=-:. "));
+    ("ascii", "change the ASCII alphabet to use from dark -> bright ", cxxopts::value<std::string>()->default_value("@%#*+=-:. "))
+    ("v, verbose", "activate verbose mode");
 
     // setting values from the CLI Part
     const auto choices = options.parse(argc, argv);
     if (choices.count("help")) {
         std::cout << options.help() << std::endl;
         return 0;
+    }
+
+    if (choices.count("verbose")) VERBOSE_MODE = true;
+
+    {
+        std::ostringstream oss;
+
+        // img
+        std::string img_str = choices["img"].as<std::string>();
+
+        // width
+        int width_val = choices["width"].as<int>();
+        std::string width_str = (width_val == 0) ? "not provided using default" : std::to_string(width_val);
+
+        // height
+        int height_val = choices["height"].as<int>();
+        std::string height_str = (height_val == 0) ? "not provided using default" : std::to_string(height_val);
+
+        // color
+        std::string color_str = choices.count("color") ? "yes" : "no";
+
+        // ASCII
+        std::string ascii_str = choices["ascii"].as<std::string>();
+
+        // zusammenbauen
+        oss << "choices:\n"
+            << "\t  img   = " << img_str << '\n'
+            << "\t  width = " << width_str << '\n'
+            << "\t  height= " << height_str << '\n'
+            << "\t  color = " << color_str << '\n'
+            << "\t  ascii = " << ascii_str << '\n';
+
+        verbose(oss.str());
     }
 
     // because the default image is set in the option we cann ignore the case that img is not provided
@@ -78,12 +110,12 @@ int main(const int argc, char** argv) {
     unsigned char* img = stbi_load(img_path.c_str(), &width, &height, &channels, 3);
 
     if (!img) {
-        std::cerr << "Error while loading the image\n";
+        std::cerr << "Error while loading the image from " << img_path << std::endl;
         return 1;
     }
+    verbose("Loaded image");
 
     constexpr float y_aspect = 2.0f;
-
     bool width_set  = target_width  > 0;
     const bool height_set = target_height > 0;
 
@@ -112,8 +144,10 @@ int main(const int argc, char** argv) {
         scale_x = scale_y / y_aspect;
         target_width = static_cast<int>(static_cast<float>(width) / scale_x);
     }
+    verbose("Calculated target size");
 
     // Rendering
+    verbose("start rendering");
     for (int y = 0; y < target_height; ++y) {
         std::string line;
         line.reserve(target_width * (use_color ? 20 : 1)); // Reserve space for the string per line
@@ -137,6 +171,7 @@ int main(const int argc, char** argv) {
         }
         std::cout << line << '\n';
     }
+    verbose("Rendered");
 
     stbi_image_free(img);
     return 0;
