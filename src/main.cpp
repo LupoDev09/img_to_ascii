@@ -168,6 +168,10 @@ int main(const int argc, char** argv) {
         // ASCII
         std::string ascii_str = choices["ascii"].as<std::string>();
 
+        // loop
+        int loop_val = choices["loop"].as<int>();
+        std::string loop_str = (loop_val > 0) ? std::to_string(loop_val): "Using default value";
+
         // zusammenbauen
         oss << "choices:\n"
             << "\t  img   = " << img_str << '\n'
@@ -176,7 +180,8 @@ int main(const int argc, char** argv) {
             << "\t  fps   = " << fps_overide_str << '\n'
             << "\t  color = " << color_str << '\n'
             << "\t  output = " << output_str << '\n'
-            << "\t  ascii = " << ascii_str << '\n';
+            << "\t  ascii = " << ascii_str << '\n'
+            << "\t  loop  = " << loop_str << '\n';
 
         verbose(oss.str());
     }
@@ -227,6 +232,10 @@ int main(const int argc, char** argv) {
         using clock = std::chrono::steady_clock;
         auto next_frame_time = clock::now();
         int rendered_height;
+
+        if (loops > 0) {
+            verbose(std::string("Will render ") + std::to_string(loops + 1) + " times");
+        }
         for (int _ = 0; _ <= loops; _++) {
             for (int f = 0; f < frames; ++f) {
                 if (!choices.count("no-output")) {
