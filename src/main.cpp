@@ -62,7 +62,7 @@ std::vector<unsigned char> load_file(const std::string& path) {
     );
 }
 
-void render_frame_ascii(const unsigned char* img, const int width, const int height, int target_width, int target_height, const bool use_color, const bool no_output) {
+int render_frame_ascii(const unsigned char *img, const int width, const int height, int target_width, int target_height, const bool use_color, const bool no_output) {
     constexpr float y_aspect = 2.0f;
 
     bool width_set  = target_width  > 0;
@@ -75,7 +75,7 @@ void render_frame_ascii(const unsigned char* img, const int width, const int hei
     }
 
     // calculate scale x and scale y
-    verbose("start calculating scales");
+    verbose("start calculating scales in render_frame_ascii");
     float scale_x;
     float scale_y;
 
@@ -98,8 +98,8 @@ void render_frame_ascii(const unsigned char* img, const int width, const int hei
         line.reserve(target_width * (use_color ? 20 : 1));
 
         for (int x = 0; x < target_width; ++x) {
-            int src_x = std::min(static_cast<int>(x * scale_x), width  - 1);
-            int src_y = std::min(static_cast<int>(y * scale_y), height - 1);
+            const int src_x = std::min(static_cast<int>(x * scale_x), width  - 1);
+            const int src_y = std::min(static_cast<int>(y * scale_y), height - 1);
 
             const int idx = (src_y * width + src_x) * 3;
 
@@ -114,6 +114,7 @@ void render_frame_ascii(const unsigned char* img, const int width, const int hei
         if (!no_output)
             std::cout << line << '\n';
     }
+    return target_height;
 }
 
 
@@ -187,12 +188,15 @@ int main(const int argc, char** argv) {
     if (is_gif) {
         verbose("Detected GIF");
 
+        // Load file
         auto data = load_file(img_path);
 
+        // set defaults
         int* delays = nullptr;
         int frames = 0;
         int width, height;
 
+        // load it from memory to be able to use it
         unsigned char* gif = stbi_load_gif_from_memory(
             data.data(),
             data.size(),
@@ -210,12 +214,18 @@ int main(const int argc, char** argv) {
         }
 
         verbose("GIF loaded, frames: " + std::to_string(frames));
+        verbose("hiding cursor");
+        std::cout << "\033[?25l";
 
         for (int f = 0; f < frames; ++f) {
+            if (!choices.count("no-output")) {
+                std::cout << "\033[H";   // Cursor Home
+                std::cout << "\033[J";   // Clear screen
+            }
             unsigned char* frame =
                 gif + f * width * height * 3;
 
-            render_frame_ascii(
+            int rendered_height = render_frame_ascii(
                 frame,
                 width,
                 height,
@@ -232,9 +242,13 @@ int main(const int argc, char** argv) {
             );
 
             // Cursor hoch für Animation
-            if (!choices.count("no-output"))
-                std::cout << "\033[" << target_height << "A";
+            if (!choices.count("no-output")) {
+                std::cout << "\033[" << rendered_height << "A";
+                std::cout << "\r";
+            }
         }
+        std::cout << "\033[?25h";
+        verbose("Showing cursor again");
 
         STBI_FREE(gif);
         STBI_FREE(delays);
