@@ -47,6 +47,68 @@ inline std::string convert_to_ascii(const char c, const unsigned char r, const u
     return output;
 }
 
+void render_frame_ascii(
+    const unsigned char* img,
+    int width,
+    int height,
+    int target_width,
+    int target_height,
+    bool use_color,
+    bool no_output
+) {
+    constexpr float y_aspect = 2.0f;
+
+    bool width_set  = target_width  > 0;
+    bool height_set = target_height > 0;
+
+    // Default
+    if (!width_set && !height_set) {
+        target_width = 55;
+        width_set = true;
+    }
+
+    // calculate scale x and scale y
+    verbose("start calculating scales");
+    float scale_x;
+    float scale_y;
+
+    if (width_set && height_set) {
+        scale_x = static_cast<float>(width)  / target_width;
+        scale_y = static_cast<float>(height) / target_height;
+    } else if (width_set) {
+        scale_x = static_cast<float>(width) / target_width;
+        scale_y = scale_x * y_aspect;
+        target_height = static_cast<int>(height / scale_y);
+    } else {
+        scale_y = static_cast<float>(height) / target_height;
+        scale_x = scale_y / y_aspect;
+        target_width = static_cast<int>(width / scale_x);
+    }
+
+    verbose("start rendering frame");
+    for (int y = 0; y < target_height; ++y) {
+        std::string line;
+        line.reserve(target_width * (use_color ? 20 : 1));
+
+        for (int x = 0; x < target_width; ++x) {
+            int src_x = std::min(static_cast<int>(x * scale_x), width  - 1);
+            int src_y = std::min(static_cast<int>(y * scale_y), height - 1);
+
+            const int idx = (src_y * width + src_x) * 3;
+
+            const unsigned char r = img[idx];
+            const unsigned char g = img[idx + 1];
+            const unsigned char b = img[idx + 2];
+
+            const char ascii = brightness_to_ascii(r, g, b);
+            line.append(convert_to_ascii(ascii, r, g, b, use_color));
+        }
+
+        if (!no_output)
+            std::cout << line << '\n';
+    }
+}
+
 
 int main(const int argc, char** argv) {
     cxxopts::Options options("img_to_ascii", "My try to rewrite my img to ascii tool");
@@ -120,63 +182,9 @@ int main(const int argc, char** argv) {
     }
     verbose("Loaded image");
 
-    constexpr float y_aspect = 2.0f;
-    bool width_set  = target_width  > 0;
-    const bool height_set = target_height > 0;
-
-    // Default
-    if (!width_set && !height_set) {
-        target_width = 55;
-        width_set = true;
-    }
-
-    float scale_x;
-    float scale_y;
-
-    // Calculate target size
-    if (width_set && height_set) {
-        // Stretch (explict)
-        scale_x = static_cast<float>(width)  / static_cast<float>(target_width);
-        scale_y = static_cast<float>(height) / static_cast<float>(target_height);
-    }
-    else if (width_set) {
-        scale_x = static_cast<float>(width) / static_cast<float>(target_width);
-        scale_y = scale_x * y_aspect;
-        target_height = static_cast<int>(static_cast<float>(height) / scale_y);
-    }
-    else {
-        scale_y = static_cast<float>(height) / static_cast<float>(target_height);
-        scale_x = scale_y / y_aspect;
-        target_width = static_cast<int>(static_cast<float>(width) / scale_x);
-    }
-    verbose("Calculated target size");
-
     // Rendering
-    verbose("start rendering");
-    for (int y = 0; y < target_height; ++y) {
-        std::string line;
-        line.reserve(target_width * (use_color ? 20 : 1)); // Reserve space for the string per line
-        for (int x = 0; x < target_width; ++x) {
+    render_frame_ascii(img, width, height, target_width, target_height, use_color, choices.count("no-output"));
 
-            int src_x = static_cast<int>(static_cast<float>(x) * scale_x);
-            int src_y = static_cast<int>(static_cast<float>(y) * scale_y);
-
-            src_x = std::min(src_x, width  - 1);
-            src_y = std::min(src_y, height - 1);
-
-            const int index = (src_y * width + src_x) * 3;
-
-            const unsigned char r = img[index];
-            const unsigned char g = img[index + 1];
-            const unsigned char b = img[index + 2];
-
-            const char ascii = brightness_to_ascii(r, g, b);
-
-            line.append(convert_to_ascii(ascii, r, g, b, use_color));
-        }
-        if (!choices.count("no-output"))
-            std::cout << line << '\n';
-    }
     verbose("Rendered");
 
     stbi_image_free(img);
