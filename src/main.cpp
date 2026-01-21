@@ -1,5 +1,12 @@
+// System header
 #include <iostream>
 #include <string>
+#include <fstream>
+#include <thread>
+#include <vector>
+#include <chrono>
+
+// Provided header
 #include <cxxopts.hpp>
 #include "verbose.h"
 
@@ -47,15 +54,15 @@ inline std::string convert_to_ascii(const char c, const unsigned char r, const u
     return output;
 }
 
-void render_frame_ascii(
-    const unsigned char* img,
-    int width,
-    int height,
-    int target_width,
-    int target_height,
-    bool use_color,
-    bool no_output
-) {
+std::vector<unsigned char> load_file(const std::string& path) {
+    std::ifstream file(path, std::ios::binary);
+    return std::vector<unsigned char>(
+        std::istreambuf_iterator<char>(file),
+        std::istreambuf_iterator<char>()
+    );
+}
+
+void render_frame_ascii(const unsigned char* img, const int width, const int height, int target_width, int target_height, const bool use_color, const bool no_output) {
     constexpr float y_aspect = 2.0f;
 
     bool width_set  = target_width  > 0;
@@ -173,6 +180,69 @@ int main(const int argc, char** argv) {
     int target_width  = choices["width"].as<int>();
     int target_height = choices["height"].as<int>();
 
+    auto lower = img_path;
+    std::ranges::transform(lower, lower.begin(), ::tolower);
+    bool is_gif = lower.ends_with(".gif");
+
+    if (is_gif) {
+        verbose("Detected GIF");
+
+        auto data = load_file(img_path);
+
+        int* delays = nullptr;
+        int frames = 0;
+        int width, height;
+
+        unsigned char* gif = stbi_load_gif_from_memory(
+            data.data(),
+            data.size(),
+            &delays,
+            &width,
+            &height,
+            &frames,
+            nullptr,
+            3
+        );
+
+        if (!gif) {
+            std::cerr << "Failed to load GIF\n";
+            return 1;
+        }
+
+        verbose("GIF loaded, frames: " + std::to_string(frames));
+
+        for (int f = 0; f < frames; ++f) {
+            unsigned char* frame =
+                gif + f * width * height * 3;
+
+            render_frame_ascii(
+                frame,
+                width,
+                height,
+                target_width,
+                target_height,
+                use_color,
+                choices.count("no-output")
+            );
+
+            // Frame delay (GIF uses 1/100 sec)
+            int delay_ms = delays ? delays[f] * 10 : 100;
+            std::this_thread::sleep_for(
+                std::chrono::milliseconds(delay_ms)
+            );
+
+            // Cursor hoch für Animation
+            if (!choices.count("no-output"))
+                std::cout << "\033[" << target_height << "A";
+        }
+
+        STBI_FREE(gif);
+        STBI_FREE(delays);
+        verbose("program ends");
+        return 0;
+    }
+
+    verbose("Trying to load image: " + img_path);
     int width, height, channels;
     unsigned char* img = stbi_load(img_path.c_str(), &width, &height, &channels, 3);
 
@@ -180,13 +250,19 @@ int main(const int argc, char** argv) {
         std::cerr << "Error while loading the image from " << img_path << std::endl;
         return 1;
     }
-    verbose("Loaded image");
+    verbose("loaded image: " + img_path);
 
-    // Rendering
-    render_frame_ascii(img, width, height, target_width, target_height, use_color, choices.count("no-output"));
-
-    verbose("Rendered");
+    render_frame_ascii(
+        img,
+        width,
+        height,
+        target_width,
+        target_height,
+        use_color,
+        choices.count("no-output")
+    );
 
     stbi_image_free(img);
+    verbose("program ends");
     return 0;
 }
