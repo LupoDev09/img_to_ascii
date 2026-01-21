@@ -129,7 +129,8 @@ int main(const int argc, char** argv) {
     ("ascii", "change the ASCII alphabet to use from dark -> bright ", cxxopts::value<std::string>()->default_value("@%#*+=-:. "))
     ("v, verbose", "activate verbose mode")
     ("no-output", "render but do not print anything to the console")
-    ("fps", "Force frames per second (overrides GIF timing)", cxxopts::value<int>()->default_value("0"));
+    ("fps", "Force frames per second (overrides GIF timing)", cxxopts::value<int>()->default_value("0"))
+    ("loop", "how often the gif should replay", cxxopts::value<int>()->default_value("0"));
 
     // setting values from the CLI Part
     const auto choices = options.parse(argc, argv);
@@ -187,6 +188,7 @@ int main(const int argc, char** argv) {
     int target_width  = choices["width"].as<int>();
     int target_height = choices["height"].as<int>();
     int fps_override = choices["fps"].as<int>();
+    int loops = choices["loop"].as<int>();
 
     auto lower = img_path;
     std::ranges::transform(lower, lower.begin(), ::tolower);
@@ -225,44 +227,45 @@ int main(const int argc, char** argv) {
         using clock = std::chrono::steady_clock;
         auto next_frame_time = clock::now();
         int rendered_height;
-        for (int f = 0; f < frames; ++f) {
-            if (!choices.count("no-output")) {
-                std::cout << "\033[H";   // Cursor Home
-                std::cout << "\033[J";   // Clear screen
-            }
-            unsigned char* frame = gif + f * width * height * 3;
+        for (int _ = 0; _ <= loops; _++) {
+            for (int f = 0; f < frames; ++f) {
+                if (!choices.count("no-output")) {
+                    std::cout << "\033[H";   // Cursor Home
+                    std::cout << "\033[J";   // Clear screen
+                }
+                unsigned char* frame = gif + f * width * height * 3;
 
-            rendered_height = render_frame_ascii(
-                frame,
-                width,
-                height,
-                target_width,
-                target_height,
-                use_color,
-                choices.count("no-output")
-            );
+                rendered_height = render_frame_ascii(
+                    frame,
+                    width,
+                    height,
+                    target_width,
+                    target_height,
+                    use_color,
+                    choices.count("no-output")
+                );
 
-            // Cursor hoch für Animation
-            if (f < frames - 1 && !choices.count("no-output")) {
-                std::cout << "\033[" << rendered_height << "A";
-                std::cout << "\r";
-            }
-            // FPS
-            if (fps_override > 0) {
-                next_frame_time += std::chrono::milliseconds(1000 / fps_override);
-                std::this_thread::sleep_until(next_frame_time);
-            } else {
-                int delay_ms = delays ? delays[f] * 10 : 100;
-                std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
-            }
-            if (!choices.count("no-output")) {
-                // Cursor unter das letzte Frame setzen
-                std::cout << "\033[" << rendered_height << "B";
+                // Cursor hoch für Animation
+                if (f < frames - 1 && !choices.count("no-output")) {
+                    std::cout << "\033[" << rendered_height << "A";
+                    std::cout << "\r";
+                }
+                // FPS
+                if (fps_override > 0) {
+                    next_frame_time += std::chrono::milliseconds(1000 / fps_override);
+                    std::this_thread::sleep_until(next_frame_time);
+                } else {
+                    int delay_ms = delays ? delays[f] * 10 : 100;
+                    std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+                }
+                if (!choices.count("no-output")) {
+                    // Cursor unter das letzte Frame setzen
+                    std::cout << "\033[" << rendered_height << "B";
 
-                // Neue Zeile, damit Shell nicht im Bild landet
-                std::cout << '\n';
+                    // Neue Zeile, damit Shell nicht im Bild landet
+                    std::cout << '\n';
+                }
             }
-
         }
         // Animation finished
         if (!choices.count("no-output")) {
