@@ -23,10 +23,15 @@ std::string ASCII;
 std::atomic<int> frames_done{0};
 std::mutex cout_mutex;
 
+/**
+ * @brief constructs a GIF object to automatically destroy if the program ends
+ * @author Lupo
+ */
 struct GifCleanup {
     unsigned char* gif = nullptr;
     int* delays = nullptr;
 
+    // Deconstructor to clean up afterward
     ~GifCleanup() {
         std::cout << "\033[0m\033[?25h" << std::flush;
         if (gif) STBI_FREE(gif);
@@ -34,6 +39,10 @@ struct GifCleanup {
     }
 };
 
+/**
+ * @brief constructs a Cursor object to automatically hide and show the cursor
+ * @author Lupo
+ */
 struct CursorGuard {
     CursorGuard()  { std::cout << "\033[?25l"; }
     ~CursorGuard() { std::cout << "\033[?25h\033[0m"; }
@@ -45,6 +54,7 @@ struct CursorGuard {
  * @param g the value for green
  * @param b the value for blue
  * @return returns the corresponding char from the global ASCII var
+ * @author Lupo
  */
 inline char brightness_to_ascii(const unsigned char r, const unsigned char g, const unsigned char b) {
     // Wahrnehmung-korrekte Helligkeit
@@ -66,6 +76,7 @@ inline char brightness_to_ascii(const unsigned char r, const unsigned char g, co
  * @param g the color value for green
  * @param b the color value for blue
  * @param color if the output should be colored
+ * @author Lupo
  */
 inline std::string convert_to_ascii(const char c, const unsigned char r, const unsigned char g, const unsigned char b, const bool color) {
     std::string output;
@@ -87,8 +98,9 @@ inline std::string convert_to_ascii(const char c, const unsigned char r, const u
  *
  * @param path the path to load the file from
  * @return a vector with the frames
+ * @author Lupo
  */
-std::vector<unsigned char> load_file(const std::string& path) {
+inline std::vector<unsigned char> load_file(const std::string& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file.is_open()) {
         throw std::runtime_error("Failed to open file: " + path);
@@ -106,7 +118,8 @@ std::vector<unsigned char> load_file(const std::string& path) {
  * @param target_width the targeted width in the consol
  * @param target_height the targeted height in the consol
  * @param use_color weather to use color in the production to rander
- * @return
+ * @return a whole frame
+ * @author Lupo
  */
 std::string render_frame_ascii_to_string(const unsigned char *img, const int width, const int height,
                                          int target_width, int target_height, const bool use_color) {
@@ -174,6 +187,14 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
     return frame;
 }
 
+/**
+ *
+ * @param frame the frame to put out
+ * @param no_output whether to provide output in the console
+ * @param write_output_to_file whether to write to a file
+ * @param file the file stream to write to
+ * @author Lupo
+ */
 void output_frame(const std::string& frame, const bool no_output, const bool write_output_to_file, std::ofstream* file = nullptr) {
     if (write_output_to_file) {
         if (!file || !file->is_open()) {
@@ -194,6 +215,14 @@ void output_frame(const std::string& frame, const bool no_output, const bool wri
     verbose("No output selected");
 }
 
+/**
+ *
+ * @param path the image to load
+ * @param target_width the targeted width for the output
+ * @param target_height the targeted height for the output
+ * @param use_color whether to use ansi-escapes for color
+ * @return a string with the rendered image
+ */
 std::string render_image(const std::string& path, const int target_width, const int target_height, const bool use_color) {
     int width, height, channels;
     verbose("trying to load image");
@@ -362,6 +391,7 @@ int main(const int argc, char** argv) {
         const unsigned int max_threads = std::max(1u, std::thread::hardware_concurrency());
         std::vector<std::thread> threads;
 
+        CursorGuard cursor;
         frames_done.store(0);
         // lambda funktion für die threads
         auto render_chunk = [&](const int start_f, const int end_f) {
@@ -410,7 +440,6 @@ int main(const int argc, char** argv) {
 
         // Jetzt Ausgabe
         verbose("hiding cursor");
-        CursorGuard cursor; // Cursor verstecken
         using clock = std::chrono::steady_clock;
         auto next_frame_time = clock::now();
 
