@@ -62,7 +62,7 @@ inline char brightness_to_ascii(const unsigned char r, const unsigned char g, co
     // Wahrnehmung-korrekte Helligkeit
     const float brightness = 0.2126f * static_cast<float>(r) + 0.7152f * static_cast<float>(g) + 0.0722f * static_cast<float>(b);
 
-    if (ASCII.empty()) return '?';
+    if (ASCII.empty() || ASCII.size() >= 2) throw std::runtime_error("ASCII alphabet can not be empty");
 
     const float t = brightness / 255.0f;
     const std::size_t max_idx = ASCII.size() - 1;
@@ -194,7 +194,7 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
     std::vector<std::thread> threads;
     const int chunk_size = std::max(1, target_height / static_cast<int>(threads_used));
 
-    verbose("Determing whether to use Multithreading or single threading");
+    //verbose("Determing whether to use Multithreading or single threading");
     const bool use_threads = target_height >= 200;
 
     threads.reserve(threads_used);
@@ -202,27 +202,31 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
     if (use_threads) {
         auto render_chunk = [&](const int start_y, const int end_y) {
             for (int y = start_y; y < end_y; ++y) {
-                render_ascii_line(
-                    lines[y],
-                    img,
-                    y,
-                    width,
-                    height,
-                    target_width,
-                    scale_x,
-                    scale_y,
-                    use_color
-                );
+                try {
+                    render_ascii_line(
+                        lines[y],
+                        img,
+                        y,
+                        width,
+                        height,
+                        target_width,
+                        scale_x,
+                        scale_y,
+                        use_color
+                    );
+                } catch (std::exception& e) {
+                    std::cerr << e.what() << std::endl;
+                }
             }
         };
-        verbose("Rendering...");
+        //verbose("Rendering...");
         for (int start_y = 0; start_y < target_height; start_y += chunk_size) {
             int end_y = std::min(start_y + chunk_size, target_height);
             threads.emplace_back(render_chunk, start_y, end_y);
         }
         for (auto &t : threads) t.join();
     } else {
-        verbose("Rendering (single-thread)...");
+        //verbose("Rendering (single-thread)...");
         for (int y = 0; y < target_height; ++y) {
             render_ascii_line(
                 lines[y],
@@ -244,7 +248,7 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
         frame.append(line);
         frame.push_back('\n');
     }
-    verbose("Rendered");
+    //verbose("Rendered");
     return frame;
 }
 
@@ -285,9 +289,9 @@ void output_frame(const std::string& frame, const bool no_output, const bool wri
  * @return a string with the rendered image
  */
 std::string render_image(const std::string& path, const int target_width, const int target_height, const bool use_color) {
-    int width, height, channels;
+    int width, height;
     verbose("trying to load image");
-    unsigned char* img = stbi_load(path.c_str(), &width, &height, &channels, 3);
+    unsigned char* img = stbi_load(path.c_str(), &width, &height, nullptr, 3);
 
     if (!img) {
         throw std::runtime_error(
@@ -416,8 +420,14 @@ int main(const int argc, char** argv) {
         verbose("fps override can not be 0 or lower. Setting it to default");
     }
 
+    if (target_height == 0 && target_width == 0) {
+        target_width = 80;
+        target_height = 24;
+    }
+
     auto lower = img_path;
-    std::ranges::transform(lower, lower.begin(),[](const unsigned char c){ return std::tolower(c); });
+    for (char& c : lower)
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
 
     if (lower.ends_with(".gif")) {
         verbose("Detected GIF");
@@ -441,7 +451,7 @@ int main(const int argc, char** argv) {
         gif_cleanup.gif = gif;
         gif_cleanup.delays = delays;
 
-        if (!gif) {
+        if (!gif || frames <= 0) {
             std::cerr << "Failed to load gif '" << img_path
                   << "': " << stbi_failure_reason() << std::endl;
             return 1;
@@ -453,14 +463,14 @@ int main(const int argc, char** argv) {
         // Pre-process: alle Frames in Strings rendern
         std::vector<std::string> processed_frames(frames);
         const unsigned int max_threads = std::max(1u, std::thread::hardware_concurrency());
-        std::vector<std::thread> threads;
+        std::vector<std::jthread> threads;
 
         CursorGuard cursor;
         frames_done.store(0);
         // lambda funktion für die threads
-        auto render_chunk = [&](const int start_f, const int end_f) {
+        auto render_chunk = [&](const std::stop_token& st, const int start_f, const int end_f) {
             try {
-                for (int f = start_f; f < end_f; ++f) {
+                for (int f = start_f; f < end_f && !st.stop_requested(); ++f) {
                     const unsigned char* frame = gif + f * width * height * 3;
 
                     // Nutze deine Chunked-Multithreading-Version für die Zeilen
@@ -498,9 +508,9 @@ int main(const int argc, char** argv) {
         int chunk_size = std::max(1, frames / static_cast<int>(max_threads));
         for (int start = 0; start < frames; start += chunk_size) {
             int end = std::min(start + chunk_size, frames);
-            threads.emplace_back(render_chunk, start, end);
+            threads.emplace_back([start, end, &render_chunk](const std::stop_token& st){ render_chunk(st, start, end); });
         }
-        for (auto &t : threads) t.join();
+        // wir müssen nicht auf die threads warten und joinen, weil es sich um jthreads handelt
 
         // Jetzt Ausgabe
         verbose("hiding cursor");
@@ -526,10 +536,11 @@ int main(const int argc, char** argv) {
 
                     // FPS Steuerung
                     if (fps_override > 0) {
-                        next_frame_time += std::chrono::milliseconds(1000 / fps_override);
-                        std::this_thread::sleep_until(next_frame_time);
+                        auto frame_duration = std::chrono::milliseconds(1000 / fps_override);
+                        std::this_thread::sleep_until(next_frame_time + frame_duration);
+                        next_frame_time = std::chrono::steady_clock::now();
                     } else {
-                        int delay_ms = delays ? delays[f] * 10 : 100;
+                        int delay_ms = delays ? std::max(1, delays[f] * 10) : 100;
                         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
                     }
                 } else {
