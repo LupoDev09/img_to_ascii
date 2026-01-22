@@ -323,8 +323,10 @@ int main(const int argc, char** argv) {
     const auto choices = options.parse(argc, argv);
     // handle help flag
     if (choices.count("help")) {
-        std::cout << options.help({"General", "Optional"}) << "\n\n"
-        << "These options don’t do anything if used with normal images\n";
+        // Basic groups
+        std::cout << options.help({"General", "Optional"}) << "\n";
+        std::cout << "These options don’t do anything if used with normal images";
+
         // GIF & Debug, aber ohne Header/Usage
         std::stringstream ss(options.help({"GIF", "Debugging"}, false));
         std::string line;
@@ -333,11 +335,13 @@ int main(const int argc, char** argv) {
             if (first_line) { first_line = false; continue; } // erste Zeile (Programmnamen) skippen
             std::cout << line << "\n";
         }
-        std::cout << '\n' << "If you use --write-output-to-file with --color, I would not open the file\n"
-        << "because then you will see mostly the ANSI escapes.\n"
-        << "Rather use something like 'cat' to see the image.\n"
-        << "And I would not use the GIF option with --write-output-to-file,\n"
-        << "because then you just see the frames. Also, don't combine with --color." << std::endl;
+
+        // Authors note
+        std::cout << "\nNote: If you use --write-output-to-file with --color, I would not open the file\n"
+                  << "because then you will see mostly the ANSI escapes.\n"
+                  << "Rather use something like 'cat' to see the image.\n"
+                  << "And I would not use the GIF option with --write-output-to-file,\n"
+                  << "because then you just see the frames. Also, don't combine with --color.\n";
         return 0;
     }
 
