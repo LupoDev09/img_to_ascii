@@ -33,7 +33,13 @@ std::mutex cout_mutex;
 inline char brightness_to_ascii(const unsigned char r, const unsigned char g, const unsigned char b) {
     // Wahrnehmung-korrekte Helligkeit
     const float brightness = 0.2126f * static_cast<float>(r) + 0.7152f * static_cast<float>(g) + 0.0722f * static_cast<float>(b);
-    const unsigned long  index = (brightness / 255.0f) * (ASCII.size() - 1); // Do not fix this casting issue it will brake everything :3
+
+    if (ASCII.empty()) return '?';
+
+    const float t = brightness / 255.0f;
+    const std::size_t max_idx = ASCII.size() - 1;
+    const std::size_t index = static_cast<std::size_t>(std::clamp(t * static_cast<float>(max_idx), 0.0f, static_cast<float>(max_idx)));
+
     return ASCII[index];
 }
 
