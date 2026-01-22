@@ -359,8 +359,7 @@ int main(const int argc, char** argv) {
         auto data = load_file(img_path);
 
         int* delays = nullptr;
-        int frames = 0;
-        int width, height;
+        int frames = 0, width = 0, height = 0;
 
         unsigned char* gif = stbi_load_gif_from_memory(
             data.data(),

@@ -9,7 +9,7 @@
 #include <iostream>
 
 // Deklaration, alle Dateien können darauf zugreifen
-extern bool VERBOSE_MODE;
+inline bool VERBOSE_MODE = false;
 
 // Hilfsfunktion für verbose-Ausgaben
 inline void verbose(const std::string &msg) {
