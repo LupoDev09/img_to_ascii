@@ -296,34 +296,48 @@ std::string render_image(const std::string& path, const int target_width, const 
 
 int main(const int argc, char** argv) {
     cxxopts::Options options("img_to_ascii", "My try to rewrite my img to ascii tool");
-    options.add_options()
-    ("help", "produce help message")
 
-    // required
-    ("img", "The image to load", cxxopts::value<std::string>()->default_value("Silly_Cat_Character.jpg"))
+    // Help
+    options.add_options("General")
+        ("help", "produce help message")
+        ("img", "The image to load", cxxopts::value<std::string>()->default_value("Silly_Cat_Character.jpg"));
 
-    // (optional) Cann be used for everything
-    ("w,width", "Target output width", cxxopts::value<int>()->default_value("0"))
-    ("h,height", "Target output height", cxxopts::value<int>()->default_value("0"))
-    ("c,color", "Enable ANSI truecolor output")
-    ("ascii", "change the ASCII alphabet to use from dark -> bright ", cxxopts::value<std::string>()->default_value("@%#*+=-:. "))
-    ("write-output-to-file", "write the generated image/frames to a file rather than to the console")
-    ("file", "specify the file to write to", cxxopts::value<std::string>()->default_value("image.txt"))
+    // Optional
+    options.add_options("Optional")
+        ("w,width", "Target output width", cxxopts::value<int>()->default_value("0"))
+        ("h,height", "Target output height", cxxopts::value<int>()->default_value("0"))
+        ("c,color", "Enable ANSI truecolor output")
+        ("ascii", "change the ASCII alphabet to use from dark -> bright ", cxxopts::value<std::string>()->default_value("@%#*+=-:. "))
+        ("write-output-to-file", "write the generated image/frames to a file rather than to the console")
+        ("file", "specify the file to write to", cxxopts::value<std::string>()->default_value("image.txt"));
 
-    // specific to GIF stuff
-    ("fps", "Force frames per second (overrides GIF timing)", cxxopts::value<int>()->default_value("0"))
-    ("loop", "how often the gif should replay", cxxopts::value<int>()->default_value("0"))
+    // GIF-specific
+    options.add_options("GIF")
+        ("f, fps", "Force frames per second (overrides GIF timing)", cxxopts::value<int>()->default_value("0"))
+        ("l, loop", "how often the gif should replay", cxxopts::value<int>()->default_value("0"));
 
-    // Debug stuff
-    ("v, verbose", "activate verbose mode")
-    ("no-output", "render but do not print anything to the console");
+    options.add_options("Debugging")
+        ("v,verbose", "activate verbose mode")
+        ("no-output", "render but do not print anything to the console");
 
-    // setting values from the CLI Part
     const auto choices = options.parse(argc, argv);
+    // handle help flag
     if (choices.count("help")) {
-        std::cout << options.help() << "\n"
-        << "If you use --write-output-to-file with --color I would not open the file if I where you because then you will see mostly the ansi-escapes, rather use something like cat\n"
-        << "And I would not use the gif option with the --write-output-to-file option because then you just see the frames and dont use --color with this because see above" << std::endl;
+        std::cout << options.help({"General", "Optional"}) << "\n\n"
+        << "These options don’t do anything if used with normal images\n";
+        // GIF & Debug, aber ohne Header/Usage
+        std::stringstream ss(options.help({"GIF", "Debugging"}, false));
+        std::string line;
+        bool first_line = true;
+        while (std::getline(ss, line)) {
+            if (first_line) { first_line = false; continue; } // erste Zeile (Programmnamen) skippen
+            std::cout << line << "\n";
+        }
+        std::cout << '\n' << "If you use --write-output-to-file with --color, I would not open the file\n"
+        << "because then you will see mostly the ANSI escapes.\n"
+        << "Rather use something like 'cat' to see the image.\n"
+        << "And I would not use the GIF option with --write-output-to-file,\n"
+        << "because then you just see the frames. Also, don't combine with --color." << std::endl;
         return 0;
     }
 
@@ -383,7 +397,7 @@ int main(const int argc, char** argv) {
         verbose(oss.str());
     }
 
-    // because the default image is set in the option we cann ignore the case that img is not provided
+    // setting values from the CLI Part
     const std::string img_path = choices["img"].as<std::string>();
     ASCII = choices["ascii"].as<std::string>();
     const bool use_color = choices.count("color") > 0;
