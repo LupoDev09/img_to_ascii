@@ -31,7 +31,7 @@ std::mutex cout_mutex;
  * @return returns the corresponding char from the global ASCII var
  */
 inline char brightness_to_ascii(const unsigned char r, const unsigned char g, const unsigned char b) {
-    // Wahrnehmungs-korrekte Helligkeit
+    // Wahrnehmung-korrekte Helligkeit
     const float brightness = 0.2126f * static_cast<float>(r) + 0.7152f * static_cast<float>(g) + 0.0722f * static_cast<float>(b);
     const unsigned long  index = (brightness / 255.0f) * (ASCII.size() - 1); // Do not fix this casting issue it will brake everything :3
     return ASCII[index];
@@ -71,10 +71,10 @@ std::vector<unsigned char> load_file(const std::string& path) {
     if (!file.is_open()) {
         throw std::runtime_error("Failed to open file: " + path);
     }
-    return std::vector<unsigned char>(
+    return std::vector<unsigned char>{
         std::istreambuf_iterator<char>(file),
         std::istreambuf_iterator<char>()
-    );
+    };
 }
 
 /**
@@ -99,16 +99,16 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
 
     float scale_x, scale_y;
     if (width_set && height_set) {
-        scale_x = static_cast<float>(width)  / target_width;
-        scale_y = static_cast<float>(height) / target_height;
+        scale_x = static_cast<float>(width)  / static_cast<float>(target_width);
+        scale_y = static_cast<float>(height) / static_cast<float>(target_height);
     } else if (width_set) {
-        scale_x = static_cast<float>(width) / target_width;
+        scale_x = static_cast<float>(width) / static_cast<float>(target_width);
         scale_y = scale_x * y_aspect;
-        target_height = static_cast<int>(height / scale_y);
+        target_height = static_cast<int>(static_cast<float>(height) / scale_y);
     } else {
-        scale_y = static_cast<float>(height) / target_height;
+        scale_y = static_cast<float>(height) / static_cast<float>(target_height);
         scale_x = scale_y / y_aspect;
-        target_width = static_cast<int>(width / scale_x);
+        target_width = static_cast<int>(static_cast<float>(width) / scale_x);
     }
 
     std::vector<std::string> lines(target_height);
@@ -123,8 +123,8 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
                 std::string line;
                 line.reserve(target_width * (use_color ? 10 : 1));
                 for (int x = 0; x < target_width; ++x) {
-                    const int src_x = std::min(static_cast<int>(x * scale_x), width - 1);
-                    const int src_y = std::min(static_cast<int>(y * scale_y), height - 1);
+                    const int src_x = std::min(static_cast<int>(static_cast<float>(x) * scale_x), width - 1);
+                    const int src_y = std::min(static_cast<int>(static_cast<float>(y) * scale_y), height - 1);
                     const int idx = (src_y * width + src_x) * 3;
 
                     const unsigned char r = img[idx];
@@ -186,7 +186,7 @@ int main(const int argc, char** argv) {
 
         // FPS
         int fps_val = choices["fps"].as<int>();
-        std::string fps_overide_str = (fps_val == 0) ? "not provided using default" : std::to_string(fps_val);
+        std::string fps_overwrite_str = (fps_val == 0) ? "not provided using default" : std::to_string(fps_val);
 
         // color
         std::string color_str = choices.count("color") ? "yes" : "no";
@@ -206,7 +206,7 @@ int main(const int argc, char** argv) {
             << "\t  img   = " << img_str << '\n'
             << "\t  width = " << width_str << '\n'
             << "\t  height= " << height_str << '\n'
-            << "\t  fps   = " << fps_overide_str << '\n'
+            << "\t  fps   = " << fps_overwrite_str << '\n'
             << "\t  color = " << color_str << '\n'
             << "\t  output = " << output_str << '\n'
             << "\t  ascii = " << ascii_str << '\n'
@@ -242,7 +242,7 @@ int main(const int argc, char** argv) {
 
         unsigned char* gif = stbi_load_gif_from_memory(
             data.data(),
-            data.size(),
+            static_cast<int>(data.size()),
             &delays,
             &width,
             &height,
