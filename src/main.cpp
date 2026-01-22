@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <atomic>
 #include <mutex>
+#include <ranges>
+#include <cctype>
 
 // Provided header
 #include <cxxopts.hpp>
@@ -112,6 +114,44 @@ inline std::vector<unsigned char> load_file(const std::string& path) {
 }
 
 /**
+ * @brief utility for render_frame_ascii_to_string
+ * @param out the refrence to the output string
+ * @param img the image to rander from
+ * @param y the y posison to render from
+ * @param width the width to render
+ * @param height the height to render
+ * @param target_width the targeted width to render
+ * @param scale_x the x scale to render
+ * @param scale_y the y scale to render
+ * @param use_color wheather to use color
+ */
+void render_ascii_line(std::string& out, const unsigned char* img, int y, int width, int height, int target_width, float scale_x, float scale_y, bool use_color) {
+    out.clear();
+    out.reserve(target_width * (use_color ? 10 : 1));
+
+    for (int x = 0; x < target_width; ++x) {
+        const int src_x = std::min(
+            static_cast<int>(static_cast<float>(x) * scale_x),
+            width - 1
+        );
+        const int src_y = std::min(
+            static_cast<int>(static_cast<float>(y) * scale_y),
+            height - 1
+        );
+
+        const int idx = (src_y * width + src_x) * 3;
+
+        const unsigned char r = img[idx];
+        const unsigned char g = img[idx + 1];
+        const unsigned char b = img[idx + 2];
+
+        const char ascii = brightness_to_ascii(r, g, b);
+        out.append(convert_to_ascii(ascii, r, g, b, use_color));
+    }
+}
+
+
+/**
  * @param img the image/frame to render
  * @param width the actual width from the image/frame
  * @param height the actual height from the image/frame
@@ -148,35 +188,54 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
 
     std::vector<std::string> lines(target_height);
     const unsigned int max_threads = std::max(1u, std::thread::hardware_concurrency());
+    const unsigned int threads_used = std::min<unsigned int>(target_height, max_threads);
     std::vector<std::thread> threads;
-    const int chunk_size = std::max(1, target_height / static_cast<int>(max_threads));
+    const int chunk_size = std::max(1, target_height / static_cast<int>(threads_used));
 
-    verbose("Rendering...");
-    for (int start_y = 0; start_y < target_height; start_y += chunk_size) {
-        int end_y = std::min(start_y + chunk_size, target_height);
-        threads.emplace_back([&, start_y, end_y]() {
+    verbose("Determing whether to use Multithreading or single threading");
+    const bool use_threads = target_height >= 200;
+
+    threads.reserve(threads_used);
+
+    if (use_threads) {
+        auto render_chunk = [&](const int start_y, const int end_y) {
             for (int y = start_y; y < end_y; ++y) {
-                std::string line;
-                line.reserve(target_width * (use_color ? 10 : 1));
-                for (int x = 0; x < target_width; ++x) {
-                    const int src_x = std::min(static_cast<int>(static_cast<float>(x) * scale_x), width - 1);
-                    const int src_y = std::min(static_cast<int>(static_cast<float>(y) * scale_y), height - 1);
-                    const int idx = (src_y * width + src_x) * 3;
-
-                    const unsigned char r = img[idx];
-                    const unsigned char g = img[idx + 1];
-                    const unsigned char b = img[idx + 2];
-
-                    const char ascii = brightness_to_ascii(r, g, b);
-                    line.append(convert_to_ascii(ascii, r, g, b, use_color));
-                }
-                lines[y] = line;
+                render_ascii_line(
+                    lines[y],
+                    img,
+                    y,
+                    width,
+                    height,
+                    target_width,
+                    scale_x,
+                    scale_y,
+                    use_color
+                );
             }
-        });
+        };
+        verbose("Rendering...");
+        for (int start_y = 0; start_y < target_height; start_y += chunk_size) {
+            int end_y = std::min(start_y + chunk_size, target_height);
+            threads.emplace_back(render_chunk, start_y, end_y);
+        }
+        for (auto &t : threads) t.join();
+    } else {
+        verbose("Rendering (single-thread)...");
+        for (int y = 0; y < target_height; ++y) {
+            render_ascii_line(
+                lines[y],
+                img,
+                y,
+                width,
+                height,
+                target_width,
+                scale_x,
+                scale_y,
+                use_color
+            );
+        }
+
     }
-
-    for (auto &t : threads) t.join();
-
     std::string frame;
     frame.reserve(target_height * (target_width + 1));
     for (auto& line : lines) {
@@ -351,8 +410,12 @@ int main(const int argc, char** argv) {
         std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
 
+    if (fps_override <= 0) {
+        verbose("fps override can not be 0 or lower. Setting it to default");
+    }
+
     auto lower = img_path;
-    std::ranges::transform(lower, lower.begin(), ::tolower);
+    std::ranges::transform(lower, lower.begin(),[](const unsigned char c){ return std::tolower(c); });
 
     if (lower.ends_with(".gif")) {
         verbose("Detected GIF");
