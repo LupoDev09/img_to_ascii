@@ -80,7 +80,8 @@ inline char brightness_to_ascii(const unsigned char r, const unsigned char g, co
  * @param color if the output should be colored
  * @author Lupo
  */
-inline std::string convert_to_ascii(const char c, const unsigned char r, const unsigned char g, const unsigned char b, const bool color) {
+inline std::string convert_to_ascii(const char c, const unsigned char r,
+    const unsigned char g, const unsigned char b, const bool color) {
     std::string output;
     if (color) {
         // 24-bit Truecolor: \033[38;2;<r>;<g>;<b>m
@@ -125,7 +126,8 @@ inline std::vector<unsigned char> load_file(const std::string& path) {
  * @param scale_y the y scale to render
  * @param use_color wheather to use color
  */
-void render_ascii_line(std::string& out, const unsigned char* img, int y, int width, int height, int target_width, float scale_x, float scale_y, bool use_color) {
+void render_ascii_line(std::string& out, const unsigned char* img, const int y, const int width, const int height,
+    const int target_width, const float scale_x, const float scale_y, const bool use_color) {
     out.clear();
     out.reserve(target_width * (use_color ? 10 : 1));
 
@@ -162,7 +164,7 @@ void render_ascii_line(std::string& out, const unsigned char* img, int y, int wi
  * @author Lupo
  */
 std::string render_frame_ascii_to_string(const unsigned char *img, const int width, const int height,
-                                         int target_width, int target_height, const bool use_color) {
+    int target_width, int target_height, const bool use_color) {
     constexpr float y_aspect = 2.0f;
     bool width_set  = target_width  > 0;
     const bool height_set = target_height > 0;
