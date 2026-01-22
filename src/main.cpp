@@ -157,15 +157,23 @@ int main(const int argc, char** argv) {
     cxxopts::Options options("img_to_ascii", "My try to rewrite my img to ascii tool");
     options.add_options()
     ("help", "produce help message")
+
+    // required
     ("img", "The image to load", cxxopts::value<std::string>()->default_value("Silly_Cat_Character.jpg"))
+
+    // (optional) Cann be used for everything
     ("w,width", "Target output width", cxxopts::value<int>()->default_value("0"))
     ("h,height", "Target output height", cxxopts::value<int>()->default_value("0"))
     ("c,color", "Enable ANSI truecolor output")
     ("ascii", "change the ASCII alphabet to use from dark -> bright ", cxxopts::value<std::string>()->default_value("@%#*+=-:. "))
-    ("v, verbose", "activate verbose mode")
-    ("no-output", "render but do not print anything to the console")
+
+    // specific to GIF stuff
     ("fps", "Force frames per second (overrides GIF timing)", cxxopts::value<int>()->default_value("0"))
-    ("loop", "how often the gif should replay", cxxopts::value<int>()->default_value("0"));
+    ("loop", "how often the gif should replay", cxxopts::value<int>()->default_value("0"))
+
+    // Debug stuff
+    ("v, verbose", "activate verbose mode")
+    ("no-output", "render but do not print anything to the console");
 
     // setting values from the CLI Part
     const auto choices = options.parse(argc, argv);
