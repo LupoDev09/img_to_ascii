@@ -23,6 +23,22 @@ std::string ASCII;
 std::atomic<int> frames_done{0};
 std::mutex cout_mutex;
 
+struct GifCleanup {
+    unsigned char* gif = nullptr;
+    int* delays = nullptr;
+
+    ~GifCleanup() {
+        std::cout << "\033[0m\033[?25h" << std::flush;
+        if (gif) STBI_FREE(gif);
+        if (delays) STBI_FREE(delays);
+    }
+};
+
+struct CursorGuard {
+    CursorGuard()  { std::cout << "\033[?25l"; }
+    ~CursorGuard() { std::cout << "\033[?25h\033[0m"; }
+};
+
 /**
  * @brief converts the brightness from the img to the corresponding ascii value from the ASCII var
  * @param r the value for red
@@ -118,9 +134,9 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
     }
 
     std::vector<std::string> lines(target_height);
-    const unsigned int max_threads = std::thread::hardware_concurrency();
+    const unsigned int max_threads = std::max(1u, std::thread::hardware_concurrency());
     std::vector<std::thread> threads;
-    int chunk_size = std::max(1, target_height / static_cast<int>(max_threads));
+    const int chunk_size = std::max(1, target_height / static_cast<int>(max_threads));
 
     for (int start_y = 0; start_y < target_height; start_y += chunk_size) {
         int end_y = std::min(start_y + chunk_size, target_height);
@@ -148,7 +164,12 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
     for (auto &t : threads) t.join();
 
     std::string frame;
-    for (auto &line : lines) frame += line + "\n";
+    frame.reserve(target_height * (target_width + 1));
+    for (auto& line : lines) {
+        frame.append(line);
+        frame.push_back('\n');
+    }
+
     return frame;
 }
 
@@ -166,6 +187,7 @@ int main(const int argc, char** argv) {
     ("h,height", "Target output height", cxxopts::value<int>()->default_value("0"))
     ("c,color", "Enable ANSI truecolor output")
     ("ascii", "change the ASCII alphabet to use from dark -> bright ", cxxopts::value<std::string>()->default_value("@%#*+=-:. "))
+    ("write-output-to-file", "write the generated image/frames to a file rather than to the console")
 
     // specific to GIF stuff
     ("fps", "Force frames per second (overrides GIF timing)", cxxopts::value<int>()->default_value("0"))
@@ -178,7 +200,9 @@ int main(const int argc, char** argv) {
     // setting values from the CLI Part
     const auto choices = options.parse(argc, argv);
     if (choices.count("help")) {
-        std::cout << options.help() << std::endl;
+        std::cout << options.help() << "\n"
+        << "If you use --write-output-to-file with --color I would not open the file if I where you because then you will see mostly the ansi-escapes, rather use something like cat\n"
+        << "And I would not use the gif option with the --write-output-to-file option because then you just see the frames and dont use --color with this because see above" << std::endl;
         return 0;
     }
 
@@ -190,6 +214,7 @@ int main(const int argc, char** argv) {
         // img
         std::string img_str = choices["img"].as<std::string>();
 
+
         // width
         int width_val = choices["width"].as<int>();
         std::string width_str = (width_val == 0) ? "not provided using default" : std::to_string(width_val);
@@ -198,18 +223,21 @@ int main(const int argc, char** argv) {
         int height_val = choices["height"].as<int>();
         std::string height_str = (height_val == 0) ? "not provided using default" : std::to_string(height_val);
 
-        // FPS
-        int fps_val = choices["fps"].as<int>();
-        std::string fps_overwrite_str = (fps_val == 0) ? "not provided using default" : std::to_string(fps_val);
-
         // color
         std::string color_str = choices.count("color") ? "yes" : "no";
 
-        // output
-        std::string output_str = choices.count("no-output") ? "no" : "yes";
-
         // ASCII
         std::string ascii_str = choices["ascii"].as<std::string>();
+
+        // generate output
+        std::string generate_output_str = choices.count("no-output") ? "no" : "yes";
+
+        // write output to file
+        std::string write_output_to_file_str = choices.count("write-output-to-file") ? "yes" : "no";
+
+        // FPS
+        int fps_val = choices["fps"].as<int>();
+        std::string fps_overwrite_str = (fps_val == 0) ? "not provided using default" : std::to_string(fps_val);
 
         // loop
         int loop_val = choices["loop"].as<int>();
@@ -217,14 +245,15 @@ int main(const int argc, char** argv) {
 
         // zusammenbauen
         oss << "choices:\n"
-            << "\t  img   = " << img_str << '\n'
-            << "\t  width = " << width_str << '\n'
-            << "\t  height= " << height_str << '\n'
-            << "\t  fps   = " << fps_overwrite_str << '\n'
-            << "\t  color = " << color_str << '\n'
-            << "\t  output = " << output_str << '\n'
-            << "\t  ascii = " << ascii_str << '\n'
-            << "\t  loop  = " << loop_str << '\n';
+            << "\t  img                  = " << img_str << '\n'
+            << "\t  width                = " << width_str << '\n'
+            << "\t  height               = " << height_str << '\n'
+            << "\t  fps                  = " << fps_overwrite_str << '\n'
+            << "\t  color                = " << color_str << '\n'
+            << "\t  generate output      = " << generate_output_str << '\n'
+            << "\t  write output to file = " << write_output_to_file_str << '\n'
+            << "\t  ascii                = " << ascii_str << '\n'
+            << "\t  loop                 = " << loop_str << '\n';
 
         verbose(oss.str());
     }
@@ -233,10 +262,13 @@ int main(const int argc, char** argv) {
     const std::string img_path = choices["img"].as<std::string>();
     ASCII = choices["ascii"].as<std::string>();
     const bool use_color = choices.count("color") > 0;
+    const bool no_output = choices.count("no-output") > 0;
+    const bool write_output_to_file = choices.count("write-output-to-file") > 0;
     int target_width  = choices["width"].as<int>();
     int target_height = choices["height"].as<int>();
     int fps_override = choices["fps"].as<int>();
     int loops = choices["loop"].as<int>();
+
     if (loops < 0) {
         std::cerr << "loop has to be at least 0 using default 0" << std::endl;
         loops = 0;
@@ -265,6 +297,10 @@ int main(const int argc, char** argv) {
             3
         );
 
+        GifCleanup gif_cleanup;
+        gif_cleanup.gif = gif;
+        gif_cleanup.delays = delays;
+
         if (!gif) {
             std::cerr << "Failed to load gif '" << img_path
                   << "': " << stbi_failure_reason() << std::endl;
@@ -276,9 +312,10 @@ int main(const int argc, char** argv) {
         verbose("Generating frames...");
         // Pre-process: alle Frames in Strings rendern
         std::vector<std::string> processed_frames(frames);
-        const unsigned int max_threads = std::thread::hardware_concurrency();
+        const unsigned int max_threads = std::max(1u, std::thread::hardware_concurrency());
         std::vector<std::thread> threads;
 
+        frames_done.store(0);
         // lambda funktion für die threads
         auto render_chunk = [&](const int start_f, const int end_f) {
             try {
@@ -326,34 +363,48 @@ int main(const int argc, char** argv) {
 
         // Jetzt Ausgabe
         verbose("hiding cursor");
-        std::cout << "\033[?25l"; // Cursor verstecken
+        CursorGuard cursor; // Cursor verstecken
         using clock = std::chrono::steady_clock;
         auto next_frame_time = clock::now();
 
+        verbose("Trying to open file");
+        std::fstream img_text_file;
+        img_text_file.open("image.txt", std::ios::out);
+        if (!img_text_file.is_open()) {
+            verbose("Failed to open file");
+            return 1;
+        }
         verbose("printing frames");
         for (int loop_i = 0; loop_i <= loops; ++loop_i) {
             for (int f = 0; f < frames; ++f) {
-                if (!choices.count("no-output")) {
-                    std::cout << "\033[H\033[J"; // Cursor Home + Clear Screen
-                    std::cout << processed_frames[f]; // Frame ausgeben
-                    std::cout.flush();
-                }
+                if (!write_output_to_file) {
+                    if (!no_output) {
+                        std::cout << "\033[H\033[J"; // Cursor Home + Clear Screen
+                        std::cout << processed_frames[f]; // Frame ausgeben
+                        std::cout.flush();
+                    }
 
-                // FPS Steuerung
-                if (fps_override > 0) {
-                    next_frame_time += std::chrono::milliseconds(1000 / fps_override);
-                    std::this_thread::sleep_until(next_frame_time);
+                    // FPS Steuerung
+                    if (fps_override > 0) {
+                        next_frame_time += std::chrono::milliseconds(1000 / fps_override);
+                        std::this_thread::sleep_until(next_frame_time);
+                    } else {
+                        int delay_ms = delays ? delays[f] * 10 : 100;
+                        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+                    }
                 } else {
-                    int delay_ms = delays ? delays[f] * 10 : 100;
-                    std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+                    verbose("writing output to file");
+
+                    if (img_text_file.is_open()) {
+                        img_text_file << processed_frames[f] << std::endl;
+                        verbose("wrote output to file");
+                    } else {
+                        std::cerr << "Error while creating/opening file" << std::endl;
+                        return 1;
+                    }
                 }
             }
         }
-
-        std::cout << "\033[0m\033[?25h"; // reset colors + Cursor sichtbar
-        STBI_FREE(gif);
-        if (delays) STBI_FREE(delays);
-        verbose("program ends");
         return 0;
     }
 
@@ -377,7 +428,27 @@ int main(const int argc, char** argv) {
         use_color
     );
 
-    if (!choices.count("no-output")) std::cout << output << std::endl;
+    if (!no_output && !write_output_to_file) {
+        verbose("writing output to console");
+        std::cout << output << std::endl;
+        verbose("wrote output to console");
+    }
+    else if (write_output_to_file) {
+        verbose("writing output to file");
+        std::fstream img_text_file;
+        img_text_file.open("image.txt", std::ios::out);
+        if (img_text_file.is_open()) {
+            img_text_file << output << std::endl;
+            verbose("wrote output to file");
+            img_text_file.close();
+            verbose("closed file");
+        } else {
+            std::cerr << "Error while creating/opening file" << std::endl;
+            stbi_image_free(img);
+            verbose("program ends");
+            return 1;
+        }
+    }
 
     stbi_image_free(img);
     verbose("program ends");
