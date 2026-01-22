@@ -62,7 +62,7 @@ inline char brightness_to_ascii(const unsigned char r, const unsigned char g, co
     // Wahrnehmung-korrekte Helligkeit
     const float brightness = 0.2126f * static_cast<float>(r) + 0.7152f * static_cast<float>(g) + 0.0722f * static_cast<float>(b);
 
-    if (ASCII.empty() || ASCII.size() >= 2) throw std::runtime_error("ASCII alphabet can not be empty");
+    if (ASCII.empty()) throw std::runtime_error("ASCII alphabet can not be empty");
 
     const float t = brightness / 255.0f;
     const std::size_t max_idx = ASCII.size() - 1;
@@ -329,6 +329,7 @@ int main(const int argc, char** argv) {
     ("c,color", "Enable ANSI truecolor output")
     ("ascii", "change the ASCII alphabet to use from dark -> bright ", cxxopts::value<std::string>()->default_value("@%#*+=-:. "))
     ("write-output-to-file", "write the generated image/frames to a file rather than to the console")
+    ("file", "specify the file to write to", cxxopts::value<std::string>()->default_value("image.txt"))
 
     // specific to GIF stuff
     ("fps", "Force frames per second (overrides GIF timing)", cxxopts::value<int>()->default_value("0"))
@@ -353,36 +354,39 @@ int main(const int argc, char** argv) {
         std::ostringstream oss;
 
         // img
-        std::string img_str = choices["img"].as<std::string>();
+        const std::string img_str = choices["img"].as<std::string>();
 
 
         // width
         int width_val = choices["width"].as<int>();
-        std::string width_str = (width_val == 0) ? "not provided using default" : std::to_string(width_val);
+        const std::string width_str = (width_val == 0) ? "not provided using default" : std::to_string(width_val);
 
         // height
         int height_val = choices["height"].as<int>();
-        std::string height_str = (height_val == 0) ? "not provided using default" : std::to_string(height_val);
+        const std::string height_str = (height_val == 0) ? "not provided using default" : std::to_string(height_val);
 
         // color
-        std::string color_str = choices.count("color") ? "yes" : "no";
+        const std::string color_str = choices.count("color") ? "yes" : "no";
 
         // ASCII
-        std::string ascii_str = choices["ascii"].as<std::string>();
+        const std::string ascii_str = choices["ascii"].as<std::string>();
 
         // generate output
-        std::string generate_output_str = choices.count("no-output") ? "no" : "yes";
+        const std::string generate_output_str = choices.count("no-output") ? "no" : "yes";
 
         // write output to file
-        std::string write_output_to_file_str = choices.count("write-output-to-file") ? "yes" : "no";
+        const std::string write_output_to_file_str = choices.count("write-output-to-file") ? "yes" : "no";
+
+        // write output to specified file
+        const std::string write_output_to_specific_file = choices["file"].as<std::string>();
 
         // FPS
         int fps_val = choices["fps"].as<int>();
-        std::string fps_overwrite_str = (fps_val == 0) ? "not provided using default" : std::to_string(fps_val);
+        const std::string fps_overwrite_str = (fps_val == 0) ? "not provided using default" : std::to_string(fps_val);
 
         // loop
         int loop_val = choices["loop"].as<int>();
-        std::string loop_str = (loop_val > 0) ? std::to_string(loop_val): "Using default value";
+        const std::string loop_str = (loop_val > 0) ? std::to_string(loop_val): "Using default value";
 
         // zusammenbauen
         oss << "choices:\n"
@@ -393,6 +397,7 @@ int main(const int argc, char** argv) {
             << "\t  color                = " << color_str << '\n'
             << "\t  generate output      = " << generate_output_str << '\n'
             << "\t  write output to file = " << write_output_to_file_str << '\n'
+            << "\t  specified file       = " << write_output_to_specific_file << '\n'
             << "\t  ascii                = " << ascii_str << '\n'
             << "\t  loop                 = " << loop_str << '\n';
 
@@ -405,6 +410,7 @@ int main(const int argc, char** argv) {
     const bool use_color = choices.count("color") > 0;
     const bool no_output = choices.count("no-output") > 0;
     const bool write_output_to_file = choices.count("write-output-to-file") > 0;
+    const std::string file_path = choices["file"].as<std::string>();
     int target_width  = choices["width"].as<int>();
     int target_height = choices["height"].as<int>();
     int fps_override = choices["fps"].as<int>();
@@ -422,7 +428,7 @@ int main(const int argc, char** argv) {
 
     if (target_height == 0 && target_width == 0) {
         target_width = 80;
-        target_height = 24;
+        target_height = 45;
     }
 
     auto lower = img_path;
@@ -537,8 +543,8 @@ int main(const int argc, char** argv) {
                     // FPS Steuerung
                     if (fps_override > 0) {
                         auto frame_duration = std::chrono::milliseconds(1000 / fps_override);
-                        std::this_thread::sleep_until(next_frame_time + frame_duration);
-                        next_frame_time = std::chrono::steady_clock::now();
+                        next_frame_time += frame_duration;
+                        std::this_thread::sleep_until(next_frame_time);
                     } else {
                         int delay_ms = delays ? std::max(1, delays[f] * 10) : 100;
                         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
@@ -565,7 +571,7 @@ int main(const int argc, char** argv) {
     std::ofstream file;
     if (write_output_to_file) {
         verbose("trying to open file");
-        file.open("image.txt");
+        file.open(file_path, std::ios::out);
         if (!file.is_open()) {
             throw std::runtime_error("Failed to open output file");
         }
