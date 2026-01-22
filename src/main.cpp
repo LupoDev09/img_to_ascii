@@ -138,6 +138,7 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
     std::vector<std::thread> threads;
     const int chunk_size = std::max(1, target_height / static_cast<int>(max_threads));
 
+    verbose("Rendering...");
     for (int start_y = 0; start_y < target_height; start_y += chunk_size) {
         int end_y = std::min(start_y + chunk_size, target_height);
         threads.emplace_back([&, start_y, end_y]() {
@@ -169,8 +170,54 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
         frame.append(line);
         frame.push_back('\n');
     }
-
+    verbose("Rendered");
     return frame;
+}
+
+void output_frame(const std::string& frame, const bool no_output, const bool write_output_to_file, std::ofstream* file = nullptr) {
+    if (write_output_to_file) {
+        if (!file || !file->is_open()) {
+            throw std::runtime_error("Output file not open");
+        }
+        verbose("Trying to write to file");
+        *file << frame << '\n';
+        verbose("Wrote to file");
+        return;
+    }
+
+    if (!no_output) {
+        std::cout << "\033[H\033[J";
+        std::cout << frame << std::flush;
+        verbose("Wrote to console");
+        return;
+    }
+    verbose("No output selected");
+}
+
+std::string render_image(const std::string& path, const int target_width, const int target_height, const bool use_color) {
+    int width, height, channels;
+    verbose("trying to load image");
+    unsigned char* img = stbi_load(path.c_str(), &width, &height, &channels, 3);
+
+    if (!img) {
+        throw std::runtime_error(
+            "Failed to load image: " + std::string(stbi_failure_reason())
+        );
+    }
+    verbose("Loaded image");
+
+    verbose("trying to rander frame");
+    std::string result = render_frame_ascii_to_string(
+        img,
+        width,
+        height,
+        target_width,
+        target_height,
+        use_color
+    );
+
+    stbi_image_free(img);
+    return result;
 }
 
 
@@ -408,49 +455,35 @@ int main(const int argc, char** argv) {
         return 0;
     }
 
-    verbose("Trying to load image: " + img_path);
-    int width, height, channels;
-    unsigned char* img = stbi_load(img_path.c_str(), &width, &height, &channels, 3);
+    verbose("Detected IMAGE");
 
-    if (!img) {
-        std::cerr << "Failed to load image '" << img_path
-                  << "': " << stbi_failure_reason() << std::endl;
-        return 1;
+    CursorGuard cursor;
+    std::ofstream file;
+    if (write_output_to_file) {
+        verbose("trying to open file");
+        file.open("image.txt");
+        if (!file.is_open()) {
+            throw std::runtime_error("Failed to open output file");
+        }
+        verbose("Opened file");
     }
-    verbose("loaded image: " + img_path);
 
-    std::string output = render_frame_ascii_to_string(
-        img,
-        width,
-        height,
+    verbose("Rendering Frame");
+    std::string frame = render_image(
+        img_path,
         target_width,
         target_height,
         use_color
     );
 
-    if (!no_output && !write_output_to_file) {
-        verbose("writing output to console");
-        std::cout << output << std::endl;
-        verbose("wrote output to console");
-    }
-    else if (write_output_to_file) {
-        verbose("writing output to file");
-        std::fstream img_text_file;
-        img_text_file.open("image.txt", std::ios::out);
-        if (img_text_file.is_open()) {
-            img_text_file << output << std::endl;
-            verbose("wrote output to file");
-            img_text_file.close();
-            verbose("closed file");
-        } else {
-            std::cerr << "Error while creating/opening file" << std::endl;
-            stbi_image_free(img);
-            verbose("program ends");
-            return 1;
-        }
-    }
+    verbose("outputting frame");
+    output_frame(
+        frame,
+        no_output,
+        write_output_to_file,
+        write_output_to_file ? &file : nullptr
+    );
 
-    stbi_image_free(img);
     verbose("program ends");
     return 0;
 }
