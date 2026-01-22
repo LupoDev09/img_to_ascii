@@ -126,7 +126,7 @@ inline std::vector<unsigned char> load_file(const std::string& path) {
  * @param scale_y the y scale to render
  * @param use_color wheather to use color
  */
-void render_ascii_line(std::string& out, const unsigned char* img, const int y, const int width, const int height,
+inline void render_ascii_line(std::string& out, const unsigned char* img, const int y, const int width, const int height,
     const int target_width, const float scale_x, const float scale_y, const bool use_color) {
     out.clear();
     out.reserve(target_width * (use_color ? 10 : 1));
@@ -203,17 +203,7 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
         auto render_chunk = [&](const int start_y, const int end_y) {
             for (int y = start_y; y < end_y; ++y) {
                 try {
-                    render_ascii_line(
-                        lines[y],
-                        img,
-                        y,
-                        width,
-                        height,
-                        target_width,
-                        scale_x,
-                        scale_y,
-                        use_color
-                    );
+                    render_ascii_line(lines[y], img, y, width, height, target_width, scale_x, scale_y, use_color);
                 } catch (std::exception& e) {
                     std::cerr << e.what() << std::endl;
                 }
@@ -228,19 +218,8 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
     } else {
         //verbose("Rendering (single-thread)...");
         for (int y = 0; y < target_height; ++y) {
-            render_ascii_line(
-                lines[y],
-                img,
-                y,
-                width,
-                height,
-                target_width,
-                scale_x,
-                scale_y,
-                use_color
-            );
+            render_ascii_line(lines[y], img, y, width, height, target_width, scale_x, scale_y, use_color);
         }
-
     }
     std::string frame;
     frame.reserve(target_height * (target_width + 1));
