@@ -8,12 +8,11 @@
 #include <algorithm>
 #include <atomic>
 #include <mutex>
-#include <ranges>
 #include <cctype>
 
 // Provided header
 #include <cxxopts.hpp>
-#include "verbose.h"
+#include <verbose.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -320,7 +319,7 @@ int main(const int argc, char** argv) {
         ("v,verbose", "activate verbose mode")
         ("no-output", "render but do not print anything to the console");
 
-    const auto choices = options.parse(argc, argv);
+    const cxxopts::ParseResult choices = options.parse(argc, argv);
     // handle help flag
     if (choices.count("help")) {
         // Basic groups
@@ -341,7 +340,7 @@ int main(const int argc, char** argv) {
                   << "because then you will see mostly the ANSI escapes.\n"
                   << "Rather use something like 'cat' to see the image.\n"
                   << "And I would not use the GIF option with --write-output-to-file,\n"
-                  << "because then you just see the frames. Also, don't combine with --color.\n";
+                  << "because then you just see the frames. Also, don't combine with --color." << std::endl;
         return 0;
     }
 
