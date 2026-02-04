@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <atomic>
 #include <mutex>
-#include <cctype>
 
 // Provided header
 #include <cxxopts.hpp>
