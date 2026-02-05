@@ -1,6 +1,7 @@
 *build*
 *.cmake
 *.sh
+*cache*
 .idea
 .vs
 tmp*
