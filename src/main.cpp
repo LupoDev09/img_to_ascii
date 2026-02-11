@@ -40,7 +40,7 @@ struct GifCleanup {
 };
 
 /**
- * @brief constructs a Cursor object to automatically hide and show the cursor
+ * @brief constructs a Cursor object to automatically hide and show the cursor if the program ends
  * @author Lupo
  */
 struct CursorGuard {
