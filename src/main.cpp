@@ -335,12 +335,12 @@ int main(const int argc, char** argv) {
         }
 
         // Authors note
-        std::cout << "\nNote: If you use --write-output-to-file with --color, I would not open the file\n"
-                  << "because then you will see mostly the ANSI escapes.\n"
-                  << "Rather use something like 'cat' to see the image.\n"
-                  << "And I would not use the GIF option with --write-output-to-file,\n"
-                  << "because then you just see the frames. Also, don't combine with --color." << std::endl;
-        return 0;
+        std::cout << "\nNote:" 
+                  << "\nI can't recomend opening the file written from this tool when the color option was provided, "
+                  << "because the file will be mostly ansi-escapes."
+                  << "\nUse something like `cat` to write the file to the consol (that also works with colors) :3"
+                  << "\nThe same goes for gifs regardles of color this will only produce the frames :3";
+            return 0;
     }
 
     if (choices.count("verbose")) VERBOSE_MODE = true;
@@ -474,7 +474,7 @@ int main(const int argc, char** argv) {
                 for (int f = start_f; f < end_f && !st.stop_requested(); ++f) {
                     const unsigned char* frame = gif + f * width * height * 3;
 
-                    // Nutze deine Chunked-Multithreading-Version für die Zeilen
+                    // Nutze Chunked-Multithreading-Version für die Zeilen
                     processed_frames[f] = render_frame_ascii_to_string(
                         frame, width, height,
                         target_width, target_height,
