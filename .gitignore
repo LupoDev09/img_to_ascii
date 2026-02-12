@@ -8,3 +8,4 @@ tmp*
 *Testing*
 CMakeFiles
 image.txt
+compile_commands.json
