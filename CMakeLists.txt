@@ -13,3 +13,9 @@ add_executable(img_to_ascii
 )
 
 target_include_directories(img_to_ascii PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E create_symlink
+          ${CMAKE_BINARY_DIR}/compile_commands.json
+          ${CMAKE_SOURCE_DIR}/compile_commands.json
+)
