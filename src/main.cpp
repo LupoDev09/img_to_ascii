@@ -192,7 +192,7 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
     std::vector<std::thread> threads;
     const int chunk_size = std::max(1, target_height / static_cast<int>(threads_used));
 
-    //verbose("Determing whether to use Multithreading or single threading");
+    //img_to_ascii::verbose("Determing whether to use Multithreading or single threading");
     const bool use_threads = target_height >= 200;
 
     threads.reserve(threads_used);
@@ -207,14 +207,14 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
                 }
             }
         };
-        //verbose("Rendering...");
+        //img_to_ascii::verbose("Rendering...");
         for (int start_y = 0; start_y < target_height; start_y += chunk_size) {
             int end_y = std::min(start_y + chunk_size, target_height);
             threads.emplace_back(render_chunk, start_y, end_y);
         }
         for (auto &t : threads) t.join();
     } else {
-        //verbose("Rendering (single-thread)...");
+        //img_to_ascii::verbose("Rendering (single-thread)...");
         for (int y = 0; y < target_height; ++y) {
             render_ascii_line(lines[y], img, y, width, height, target_width, scale_x, scale_y, use_color);
         }
@@ -225,7 +225,7 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
         frame.append(line);
         frame.push_back('\n');
     }
-    //verbose("Rendered");
+    //img_to_ascii::verbose("Rendered");
     return frame;
 }
 
@@ -242,19 +242,19 @@ void output_frame(const std::string& frame, const bool no_output, const bool wri
         if (!file || !file->is_open()) {
             throw std::runtime_error("Output file not open");
         }
-        verbose("Trying to write to file");
+        img_to_ascii::verbose("Trying to write to file");
         *file << frame << '\n';
-        verbose("Wrote to file");
+        img_to_ascii::verbose("Wrote to file");
         return;
     }
 
     if (!no_output) {
         std::cout << "\033[H\033[J";
         std::cout << frame << std::flush;
-        verbose("Wrote to console");
+        img_to_ascii::verbose("Wrote to console");
         return;
     }
-    verbose("No output selected");
+    img_to_ascii::verbose("No output selected");
 }
 
 /**
@@ -267,7 +267,7 @@ void output_frame(const std::string& frame, const bool no_output, const bool wri
  */
 std::string render_image(const std::string& path, const int target_width, const int target_height, const bool use_color) {
     int width, height;
-    verbose("trying to load image");
+    img_to_ascii::verbose("trying to load image");
     unsigned char* img = stbi_load(path.c_str(), &width, &height, nullptr, 3);
 
     if (!img) {
@@ -275,9 +275,9 @@ std::string render_image(const std::string& path, const int target_width, const 
             "Failed to load image: " + std::string(stbi_failure_reason())
         );
     }
-    verbose("Loaded image");
+    img_to_ascii::verbose("Loaded image");
 
-    verbose("trying to rander frame");
+    img_to_ascii::verbose("trying to rander frame");
     std::string result = render_frame_ascii_to_string(
         img,
         width,
@@ -293,7 +293,7 @@ std::string render_image(const std::string& path, const int target_width, const 
 
 
 int main(const int argc, char** argv) {
-    cxxopts::Options options("img_to_ascii", "My try to rewrite my img to ascii tool");
+    cxxopts::Options options("img_to_ascii", "Convert images and GIFs to ASCII art");
 
     // Help
     options.add_options("General")
@@ -301,18 +301,18 @@ int main(const int argc, char** argv) {
         ("img", "The image to load", cxxopts::value<std::string>()->default_value("Silly_Cat_Character.jpg"));
 
     // Optional
-    options.add_options("Optional")
-        ("w,width", "Target output width", cxxopts::value<int>()->default_value("0"))
-        ("h,height", "Target output height", cxxopts::value<int>()->default_value("0"))
+    options.add_options("Output")
+        ("w,width", "Target output width (0 = auto)", cxxopts::value<int>()->default_value("0"))
+        ("h,height", "Target output height (0 = auto)", cxxopts::value<int>()->default_value("0"))
         ("c,color", "Enable ANSI truecolor output")
-        ("ascii", "change the ASCII alphabet to use from dark -> bright ", cxxopts::value<std::string>()->default_value("@%#*+=-:. "))
+        ("ascii", "Characters used for brightness mapping (dark → bright)", cxxopts::value<std::string>()->default_value("@%#*+=-:. "))
         ("write-output-to-file", "write the generated image/frames to a file rather than to the console")
         ("file", "specify the file to write to", cxxopts::value<std::string>()->default_value("image.txt"));
 
     // GIF-specific
     options.add_options("GIF")
-        ("f, fps", "Force frames per second (overrides GIF timing)", cxxopts::value<int>()->default_value("0"))
-        ("l, loop", "how often the gif should replay", cxxopts::value<int>()->default_value("0"));
+        ("f,fps", "Force frames per second (0 = Use GIF Timing)", cxxopts::value<int>()->default_value("0"))
+        ("l,loop", "how often the gif should replay", cxxopts::value<int>()->default_value("0"));
 
     options.add_options("Debugging")
         ("v,verbose", "activate verbose mode")
@@ -322,7 +322,7 @@ int main(const int argc, char** argv) {
     // handle help flag
     if (choices.count("help")) {
         // Basic groups
-        std::cout << options.help({"General", "Optional"}) << "\n";
+        std::cout << options.help({"General", "Output"}) << "\n";
         std::cout << "These options don’t do anything if used with normal images";
 
         // GIF & Debug, aber ohne Header/Usage
@@ -336,14 +336,14 @@ int main(const int argc, char** argv) {
 
         // Authors note
         std::cout << "\nNote:" 
-                  << "\nI can't recomend opening the file written from this tool when the color option was provided, "
+                  << "\nI can't recommend opening the file written from this tool when the color option was provided, "
                   << "because the file will be mostly ansi-escapes."
-                  << "\nUse something like `cat` to write the file to the consol (that also works with colors) :3"
-                  << "\nThe same goes for gifs regardles of color this will only produce the frames :3";
+                  << "\nUse something like `cat` to write the file to the console (that also works with colors) :3"
+                  << "\nThe same goes for GIFs regardless of color this will only produce the frames :3";
             return 0;
     }
 
-    if (choices.count("verbose")) VERBOSE_MODE = true;
+    if (choices.count("verbose")) img_to_ascii::VERBOSE_MODE = true;
 
     {
         std::ostringstream oss;
@@ -393,10 +393,10 @@ int main(const int argc, char** argv) {
             << "\t  generate output      = " << generate_output_str << '\n'
             << "\t  write output to file = " << write_output_to_file_str << '\n'
             << "\t  specified file       = " << write_output_to_specific_file << '\n'
-            << "\t  ascii                = " << ascii_str << '\n'
+            << "\t  ASCII                = " << ascii_str << '\n'
             << "\t  loop                 = " << loop_str << '\n';
 
-        verbose(oss.str());
+        img_to_ascii::verbose(oss.str());
     }
 
     // setting values from the CLI Part
@@ -418,7 +418,7 @@ int main(const int argc, char** argv) {
     }
 
     if (fps_override <= 0) {
-        verbose("fps override can not be 0 or lower. Setting it to default");
+        img_to_ascii::verbose("fps override can not be 0 or lower. Setting it to default");
     }
 
     if (target_height == 0 && target_width == 0) {
@@ -431,7 +431,7 @@ int main(const int argc, char** argv) {
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
 
     if (lower.ends_with(".gif")) {
-        verbose("Detected GIF");
+        img_to_ascii::verbose("Detected GIF");
         auto data = load_file(img_path);
 
         int* delays = nullptr;
@@ -458,9 +458,9 @@ int main(const int argc, char** argv) {
             return 1;
         }
 
-        verbose("GIF loaded, frames: " + std::to_string(frames));
+        img_to_ascii::verbose("GIF loaded, frames: " + std::to_string(frames));
 
-        verbose("Generating frames...");
+        img_to_ascii::verbose("Generating frames...");
         // Pre-process: alle Frames in Strings rendern
         std::vector<std::string> processed_frames(frames);
         const unsigned int max_threads = std::max(1u, std::thread::hardware_concurrency());
@@ -514,18 +514,18 @@ int main(const int argc, char** argv) {
         // wir müssen nicht auf die threads warten und joinen, weil es sich um jthreads handelt
 
         // Jetzt Ausgabe
-        verbose("hiding cursor");
+        img_to_ascii::verbose("hiding cursor");
         using clock = std::chrono::steady_clock;
         auto next_frame_time = clock::now();
 
-        verbose("Trying to open file");
+        img_to_ascii::verbose("Trying to open file");
         std::fstream img_text_file;
         img_text_file.open("image.txt", std::ios::out);
         if (!img_text_file.is_open()) {
-            verbose("Failed to open file");
+            img_to_ascii::verbose("Failed to open file");
             return 1;
         }
-        verbose("printing frames");
+        img_to_ascii::verbose("printing frames");
         for (int loop_i = 0; loop_i <= loops; ++loop_i) {
             for (int f = 0; f < frames; ++f) {
                 if (!write_output_to_file) {
@@ -545,11 +545,11 @@ int main(const int argc, char** argv) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
                     }
                 } else {
-                    verbose("writing output to file");
+                    img_to_ascii::verbose("writing output to file");
 
                     if (img_text_file.is_open()) {
                         img_text_file << processed_frames[f] << std::endl;
-                        verbose("wrote output to file");
+                        img_to_ascii::verbose("wrote output to file");
                     } else {
                         std::cerr << "Error while creating/opening file" << std::endl;
                         return 1;
@@ -560,20 +560,20 @@ int main(const int argc, char** argv) {
         return 0;
     }
 
-    verbose("Detected IMAGE");
+    img_to_ascii::verbose("Detected IMAGE");
 
     CursorGuard cursor;
     std::ofstream file;
     if (write_output_to_file) {
-        verbose("trying to open file");
+        img_to_ascii::verbose("trying to open file");
         file.open(file_path, std::ios::out);
         if (!file.is_open()) {
             throw std::runtime_error("Failed to open output file");
         }
-        verbose("Opened file");
+        img_to_ascii::verbose("Opened file");
     }
 
-    verbose("Rendering Frame");
+    img_to_ascii::verbose("Rendering Frame");
     std::string frame = render_image(
         img_path,
         target_width,
@@ -581,7 +581,7 @@ int main(const int argc, char** argv) {
         use_color
     );
 
-    verbose("outputting frame");
+    img_to_ascii::verbose("outputting frame");
     output_frame(
         frame,
         no_output,
@@ -589,6 +589,6 @@ int main(const int argc, char** argv) {
         write_output_to_file ? &file : nullptr
     );
 
-    verbose("program ends");
+    img_to_ascii::verbose("program ends");
     return 0;
 }
