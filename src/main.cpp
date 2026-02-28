@@ -192,7 +192,6 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
     std::vector<std::thread> threads;
     const int chunk_size = std::max(1, target_height / static_cast<int>(threads_used));
 
-    //img_to_ascii::verbose("Determing whether to use Multithreading or single threading");
     const bool use_threads = target_height >= 200;
 
     threads.reserve(threads_used);
@@ -207,14 +206,12 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
                 }
             }
         };
-        //img_to_ascii::verbose("Rendering...");
         for (int start_y = 0; start_y < target_height; start_y += chunk_size) {
             int end_y = std::min(start_y + chunk_size, target_height);
             threads.emplace_back(render_chunk, start_y, end_y);
         }
         for (auto &t : threads) t.join();
     } else {
-        //img_to_ascii::verbose("Rendering (single-thread)...");
         for (int y = 0; y < target_height; ++y) {
             render_ascii_line(lines[y], img, y, width, height, target_width, scale_x, scale_y, use_color);
         }
@@ -225,7 +222,6 @@ std::string render_frame_ascii_to_string(const unsigned char *img, const int wid
         frame.append(line);
         frame.push_back('\n');
     }
-    //img_to_ascii::verbose("Rendered");
     return frame;
 }
 
