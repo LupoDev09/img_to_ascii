@@ -123,6 +123,7 @@ inline std::vector<unsigned char> load_file(const std::string& path) {
  * @param scale_x the x scale to render
  * @param scale_y the y scale to render
  * @param use_color wheather to use color
+ * @author Lupo
  */
 inline void render_ascii_line(std::string& out, const unsigned char* img, const int y, const int width, const int height,
     const int target_width, const float scale_x, const float scale_y, const bool use_color) {
@@ -260,20 +261,19 @@ void output_frame(const std::string& frame, const bool no_output, const bool wri
  * @param target_height the targeted height for the output
  * @param use_color whether to use ansi-escapes for color
  * @return a string with the rendered image
+ * @author Lupo
  */
-std::string render_image(const std::string& path, const int target_width, const int target_height, const bool use_color) {
+std::string render_frame(const std::string& path, const int target_width, const int target_height, const bool use_color) {
     int width, height;
     img_to_ascii::verbose("trying to load image");
     unsigned char* img = stbi_load(path.c_str(), &width, &height, nullptr, 3);
 
     if (!img) {
-        throw std::runtime_error(
-            "Failed to load image: " + std::string(stbi_failure_reason())
-        );
+        throw std::runtime_error("Failed to load image: " + std::string(stbi_failure_reason()));
     }
     img_to_ascii::verbose("Loaded image");
 
-    img_to_ascii::verbose("trying to rander frame");
+    img_to_ascii::verbose("trying to render frame");
     std::string result = render_frame_ascii_to_string(
         img,
         width,
@@ -300,8 +300,8 @@ int main(const int argc, char** argv) {
     options.add_options("Output")
         ("w,width", "Target output width (0 = auto)", cxxopts::value<int>()->default_value("0"))
         ("h,height", "Target output height (0 = auto)", cxxopts::value<int>()->default_value("0"))
-        ("c,color", "Enable ANSI truecolor output")
-        ("ascii", "Characters used for brightness mapping (dark → bright)", cxxopts::value<std::string>()->default_value("@%#*+=-:. "))
+        ("c,color", "Enable ANSI true color output")
+        ("ascii", "Characters used for brightness mapping (dark -> bright)", cxxopts::value<std::string>()->default_value("@%#*+=-:. "))
         ("write-output-to-file", "write the generated image/frames to a file rather than to the console")
         ("file", "specify the file to write to", cxxopts::value<std::string>()->default_value("image.txt"));
 
@@ -319,7 +319,7 @@ int main(const int argc, char** argv) {
     if (choices.count("help")) {
         // Basic groups
         std::cout << options.help({"General", "Output"}) << "\n";
-        std::cout << "These options don’t do anything if used with normal images";
+        std::cout << "These options don't do anything if used with normal images";
 
         // GIF & Debug, aber ohne Header/Usage
         std::stringstream ss(options.help({"GIF", "Debugging"}, false));
@@ -408,7 +408,7 @@ int main(const int argc, char** argv) {
     int loops = choices["loop"].as<int>();
 
     if (loops < 0) {
-        std::cerr << "loop has to be at least 0 using default 0" << std::endl;
+        std::cerr << "loop has to be at least 0 using default 0\n";
         loops = 0;
         std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
@@ -422,7 +422,7 @@ int main(const int argc, char** argv) {
         target_height = 45;
     }
 
-    auto lower = img_path;
+    std::string lower = img_path;
     for (char& c : lower)
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
 
@@ -449,8 +449,7 @@ int main(const int argc, char** argv) {
         gif_cleanup.delays = delays;
 
         if (!gif || frames <= 0) {
-            std::cerr << "Failed to load gif '" << img_path
-                  << "': " << stbi_failure_reason() << std::endl;
+            std::cerr << std::format("Failed to load gif '{}': {}\n", img_path, stbi_failure_reason());
             return 1;
         }
 
@@ -499,7 +498,7 @@ int main(const int argc, char** argv) {
                 std::cerr << "Thread error: " << e.what() << std::endl;
             }
         };
-        std::cout << '\n' << std::endl;
+        std::cout << "\n\n";
 
         // Thread-Chunking über Frames
         int chunk_size = std::max(1, frames / static_cast<int>(max_threads));
@@ -544,10 +543,10 @@ int main(const int argc, char** argv) {
                     img_to_ascii::verbose("writing output to file");
 
                     if (img_text_file.is_open()) {
-                        img_text_file << processed_frames[f] << std::endl;
+                        img_text_file << processed_frames[f] << '\n';
                         img_to_ascii::verbose("wrote output to file");
                     } else {
-                        std::cerr << "Error while creating/opening file" << std::endl;
+                        std::cerr << "Error while creating/opening file" << '\n';
                         return 1;
                     }
                 }
@@ -570,7 +569,7 @@ int main(const int argc, char** argv) {
     }
 
     img_to_ascii::verbose("Rendering Frame");
-    std::string frame = render_image(
+    std::string frame = render_frame(
         img_path,
         target_width,
         target_height,
