@@ -4,19 +4,22 @@
 
 #ifndef IMG_TO_ASCII_RENDERER_H
 #define IMG_TO_ASCII_RENDERER_H
-#include "Data_structures/Frame.h"
+#include <string>
+#include <Loader.h>
+
 
 class Renderer {
-public:
-    struct RenderConfig {
-        int output_width{};
-        int output_height{};
-        bool use_color = true;
-    };
+    [[nodiscard]] char get_char(const float &luminance) const;
 
-    void render(const AsciiFrame& frame, const RenderConfig& config) {
-        // TODO: implement
-    };
+public:
+    struct Config {
+        // In Normal cases height and width should be configurable with this struct but
+        // because I use ffmpeg for the extracting this is not needed
+        bool color = true;
+        std::string charset = " .:-=+*#%@";
+    } config;
+
+    [[nodiscard]] std::string render_frame(const Loader::Frame& frame) const;
 };
 
 
