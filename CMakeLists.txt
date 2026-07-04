@@ -25,7 +25,7 @@ target_include_directories(img_to_ascii PRIVATE ${CMAKE_SOURCE_DIR}/include)
 # ---------------------------------------------------------
 # Test-Executable
 if (BUILD_TESTS)
-    find_package(Catch2 3 REQUIRED)
+    find_package(Catch2 2 REQUIRED)
     add_executable(tests
             tests/test_cli.cpp
             tests/test_utils.cpp
@@ -35,7 +35,7 @@ if (BUILD_TESTS)
     )
 
     # Catch2 verlinken
-    target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
+    target_link_libraries(tests PRIVATE Catch2::Catch2)
 
     # Deine Includes auch für Tests verfügbar machen
     target_include_directories(tests PRIVATE ${CMAKE_SOURCE_DIR}/include)

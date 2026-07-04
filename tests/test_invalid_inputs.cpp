@@ -2,7 +2,7 @@
 // Created by lupo on 21.10.25.
 //
 // Check for various invalid inputs and ensure proper error messages are shown
-#include <catch2/catch_all.hpp>
+#include <catch2/catch.hpp>
 #include <cstdlib>
 #include <string>
 #include <memory>
