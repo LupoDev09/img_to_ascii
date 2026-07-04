@@ -5,18 +5,23 @@
 #ifndef IMG_TO_ASCII_GENERATEFRAMES_H
 #define IMG_TO_ASCII_GENERATEFRAMES_H
 #include <filesystem>
+#include <vector>
+
+#include <dataStructures.h>
 
 class GenerateFrames {
     public:
     /**
-     * @brief Generate frames from a video file using ffmpeg
-     * @details If you want to change this function you have to make sure that the output frames are under frames/ and in the format frame_%06d.png
-     * @param input_path the path to the image
-     * @param frame_rate the Frame rate (Used to generate the appropriate number of frames)
-     * @param width the width of the output ascii video
-     * @param height the height of the output ascii video
+     * Decode a video file and return scaled RGB frames in memory.
+     * The caller can hand the result directly to the renderer.
+     *
+     * @param input_path input video or GIF path
+     * @param frame_rate target frame rate for sampling
+     * @param width output frame width
+     * @param height output frame height
+     * @return decoded frames in RGB format
      */
-    static void generate(const std::filesystem::path &input_path, int frame_rate, int width, int height);
+    [[nodiscard]] static std::vector<DataStructures::Frame> generate(const std::filesystem::path &input_path, int frame_rate, int width, int height);
 };
 
 #endif// IMG_TO_ASCII_GENERATEFRAMES_H

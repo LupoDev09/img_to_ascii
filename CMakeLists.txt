@@ -4,19 +4,31 @@ project(img_to_ascii)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(FFMPEG REQUIRED
+        libavformat
+        libavcodec
+        libswscale
+        libavutil
+)
 
-# ---------------------------------------------------------
-# Hauptprogramm
-# ---------------------------------------------------------
 add_executable(img_to_ascii
         src/main.cpp
         src/Renderer.cpp
         include/Renderer.h
-        src/Loader.cpp
-        include/Loader.h
-        include/stb_image_implementation.h
         src/GenerateFrames.cpp
-        include/GenerateFrames.h
+        include/dataStructures.h
 )
 
-target_include_directories(img_to_ascii PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(img_to_ascii PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${FFMPEG_INCLUDE_DIRS}
+)
+
+target_link_libraries(img_to_ascii PRIVATE
+        ${FFMPEG_LIBRARIES}
+)
+
+target_compile_options(img_to_ascii PRIVATE
+        ${FFMPEG_CFLAGS_OTHER}
+)

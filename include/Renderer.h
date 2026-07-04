@@ -5,7 +5,8 @@
 #ifndef IMG_TO_ASCII_RENDERER_H
 #define IMG_TO_ASCII_RENDERER_H
 #include <string>
-#include <Loader.h>
+#include <vector>
+#include <dataStructures.h>
 
 
 class Renderer {
@@ -13,15 +14,16 @@ class Renderer {
 
 public:
     struct Config {
-        // In Normal cases height and width should be configurable with this struct but
-        // because I use ffmpeg for the extracting this is not needed
+        // Rendering uses the decoded frame dimensions, so only palette and color output are configurable here.
         bool color = true;
         std::string charset = " .:-=+*#%@";
     } config;
 
-    [[nodiscard]] std::string render_frame(const Loader::Frame& frame) const;
+    // Convert a single RGB frame into one ANSI-colored ASCII string.
+    [[nodiscard]] std::string render_frame(const DataStructures::Frame& frame) const;
 
-    [[nodiscard]] std::vector<std::string> render_frames() const;
+    // Convert a batch of frames in parallel.
+    [[nodiscard]] std::vector<std::string> render_frames(const std::vector<DataStructures::Frame>& frames) const;
 };
 
 
