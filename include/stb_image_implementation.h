@@ -1,0 +1,12 @@
+//
+// Created by lupo on 04.07.26.
+//
+
+#ifndef IMG_TO_ASCII_STB_IMAGE_IMPLEMENTATION_H
+#define IMG_TO_ASCII_STB_IMAGE_IMPLEMENTATION_H
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
+
+
+#endif// IMG_TO_ASCII_STB_IMAGE_IMPLEMENTATION_H

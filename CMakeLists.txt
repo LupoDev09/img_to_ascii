@@ -10,12 +10,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ---------------------------------------------------------
 add_executable(img_to_ascii
         src/main.cpp
-        include/Data_structures/Pixel.h
-        include/Data_structures/Frame.h
-        include/Data_structures/FrameSource.h
-        include/Downscaler.h
-        include/AsciiMapper.h
+        include/Renderer.cpp
         include/Renderer.h
+        include/Loader.cpp
+        include/Loader.h
+        include/stb_image_implementation.h
 )
 
 target_include_directories(img_to_ascii PRIVATE ${CMAKE_SOURCE_DIR}/include)
