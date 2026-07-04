@@ -20,6 +20,8 @@ public:
     } config;
 
     [[nodiscard]] std::string render_frame(const Loader::Frame& frame) const;
+
+    [[nodiscard]] std::vector<std::string> render_frames() const;
 };
 
 

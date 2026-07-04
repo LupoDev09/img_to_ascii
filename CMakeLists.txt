@@ -15,6 +15,8 @@ add_executable(img_to_ascii
         src/Loader.cpp
         include/Loader.h
         include/stb_image_implementation.h
+        src/GenerateFrames.cpp
+        include/GenerateFrames.h
 )
 
 target_include_directories(img_to_ascii PRIVATE ${CMAKE_SOURCE_DIR}/include)
