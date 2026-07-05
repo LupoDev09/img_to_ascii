@@ -19,12 +19,13 @@ int main(const int argc, char** argv) {
     cxxopts::Options options("Img_to_ascii", "Img_to_ascii another rewrite");
     options.add_options()
     ("i,input", "Input video file", cxxopts::value<std::string>())
-    ("w,width", "Width of the output ascii video", cxxopts::value<int>()->default_value("80"))
-    ("h,height", "Height of the output ascii video", cxxopts::value<int>()->default_value("60"))
+    ("w,width", "Width of the output ascii video", cxxopts::value<int>()->default_value("0"))
+    ("h,height", "Height of the output ascii video", cxxopts::value<int>()->default_value("0"))
     ("f,frame-rate", "Frame rate of the output ascii video", cxxopts::value<int>()->default_value("30"))
     ("use-source-fps", "Use the source video's frame rate", cxxopts::value<bool>()->default_value("false"))
     ("c,charset", "Charset to use for ascii mapping", cxxopts::value<std::string>()->default_value(" .:-=+*#%@"))
     ("v,verbose", "Enable verbose output", cxxopts::value<bool>()->default_value("false"))
+    ("no-output", "Do not output the ascii video to stdout", cxxopts::value<bool>()->default_value("false"))
     ("help", "Print help");
 
     const cxxopts::ParseResult parse_result = options.parse(argc, argv);
@@ -40,6 +41,7 @@ int main(const int argc, char** argv) {
     const int width = parse_result["w"].as<int>();
     const int height = parse_result["h"].as<int>();
     const bool use_source_fps = parse_result["use-source-fps"].as<bool>();
+    const bool no_output = parse_result["no-output"].as<bool>();
 
     VERBOSE_MODE = verbose;
 
@@ -56,12 +58,8 @@ int main(const int argc, char** argv) {
         std::cerr << "Frame rate is invalid" << std::endl;
         return 1;
     }
-    if (height <= 0) {
-        std::cerr << "Height is invalid" << std::endl;
-        return 1;
-    }
-    if (width <= 0) {
-        std::cerr << "Width is invalid" << std::endl;
+    if (height <= 0 && width <= 0) {
+        std::cerr << "Height and width are invalid please provide at least one of them as positiv integer" << std::endl;
         return 1;
     }
 
@@ -93,14 +91,20 @@ int main(const int argc, char** argv) {
     VERBOSE("Finished rendering frames to ascii");
 
     VERBOSE("Starting playback...");
-    for (const std::string& frame : rendered_frames) {
-        std::cout << frame << std::flush;
-        if (use_source_fps) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(1000.0 / frames.front().source_fps)));
-        } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000 / frame_rate));
+    if (!no_output) {
+        if (rendered_frames.size() == 1)
+            std::cout << rendered_frames.at(0) << std::flush;
+        else {
+            for (const std::string& frame : rendered_frames) {
+                std::cout << frame << std::flush;
+                if (use_source_fps) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(1000.0 / frames.front().source_fps)));
+                } else {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1000 / frame_rate));
+                }
+                std::cout << "\033[2J\033[H" << std::flush;
+            }
         }
-        std::cout << "\033[2J\033[H" << std::flush;
     }
     VERBOSE("Finished playback");
 

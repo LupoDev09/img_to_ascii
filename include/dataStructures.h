@@ -11,7 +11,6 @@ namespace DataStructures {
     struct Pixel {
         uint8_t r, g, b;
 
-        // Warum float? → bessere Genauigkeit bei Berechnung
         [[nodiscard]] float luminance() const {
             // Wahrnehmungsgewichtung (nicht einfach Mittelwert!)
             return 0.2126f * static_cast<float>(r)

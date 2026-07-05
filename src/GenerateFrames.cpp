@@ -18,6 +18,7 @@ extern "C" {
 #include <string>
 #include <utility>
 #include <vector>
+#include <thread>
 
 #include <dataStructures.h>
 
@@ -50,8 +51,8 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
         }
     } cleanup;
 
-    if (frame_rate <= 0 || width <= 0 || height <= 0) {
-        std::cerr << "Invalid output dimensions or frame rate" << std::endl;
+    if (frame_rate <= 0) {
+        std::cerr << "Invalid frame rate" << std::endl;
         return {};
     }
 
@@ -96,6 +97,10 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
         return {};
     }
 
+    const unsigned int cpu_threads = std::max(1u, std::thread::hardware_concurrency());
+    cleanup.dec_ctx->thread_count = static_cast<int>(cpu_threads);
+    cleanup.dec_ctx->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
+
     if (avcodec_open2(cleanup.dec_ctx, dec, nullptr) < 0) {
         std::cerr << "Failed to open decoder" << std::endl;
         return {};
@@ -108,12 +113,33 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
         return {};
     }
 
+    // Compute target dimensions if one of them is zero to preserve aspect ratio.
+    int target_w = width;
+    int target_h = height;
+
+    const int src_w = cleanup.dec_ctx->width;
+    const int src_h = cleanup.dec_ctx->height;
+    // Approximate character aspect ratio (height / width). Adjust if output looks squashed.
+    // Common terminal fonts have char height ≈ 2 * width.
+    constexpr double char_aspect = 2.0;
+
+    if (target_w <= 0 && target_h <= 0) {
+        std::cerr << "Invalid target dimensions" << std::endl;
+        return {};
+    }
+
+    if (target_h <= 0) {
+        target_h = std::max(1, static_cast<int>(std::llround((static_cast<double>(src_h) * static_cast<double>(target_w)) / (static_cast<double>(src_w) * char_aspect))));
+    } else if (target_w <= 0) {
+        target_w = std::max(1, static_cast<int>(std::llround((static_cast<double>(src_w) * static_cast<double>(target_h) * char_aspect) / static_cast<double>(src_h))));
+    }
+
     cleanup.sws = sws_getContext(
         cleanup.dec_ctx->width,
         cleanup.dec_ctx->height,
         cleanup.dec_ctx->pix_fmt,
-        width,
-        height,
+        target_w,
+        target_h,
         AV_PIX_FMT_RGB24,
         SWS_BILINEAR,
         nullptr,
@@ -125,7 +151,7 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
         return {};
     }
 
-    const int rgb_buffer_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, width, height, 1);
+    const int rgb_buffer_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, target_w, target_h, 1);
     if (rgb_buffer_size < 0) {
         std::cerr << "Failed to allocate RGB buffer" << std::endl;
         return {};
@@ -142,8 +168,8 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
             cleanup.rgb_frame->linesize,
             cleanup.rgb_buffer,
             AV_PIX_FMT_RGB24,
-            width,
-            height,
+            target_w,
+            target_h,
             1
         ) < 0) {
         std::cerr << "Failed to bind RGB buffer to frame" << std::endl;
@@ -177,15 +203,15 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
         );
 
         DataStructures::Frame output_frame;
-        output_frame.width = width;
-        output_frame.height = height;
-        output_frame.data.resize(static_cast<std::size_t>(width) * static_cast<std::size_t>(height));
+        output_frame.width = target_w;
+        output_frame.height = target_h;
+        output_frame.data.resize(static_cast<std::size_t>(target_w) * static_cast<std::size_t>(target_h));
         output_frame.source_fps = source_fps;
 
-        for (int y = 0; y < height; ++y) {
+        for (int y = 0; y < target_h; ++y) {
             const uint8_t* row = cleanup.rgb_frame->data[0] + static_cast<std::size_t>(y) * cleanup.rgb_frame->linesize[0];
-            for (int x = 0; x < width; ++x) {
-                const std::size_t index = static_cast<std::size_t>(y) * static_cast<std::size_t>(width) + static_cast<std::size_t>(x);
+            for (int x = 0; x < target_w; ++x) {
+                const std::size_t index = static_cast<std::size_t>(y) * static_cast<std::size_t>(target_w) + static_cast<std::size_t>(x);
                 const std::size_t rgb_index = static_cast<std::size_t>(x) * 3;
                 output_frame.data[index] = {row[rgb_index], row[rgb_index + 1], row[rgb_index + 2]};
             }
@@ -211,6 +237,7 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
         av_packet_unref(&pkt);
     }
 
+    // Flush the decoder to process any remaining frames.
     avcodec_send_packet(cleanup.dec_ctx, nullptr);
     while (avcodec_receive_frame(cleanup.dec_ctx, cleanup.frame) >= 0) {
         if (decoded_frame_index % frame_step == 0) {
