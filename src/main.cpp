@@ -100,8 +100,8 @@ int main(const int argc, char** argv) {
     frames.reset(); // Free memory used by decoded frames, we don't need them anymore.
     VERBOSE("Finished rendering frames to ascii");
 
-    VERBOSE("Starting playback...");
     if (!no_output) {
+        VERBOSE("Starting playback...");
         if (rendered_frames.size() == 1)
             std::cout << rendered_frames.back() << std::flush;
         else {
@@ -110,21 +110,26 @@ int main(const int argc, char** argv) {
             std::chrono::steady_clock::time_point start, end;
             while (!rendered_frames.empty()) {
                 start = std::chrono::steady_clock::now();
-                const std::string& frame = rendered_frames.back();
-                std::cout << frame << std::flush;
-                rendered_frames.pop_back();
-                frame_count--;
+
+                std::cout << rendered_frames.back() << std::flush;
+                rendered_frames.pop_back(); // Remove the rendered frame
+                frame_count--; // decrement frame counter
+
+                // Calc the time to sleep between frames
                 end = std::chrono::steady_clock::now();
                 const auto elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
                 const auto sleep_ms = std::max(0.0, target_ms - elapsed_ms);
                 std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep_ms)));
+
                 if (frame_count > 0) {
                     std::cout << "\033[2J\033[H" << std::flush;
                 }
             }
         }
+        VERBOSE("Finished playback");
+    } else {
+        VERBOSE("Output to stdout is disabled, skipping playback");
     }
-    VERBOSE("Finished playback");
 
     VERBOSE("Bye :3");
     return 0;
