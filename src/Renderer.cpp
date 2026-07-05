@@ -6,11 +6,10 @@
 
 #include <algorithm>
 #include <atomic>
-#include <format>
 #include <stack>
 #include <thread>
 
-char Renderer::get_char(const float &luminance) const {
+inline char Renderer::get_char(const float &luminance) const {
     const size_t charset_length = this->config.charset.length();
     const auto index = static_cast<size_t>(luminance / 255.0f * static_cast<float>(charset_length - 1));
     return this->config.charset.at(index);
@@ -23,7 +22,11 @@ std::string Renderer::render_frame(const DataStructures::Frame& frame) const {
             for (int x = 0; x < frame.width; ++x) {
                 const DataStructures::Pixel& pixel = frame.data.at(y * frame.width + x);
                 // 24-bit Truecolor: \033[38;2;<r>;<g>;<b>m
-                output += std::format("\033[38;2;{};{};{}m{}\033[0m", pixel.r, pixel.g, pixel.b, get_char(pixel.luminance()));
+                output += "\033[38;2;"
+                        + std::to_string(pixel.r)     + ";"
+                        + std::to_string(pixel.g)     + ";"
+                        + std::to_string(pixel.b)     + "m"
+                        + get_char(pixel.luminance()) + "\033[0m";
             }
             output += '\n';
         }

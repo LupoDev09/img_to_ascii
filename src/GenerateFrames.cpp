@@ -51,7 +51,7 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
         }
     } cleanup;
 
-    if (frame_rate <= 0) {
+    if (frame_rate < 0) {
         throw std::invalid_argument("Invalid frame rate");
     }
 
@@ -150,6 +150,12 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
         throw std::runtime_error("Failed to create scaling context");
     }
 
+    // Check if the colorspace can be converted
+    if (sws_setColorspaceDetails( cleanup.sws, sws_getCoefficients(SWS_CS_DEFAULT), 0,
+        sws_getCoefficients(SWS_CS_DEFAULT), 1, 0, 1 << 16, 1 << 16) < 0) {
+        throw std::runtime_error("Failed to configure colorspace conversion");
+    }
+
     const int rgb_buffer_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, target_w, target_h, 1);
     if (rgb_buffer_size < 0) {
         throw std::runtime_error("Failed to allocate RGB buffer");
@@ -181,9 +187,17 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
         source_fps = static_cast<double>(frame_rate);
     }
 
+    const double effective_fps = (frame_rate > 0)
+    ? static_cast<double>(frame_rate)
+    : source_fps;
+
+    if (effective_fps <= 0.0) {
+        throw std::runtime_error("Could not determine a valid frame rate");
+    }
+
     const std::size_t frame_step = std::max<std::size_t>(
         1,
-        std::llround(source_fps / static_cast<double>(frame_rate))
+        std::llround(source_fps / effective_fps)
     );
 
     std::size_t estimated_frames = 0;
@@ -199,25 +213,6 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
 
     // Convert each decoded frame from the source pixel format into packed RGB24.
     auto append_frame = [&](const AVFrame * source_frame) {
-        const int src_range =
-            source_frame->color_range == AVCOL_RANGE_JPEG || cleanup.dec_ctx->color_range == AVCOL_RANGE_JPEG
-                ? 1
-                : 0;
-
-        // Check if the colorspace can be converted
-        if (sws_setColorspaceDetails(
-                cleanup.sws,
-                sws_getCoefficients(SWS_CS_DEFAULT),
-                src_range,
-                sws_getCoefficients(SWS_CS_DEFAULT),
-                1,
-                0,
-                1 << 16,
-                1 << 16
-            ) < 0) {
-            throw std::runtime_error("Failed to configure colorspace conversion");
-        }
-
         // scale the frame to the target height and width
         sws_scale(
             cleanup.sws,
@@ -233,7 +228,7 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
         output_frame.width = target_w;
         output_frame.height = target_h;
         output_frame.data.resize(static_cast<std::size_t>(target_w) * static_cast<std::size_t>(target_h)); // Reserve space in the vector
-        output_frame.source_fps = source_fps;
+        output_frame.source_fps = effective_fps;
 
         // write the data in the Frame
         for (int y = 0; y < target_h; ++y) {

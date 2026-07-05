@@ -16,6 +16,39 @@ namespace fs = std::filesystem;
 bool VERBOSE_MODE = false;
 #define VERBOSE(msg) if (VERBOSE_MODE) std::clog << msg << std::endl
 
+/**
+ * @brief Outputs the rendered frames to the console with a specified frame rate.
+ * @param rendered_frames the frames to print to the screen
+ * @param source_fps the source_fps
+ * @param frame_rate the set fps
+ */
+void outputFrames(std::deque<std::string> &rendered_frames, const double source_fps, const int frame_rate) {
+    VERBOSE("Starting playback...");
+    if (rendered_frames.size() == 1)
+        std::cout << rendered_frames.back() << std::flush;
+    else {
+        size_t frame_count = rendered_frames.size();
+        const double target_ms = frame_rate > 0 ? (1000.0 / frame_rate) : (1000.0 / source_fps);
+        while (!rendered_frames.empty()) {
+            std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+
+            std::cout << rendered_frames.back() << std::flush;
+            rendered_frames.pop_back(); // Remove the rendered frame
+            frame_count--; // decrement frame counter
+
+            // Calc the time to sleep between frames
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            const double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
+            const double sleep_ms = std::max(0.0, target_ms - elapsed_ms);
+            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep_ms)));
+
+            if (frame_count > 0) {
+                std::cout << "\033[2J\033[H" << std::flush;
+            }
+        }
+    }
+    VERBOSE("Finished playback");
+}
 
 /*
  * TODO: Implement Audio support
@@ -24,21 +57,41 @@ bool VERBOSE_MODE = false;
  */
 int main(const int argc, char** argv) {
     cxxopts::Options options("Img_to_ascii", "Img_to_ascii another rewrite");
-    options.add_options()
-    ("i,input", "Input video file", cxxopts::value<std::string>())
+
+    // Group: Input
+    options.add_options("Input")
+    ("i,input", "Input video file", cxxopts::value<std::string>());
+
+    // Group: Sizing (width / height)
+    options.add_options("Sizing")
     ("w,width", "Width of the output ascii video", cxxopts::value<int>()->default_value("0"))
-    ("h,height", "Height of the output ascii video", cxxopts::value<int>()->default_value("0"))
-    ("f,fps", "Frame rate of the output ascii video", cxxopts::value<int>()->default_value("30"))
-    ("use-source-fps", "Use the source video's frame rate", cxxopts::value<bool>()->default_value("false"))
-    ("c,charset", "Charset to use for ascii mapping", cxxopts::value<std::string>()->default_value(" .:-=+*#%@"))
+    ("h,height", "Height of the output ascii video", cxxopts::value<int>()->default_value("0"));
+
+    // Group: Video / Playback
+    options.add_options("Playback")
+    ("f,fps", "Frame rate of the output ascii video (default is source)", cxxopts::value<int>()->default_value("0"));
+
+    // Group: Output
+    options.add_options("Output")
+    ("no-color", "Disable the color in the output", cxxopts::value<bool>()->default_value("false"))
+    ("c,charset", "Charset to use for ascii mapping", cxxopts::value<std::string>()->default_value(" .:-=+*#%@"));
+
+    // Group: General
+    options.add_options("General")
     ("v,verbose", "Enable verbose output", cxxopts::value<bool>()->default_value("false"))
-    ("no-output", "Do not output the ascii video to stdout", cxxopts::value<bool>()->default_value("false"))
-    ("help", "Print help");
+    ("help", "Print help")
+    ("no-output", "Do not output the ascii video to stdout", cxxopts::value<bool>()->default_value("false"));
 
     const cxxopts::ParseResult parse_result = options.parse(argc, argv);
     if (parse_result.count("help")) {
         std::cout << options.help() << std::endl;
         return 0;
+    }
+
+    if (!parse_result.count("i")) {
+        std::cerr << "Missing required option: --input\n";
+        std::cout << options.help() << std::endl;
+        return 1;
     }
 
     const std::string input = parse_result["i"].as<std::string>();
@@ -47,8 +100,8 @@ int main(const int argc, char** argv) {
     const bool verbose = parse_result["v"].as<bool>();
     const int width = parse_result["w"].as<int>();
     const int height = parse_result["h"].as<int>();
-    const bool use_source_fps = parse_result["use-source-fps"].as<bool>();
     const bool no_output = parse_result["no-output"].as<bool>();
+    const bool no_color = parse_result["no-color"].as<bool>();
 
     VERBOSE_MODE = verbose;
 
@@ -61,7 +114,7 @@ int main(const int argc, char** argv) {
         std::cerr << "Input is invalid" << std::endl;
         return 1;
     }
-    if (frame_rate <= 0 && !use_source_fps) {
+    if (frame_rate < 0) {
         std::cerr << "Frame rate is invalid" << std::endl;
         return 1;
     }
@@ -71,11 +124,14 @@ int main(const int argc, char** argv) {
     }
 
     std::cout << "Input video file: " << input << '\n';
-    std::cout << "Frame rate: " << frame_rate << '\n';
-    std::cout << "Use source fps: " << (use_source_fps ? "true" : "false") << '\n';
+    std::cout << "Frame rate: " << (frame_rate > 0 ? std::to_string(frame_rate) : "use source") << '\n';
     std::cout << "Charset: " << charset << '\n';
     std::cout << "Width: " << width << '\n';
     std::cout << "Height: " << height << '\n';
+    std::cout << "Verbose: " << (verbose ? "true" : "false") << '\n';
+    std::cout << "No Color: " << (no_color ? "true" : "false") << '\n';
+    std::cout << "No Output: " << (no_output ? "true" : "false") << '\n';
+    std::cout << "Starting video to ascii conversion..." << std::endl;
 
     VERBOSE("Extracting frames from video...");
     auto frames = std::make_unique<std::vector<DataStructures::Frame>>();
@@ -98,7 +154,7 @@ int main(const int argc, char** argv) {
 
     VERBOSE("Rendering frames to ascii...");
     Renderer renderer;
-    renderer.config.color = true;
+    renderer.config.color = !no_color;
     if (!charset.empty()) {
         renderer.config.charset = charset;
     }
@@ -110,32 +166,7 @@ int main(const int argc, char** argv) {
     VERBOSE("Finished rendering frames to ascii");
 
     if (!no_output) {
-        VERBOSE("Starting playback...");
-        if (rendered_frames.size() == 1)
-            std::cout << rendered_frames.back() << std::flush;
-        else {
-            size_t frame_count = rendered_frames.size();
-            const auto target_ms = use_source_fps ? (1000.0 / source_fps) : (1000.0 / frame_rate);
-            std::chrono::steady_clock::time_point start, end;
-            while (!rendered_frames.empty()) {
-                start = std::chrono::steady_clock::now();
-
-                std::cout << rendered_frames.back() << std::flush;
-                rendered_frames.pop_back(); // Remove the rendered frame
-                frame_count--; // decrement frame counter
-
-                // Calc the time to sleep between frames
-                end = std::chrono::steady_clock::now();
-                const auto elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
-                const auto sleep_ms = std::max(0.0, target_ms - elapsed_ms);
-                std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep_ms)));
-
-                if (frame_count > 0) {
-                    std::cout << "\033[2J\033[H" << std::flush;
-                }
-            }
-        }
-        VERBOSE("Finished playback");
+        outputFrames(rendered_frames, source_fps, frame_rate);
     } else {
         VERBOSE("Output to stdout is disabled, skipping playback");
     }

@@ -32,3 +32,10 @@ target_link_libraries(img_to_ascii PRIVATE
 target_compile_options(img_to_ascii PRIVATE
         ${FFMPEG_CFLAGS_OTHER}
 )
+
+target_compile_options(img_to_ascii PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Werror
+)
