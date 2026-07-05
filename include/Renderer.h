@@ -4,9 +4,10 @@
 
 #ifndef IMG_TO_ASCII_RENDERER_H
 #define IMG_TO_ASCII_RENDERER_H
+#include <dataStructures.h>
+#include <stack>
 #include <string>
 #include <vector>
-#include <dataStructures.h>
 
 
 class Renderer {
@@ -22,8 +23,8 @@ public:
     // Convert a single RGB frame into one ANSI-colored ASCII string.
     [[nodiscard]] std::string render_frame(const DataStructures::Frame& frame) const;
 
-    // Convert a batch of frames in parallel.
-    [[nodiscard]] std::vector<std::string> render_frames(const std::vector<DataStructures::Frame>& frames) const;
+    // Convert a batch of frames in parallel. (The output will be in reverse)
+    [[nodiscard]] std::deque<std::string> render_frames(const std::vector<DataStructures::Frame>& frames) const;
 };
 
 

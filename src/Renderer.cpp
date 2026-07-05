@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <atomic>
 #include <format>
+#include <stack>
 #include <thread>
 
 char Renderer::get_char(const float &luminance) const {
@@ -38,7 +39,7 @@ std::string Renderer::render_frame(const DataStructures::Frame& frame) const {
     return output;
 }
 
-std::vector<std::string> Renderer::render_frames(const std::vector<DataStructures::Frame>& frames) const {
+std::deque<std::string> Renderer::render_frames(const std::vector<DataStructures::Frame>& frames) const {
     // Each worker renders whole frames independently, so this scales well across cores.
     std::vector<std::string> output_frames(frames.size());
     const std::size_t worker_count = std::max<std::size_t>(
@@ -70,5 +71,10 @@ std::vector<std::string> Renderer::render_frames(const std::vector<DataStructure
         }
     }
 
-    return output_frames;
+    // Holds the Frames in Reverse order
+    std::deque<std::string> output_deque;
+    for (size_t i = output_frames.size(); i > 0; --i) {
+        output_deque.push_back(output_frames[i - 1]);
+    }
+    return output_deque;
 }

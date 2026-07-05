@@ -15,13 +15,19 @@ namespace fs = std::filesystem;
 bool VERBOSE_MODE = false;
 #define VERBOSE(msg) if (VERBOSE_MODE) std::clog << msg << std::endl
 
+
+/*
+ * TODO: Implement Audio support
+ * TODO: Try to Multy-thread the Frame Generation
+ * TODO: Try to minimize RAM usage
+ */
 int main(const int argc, char** argv) {
     cxxopts::Options options("Img_to_ascii", "Img_to_ascii another rewrite");
     options.add_options()
     ("i,input", "Input video file", cxxopts::value<std::string>())
     ("w,width", "Width of the output ascii video", cxxopts::value<int>()->default_value("0"))
     ("h,height", "Height of the output ascii video", cxxopts::value<int>()->default_value("0"))
-    ("f,frame-rate", "Frame rate of the output ascii video", cxxopts::value<int>()->default_value("30"))
+    ("f,fps", "Frame rate of the output ascii video", cxxopts::value<int>()->default_value("30"))
     ("use-source-fps", "Use the source video's frame rate", cxxopts::value<bool>()->default_value("false"))
     ("c,charset", "Charset to use for ascii mapping", cxxopts::value<std::string>()->default_value(" .:-=+*#%@"))
     ("v,verbose", "Enable verbose output", cxxopts::value<bool>()->default_value("false"))
@@ -71,10 +77,11 @@ int main(const int argc, char** argv) {
     std::cout << "Height: " << height << '\n';
 
     VERBOSE("Extracting frames from video...");
-    const std::vector<DataStructures::Frame> frames = GenerateFrames::generate(input_path, frame_rate, width, height);
+    auto frames = std::make_unique<std::vector<DataStructures::Frame>>();
+    GenerateFrames::generate(*frames, input_path, frame_rate, width, height);
     VERBOSE("Finished extracting frames from video");
 
-    if (frames.empty()) {
+    if (frames->empty()) {
         std::cerr << "No frames were extracted from the video." << std::endl;
         return 1;
     }
@@ -87,22 +94,30 @@ int main(const int argc, char** argv) {
     }
 
     // Keep decode and render separate: first build all frames in memory, then render them.
-    const std::vector<std::string> rendered_frames = renderer.render_frames(frames);
+    std::deque<std::string> rendered_frames = renderer.render_frames(*frames); // The Frames are in reverse order
+    double source_fps = frames->front().source_fps;
+    frames.reset(); // Free memory used by decoded frames, we don't need them anymore.
     VERBOSE("Finished rendering frames to ascii");
 
     VERBOSE("Starting playback...");
     if (!no_output) {
         if (rendered_frames.size() == 1)
-            std::cout << rendered_frames.at(0) << std::flush;
+            std::cout << rendered_frames.back() << std::flush;
         else {
-            for (const std::string& frame : rendered_frames) {
+            size_t frame_count = rendered_frames.size();
+            while (!rendered_frames.empty()) {
+                const std::string& frame = rendered_frames.back();
                 std::cout << frame << std::flush;
                 if (use_source_fps) {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(1000.0 / frames.front().source_fps)));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(1000.0 / source_fps)));
                 } else {
                     std::this_thread::sleep_for(std::chrono::milliseconds(1000 / frame_rate));
                 }
-                std::cout << "\033[2J\033[H" << std::flush;
+                if (frame_count > 0) {
+                    std::cout << "\033[2J\033[H" << std::flush;
+                }
+                rendered_frames.pop_back();
+                frame_count--;
             }
         }
     }

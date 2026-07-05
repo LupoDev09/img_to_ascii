@@ -15,13 +15,14 @@ class GenerateFrames {
      * Decode a video file and return scaled RGB frames in memory.
      * The caller can hand the result directly to the renderer.
      *
+     * @param frames the vector to save the frames in
      * @param input_path input video or GIF path
      * @param frame_rate target frame rate for sampling
      * @param width output frame width
      * @param height output frame height
      * @return decoded frames in RGB format
      */
-    [[nodiscard]] static std::vector<DataStructures::Frame> generate(const std::filesystem::path &input_path, int frame_rate, int width, int height);
+    static void generate(std::vector<DataStructures::Frame> &frames, const std::filesystem::path &input_path, int frame_rate, int width, int height);
 };
 
 #endif// IMG_TO_ASCII_GENERATEFRAMES_H

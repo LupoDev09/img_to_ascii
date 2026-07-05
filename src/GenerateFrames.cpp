@@ -24,14 +24,13 @@ extern "C" {
 
 /**
  * Generiert Frames aus einer Video- oder GIF-Datei mit FFmpeg
+ * @param frames the vector to save the frames in
  * @param input_path Der Pfad zur Eingabedatei (Video oder GIF)
  * @param frame_rate Die Anzahl der Frames pro Sekunde zum Extrahieren
  * @param width Die Zielbreite der generierten Frames
  * @param height Die Zielhöhe der generierten Frames
  */
-std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesystem::path &input_path, const int frame_rate, const int width, const int height) {
-    std::vector<DataStructures::Frame> frames;
-
+void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const std::filesystem::path &input_path, const int frame_rate, const int width, const int height) {
     // Keep FFmpeg resources in one place so every early return still frees them.
     struct Cleanup {
         AVFormatContext* fmt = nullptr;
@@ -53,17 +52,17 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
 
     if (frame_rate <= 0) {
         std::cerr << "Invalid frame rate" << std::endl;
-        return {};
+        return;
     }
 
     if (avformat_open_input(&cleanup.fmt, input_path.string().c_str(), nullptr, nullptr) < 0) {
         std::cerr << "Failed to open input file" << std::endl;
-        return {};
+        return;
     }
 
     if (avformat_find_stream_info(cleanup.fmt, nullptr) < 0) {
         std::cerr << "Failed to read stream info" << std::endl;
-        return {};
+        return;
     }
 
     int video_stream_index = -1;
@@ -76,25 +75,25 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
 
     if (video_stream_index < 0) {
         std::cerr << "No video stream found" << std::endl;
-        return {};
+        return;
     }
 
     const AVCodecParameters* codec_par = cleanup.fmt->streams[video_stream_index]->codecpar;
     const AVCodec* dec = avcodec_find_decoder(codec_par->codec_id);
     if (!dec) {
         std::cerr << "Failed to find decoder" << std::endl;
-        return {};
+        return;
     }
 
     cleanup.dec_ctx = avcodec_alloc_context3(dec);
     if (!cleanup.dec_ctx) {
         std::cerr << "Failed to allocate decoder context" << std::endl;
-        return {};
+        return;
     }
 
     if (avcodec_parameters_to_context(cleanup.dec_ctx, codec_par) < 0) {
         std::cerr << "Failed to copy codec parameters" << std::endl;
-        return {};
+        return;
     }
 
     const unsigned int cpu_threads = std::max(1u, std::thread::hardware_concurrency());
@@ -103,14 +102,14 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
 
     if (avcodec_open2(cleanup.dec_ctx, dec, nullptr) < 0) {
         std::cerr << "Failed to open decoder" << std::endl;
-        return {};
+        return;
     }
 
     cleanup.frame = av_frame_alloc();
     cleanup.rgb_frame = av_frame_alloc();
     if (!cleanup.frame || !cleanup.rgb_frame) {
         std::cerr << "Failed to allocate frames" << std::endl;
-        return {};
+        return;
     }
 
     // Compute target dimensions if one of them is zero to preserve aspect ratio.
@@ -125,7 +124,7 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
 
     if (target_w <= 0 && target_h <= 0) {
         std::cerr << "Invalid target dimensions" << std::endl;
-        return {};
+        return;
     }
 
     if (target_h <= 0) {
@@ -148,19 +147,19 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
     );
     if (!cleanup.sws) {
         std::cerr << "Failed to create scaling context" << std::endl;
-        return {};
+        return;
     }
 
     const int rgb_buffer_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, target_w, target_h, 1);
     if (rgb_buffer_size < 0) {
         std::cerr << "Failed to allocate RGB buffer" << std::endl;
-        return {};
+        return;
     }
 
     cleanup.rgb_buffer = static_cast<uint8_t*>(av_malloc(rgb_buffer_size));
     if (!cleanup.rgb_buffer) {
         std::cerr << "Failed to allocate RGB memory" << std::endl;
-        return {};
+        return;
     }
 
     if (av_image_fill_arrays(
@@ -173,7 +172,7 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
             1
         ) < 0) {
         std::cerr << "Failed to bind RGB buffer to frame" << std::endl;
-        return {};
+        return;
     }
 
     AVStream* video_stream = cleanup.fmt->streams[video_stream_index];
@@ -189,6 +188,17 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
         1,
         std::llround(source_fps / static_cast<double>(frame_rate))
     );
+
+    std::size_t estimated_frames = 0;
+    if (video_stream->nb_frames > 0) {
+        estimated_frames = static_cast<std::size_t>(video_stream->nb_frames);
+    } else {
+        const double duration = (video_stream->duration != AV_NOPTS_VALUE)
+            ? static_cast<double>(video_stream->duration) * av_q2d(video_stream->time_base)
+            : 0.0;
+        estimated_frames = static_cast<std::size_t>(std::ceil(source_fps * duration));
+    }
+    frames.reserve(estimated_frames / frame_step + 1);
 
     // Convert each decoded frame from the source pixel format into packed RGB24.
     auto append_frame = [&](const AVFrame * source_frame) {
@@ -245,6 +255,4 @@ std::vector<DataStructures::Frame> GenerateFrames::generate(const std::filesyste
         }
         ++decoded_frame_index;
     }
-
-    return frames;
 }
