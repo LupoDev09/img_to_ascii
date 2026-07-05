@@ -204,6 +204,7 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
                 ? 1
                 : 0;
 
+        // Check if the colorspace can be converted
         if (sws_setColorspaceDetails(
                 cleanup.sws,
                 sws_getCoefficients(SWS_CS_DEFAULT),
@@ -217,6 +218,7 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
             throw std::runtime_error("Failed to configure colorspace conversion");
         }
 
+        // scale the frame to the target height and width
         sws_scale(
             cleanup.sws,
             source_frame->data,
@@ -230,9 +232,10 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
         DataStructures::Frame output_frame;
         output_frame.width = target_w;
         output_frame.height = target_h;
-        output_frame.data.resize(static_cast<std::size_t>(target_w) * static_cast<std::size_t>(target_h));
+        output_frame.data.resize(static_cast<std::size_t>(target_w) * static_cast<std::size_t>(target_h)); // Reserve space in the vector
         output_frame.source_fps = source_fps;
 
+        // write the data in the Frame
         for (int y = 0; y < target_h; ++y) {
             const uint8_t* row = cleanup.rgb_frame->data[0] + static_cast<std::size_t>(y) * cleanup.rgb_frame->linesize[0];
             for (int x = 0; x < target_w; ++x) {
