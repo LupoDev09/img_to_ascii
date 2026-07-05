@@ -85,15 +85,15 @@ int main(const int argc, char** argv) {
         return 1;
     }
 
-    std::cout << "Input video file: " << input << '\n';
-    std::cout << "Frame rate: " << (frame_rate > 0 ? std::to_string(frame_rate) : "use source") << '\n';
-    std::cout << "Charset: " << charset << '\n';
-    std::cout << "Width: " << width << '\n';
-    std::cout << "Height: " << height << '\n';
-    std::cout << "Verbose: " << (verbose ? "true" : "false") << '\n';
-    std::cout << "No Color: " << (no_color ? "true" : "false") << '\n';
-    std::cout << "No Output: " << (no_output ? "true" : "false") << '\n';
-    std::cout << "Starting video to ascii conversion..." << std::endl;
+    std::cout << "Input video file: " << input << '\n'
+              << "Frame rate: " << (frame_rate > 0 ? std::to_string(frame_rate) : "use source") << '\n'
+              << "Charset: " << charset << '\n'
+              << "Width: " << width << '\n'
+              << "Height: " << height << '\n'
+              << "Verbose: " << (verbose ? "true" : "false") << '\n'
+              << "No Color: " << (no_color ? "true" : "false") << '\n'
+              << "No Output: " << (no_output ? "true" : "false") << '\n'
+              << "Starting video to ascii conversion..." << std::endl;
 
     Renderer renderer;
     renderer.config.color = !no_color;
@@ -103,25 +103,32 @@ int main(const int argc, char** argv) {
 
     VERBOSE("Starting frame generation and output...");
     bool first_frame = true;
-    double source_fps = 0.0;
+    double target_ms = 0.0; // Default value, will be overwritten below
+    double source_fps = 0.0; // holds the fps from the first frame
     auto last_tick = std::chrono::steady_clock::now();
     GenerateFrames::generate(input_path, frame_rate, width, height,
         [&](DataStructures::Frame&& frame) {
+            if (!first_frame && !no_output) {
+                std::cout << "\033[2J\033[H"; // alten Frame löschen
+            }
+
             if (first_frame) {
-                source_fps = frame.source_fps;
-                last_tick = std::chrono::steady_clock::now();
+                source_fps = frame.source_fps; // Setz die Zeit die durchgängig genutzt wird zum Warten
+                last_tick = std::chrono::steady_clock::now(); // setzt last_tick auf den Start des ganzen
+
+                // Calculate the target time to wait
+                target_ms = frame_rate > 0
+                ? 1000.0 / frame_rate
+                : 1000.0 / source_fps;
+
                 first_frame = false;
             }
 
-            const std::string rendered = renderer.render_frame(frame);
+            const std::string rendered = renderer.render_frame(frame); // Rendert den frame in einen vector
 
             if (!no_output) {
-                std::cout << rendered << std::flush;
+                std::cout << rendered << std::flush; // output the frame
             }
-
-            const double target_ms = frame_rate > 0
-                ? 1000.0 / frame_rate
-                : 1000.0 / source_fps;
 
             const auto now = std::chrono::steady_clock::now();
             const double elapsed_ms = std::chrono::duration<double, std::milli>(now - last_tick).count();
@@ -133,11 +140,7 @@ int main(const int argc, char** argv) {
             }
 
             last_tick = std::chrono::steady_clock::now();
-
-            if (!no_output) {
-                std::cout << "\033[2J\033[H";
-            }
-        });
+    });
 
     VERBOSE("Frame generation and output completed.");
     VERBOSE("Bye :3");
