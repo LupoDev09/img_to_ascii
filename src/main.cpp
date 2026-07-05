@@ -8,52 +8,14 @@
 #include <filesystem>
 #include <iostream>
 #include <thread>
-#include <vector>
-#include <algorithm>
 
 namespace fs = std::filesystem;
 
 bool VERBOSE_MODE = false;
 #define VERBOSE(msg) if (VERBOSE_MODE) std::clog << msg << std::endl
 
-/**
- * @brief Outputs the rendered frames to the console with a specified frame rate.
- * @param rendered_frames the frames to print to the screen
- * @param source_fps the source_fps
- * @param frame_rate the set fps
- */
-void outputFrames(std::deque<std::string> &rendered_frames, const double source_fps, const int frame_rate) {
-    VERBOSE("Starting playback...");
-    if (rendered_frames.size() == 1)
-        std::cout << rendered_frames.back() << std::flush;
-    else {
-        size_t frame_count = rendered_frames.size();
-        const double target_ms = frame_rate > 0 ? (1000.0 / frame_rate) : (1000.0 / source_fps);
-        while (!rendered_frames.empty()) {
-            std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-
-            std::cout << rendered_frames.back() << std::flush;
-            rendered_frames.pop_back(); // Remove the rendered frame
-            frame_count--; // decrement frame counter
-
-            // Calc the time to sleep between frames
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            const double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
-            const double sleep_ms = std::max(0.0, target_ms - elapsed_ms);
-            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep_ms)));
-
-            if (frame_count > 0) {
-                std::cout << "\033[2J\033[H" << std::flush;
-            }
-        }
-    }
-    VERBOSE("Finished playback");
-}
-
 /*
  * TODO: Implement Audio support
- * TODO: Try to Multy-thread the Frame Generation
- * TODO: Try to minimize RAM usage
  */
 int main(const int argc, char** argv) {
     cxxopts::Options options("Img_to_ascii", "Img_to_ascii another rewrite");
@@ -133,44 +95,51 @@ int main(const int argc, char** argv) {
     std::cout << "No Output: " << (no_output ? "true" : "false") << '\n';
     std::cout << "Starting video to ascii conversion..." << std::endl;
 
-    VERBOSE("Extracting frames from video...");
-    auto frames = std::make_unique<std::vector<DataStructures::Frame>>();
-    try {
-        GenerateFrames::generate(*frames, input_path, frame_rate, width, height);
-    } catch (std::runtime_error &e) {
-        std::cerr << "Error extracting frames: " << e.what() << std::endl;
-        return 1;
-    } catch (std::invalid_argument &e) {
-        std::cerr << "Invalid argument: " << e.what() << std::endl;
-        return 1;
-    }
-
-    VERBOSE("Finished extracting frames from video");
-
-    if (frames->empty()) {
-        std::cerr << "No frames were extracted from the video." << std::endl;
-        return 1;
-    }
-
-    VERBOSE("Rendering frames to ascii...");
     Renderer renderer;
     renderer.config.color = !no_color;
     if (!charset.empty()) {
         renderer.config.charset = charset;
     }
 
-    // Keep decode and render separate: first build all frames in memory, then render them.
-    std::deque<std::string> rendered_frames = renderer.render_frames(*frames); // The Frames are in reverse order
-    double source_fps = frames->front().source_fps;
-    frames.reset(); // Free memory used by decoded frames, we don't need them anymore.
-    VERBOSE("Finished rendering frames to ascii");
+    VERBOSE("Starting frame generation and output...");
+    bool first_frame = true;
+    double source_fps = 0.0;
+    auto last_tick = std::chrono::steady_clock::now();
+    GenerateFrames::generate(input_path, frame_rate, width, height,
+        [&](DataStructures::Frame&& frame) {
+            if (first_frame) {
+                source_fps = frame.source_fps;
+                last_tick = std::chrono::steady_clock::now();
+                first_frame = false;
+            }
 
-    if (!no_output) {
-        outputFrames(rendered_frames, source_fps, frame_rate);
-    } else {
-        VERBOSE("Output to stdout is disabled, skipping playback");
-    }
+            const std::string rendered = renderer.render_frame(frame);
 
+            if (!no_output) {
+                std::cout << rendered << std::flush;
+            }
+
+            const double target_ms = frame_rate > 0
+                ? 1000.0 / frame_rate
+                : 1000.0 / source_fps;
+
+            const auto now = std::chrono::steady_clock::now();
+            const double elapsed_ms = std::chrono::duration<double, std::milli>(now - last_tick).count();
+
+            if (elapsed_ms < target_ms) {
+                std::this_thread::sleep_for(
+                    std::chrono::milliseconds(static_cast<int>(target_ms - elapsed_ms))
+                );
+            }
+
+            last_tick = std::chrono::steady_clock::now();
+
+            if (!no_output) {
+                std::cout << "\033[2J\033[H";
+            }
+        });
+
+    VERBOSE("Frame generation and output completed.");
     VERBOSE("Bye :3");
     return 0;
 }

@@ -23,15 +23,15 @@ extern "C" {
 #include <dataStructures.h>
 
 /**
- * Generiert Frames aus einer Video- oder GIF-Datei mit FFmpeg
- * @param frames the vector to save the frames in
- * @param input_path Der Pfad zur Eingabedatei (Video oder GIF)
- * @param frame_rate Die Anzahl der Frames pro Sekunde zum Extrahieren
- * @param width Die Zielbreite der generierten Frames
- * @param height Die Zielhöhe der generierten Frames
- * @throws std::invalid_argument std::runtime_error
+ * @brief Decode a video file and return scaled RGB frames in memory.
+ * The caller can hand the result directly to the renderer.
+ * @param input_path the path to the image
+ * @param frame_rate the fps to sample the frames at (0 = use source fps)
+ * @param width the width used as target
+ * @param height the height used as target
+ * @param on_frame the function to call when a frame is redy
  */
-void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const std::filesystem::path &input_path, const int frame_rate, const int width, const int height) {
+void GenerateFrames::generate(const std::filesystem::path &input_path, const int frame_rate, const int width, const int height, const FrameCallback &on_frame) {
     // Keep FFmpeg resources in one place so every early return still frees them.
     struct Cleanup {
         AVFormatContext* fmt = nullptr;
@@ -200,17 +200,6 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
         std::llround(source_fps / effective_fps)
     );
 
-    std::size_t estimated_frames = 0;
-    if (video_stream->nb_frames > 0) {
-        estimated_frames = static_cast<std::size_t>(video_stream->nb_frames);
-    } else {
-        const double duration = (video_stream->duration != AV_NOPTS_VALUE)
-            ? static_cast<double>(video_stream->duration) * av_q2d(video_stream->time_base)
-            : 0.0;
-        estimated_frames = static_cast<std::size_t>(std::ceil(source_fps * duration));
-    }
-    frames.reserve(estimated_frames / frame_step + 1);
-
     // Convert each decoded frame from the source pixel format into packed RGB24.
     auto append_frame = [&](const AVFrame * source_frame) {
         // scale the frame to the target height and width
@@ -240,7 +229,7 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
             }
         }
 
-        frames.push_back(std::move(output_frame));
+        on_frame(std::move(output_frame));
     };
 
     // Decode packets, convert the chosen frames, and keep only the sampled result.

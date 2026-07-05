@@ -5,9 +5,7 @@
 #ifndef IMG_TO_ASCII_RENDERER_H
 #define IMG_TO_ASCII_RENDERER_H
 #include <dataStructures.h>
-#include <stack>
 #include <string>
-#include <vector>
 
 
 class Renderer {
@@ -20,11 +18,12 @@ public:
         std::string charset = " .:-=+*#%@";
     } config;
 
-    // Convert a single RGB frame into one ANSI-colored ASCII string.
+    /**
+     * @brief Render a frame into a string representation using the current configuration.
+     * @param frame the frame to process
+     * @return the rendered frame
+     */
     [[nodiscard]] std::string render_frame(const DataStructures::Frame& frame) const;
-
-    // Convert a batch of frames in parallel. (The output will be in reverse)
-    [[nodiscard]] std::deque<std::string> render_frames(const std::vector<DataStructures::Frame>& frames) const;
 };
 
 
