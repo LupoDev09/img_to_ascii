@@ -21,6 +21,7 @@ class GenerateFrames {
      * @param width output frame width
      * @param height output frame height
      * @return decoded frames in RGB format
+     * @throws std::invalid_argument std::runtime_error
      */
     static void generate(std::vector<DataStructures::Frame> &frames, const std::filesystem::path &input_path, int frame_rate, int width, int height);
 };

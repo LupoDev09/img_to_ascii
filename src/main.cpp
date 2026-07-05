@@ -79,7 +79,16 @@ int main(const int argc, char** argv) {
 
     VERBOSE("Extracting frames from video...");
     auto frames = std::make_unique<std::vector<DataStructures::Frame>>();
-    GenerateFrames::generate(*frames, input_path, frame_rate, width, height);
+    try {
+        GenerateFrames::generate(*frames, input_path, frame_rate, width, height);
+    } catch (std::runtime_error &e) {
+        std::cerr << "Error extracting frames: " << e.what() << std::endl;
+        return 1;
+    } catch (std::invalid_argument &e) {
+        std::cerr << "Invalid argument: " << e.what() << std::endl;
+        return 1;
+    }
+
     VERBOSE("Finished extracting frames from video");
 
     if (frames->empty()) {

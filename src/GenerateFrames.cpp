@@ -29,6 +29,7 @@ extern "C" {
  * @param frame_rate Die Anzahl der Frames pro Sekunde zum Extrahieren
  * @param width Die Zielbreite der generierten Frames
  * @param height Die Zielhöhe der generierten Frames
+ * @throws std::invalid_argument std::runtime_error
  */
 void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const std::filesystem::path &input_path, const int frame_rate, const int width, const int height) {
     // Keep FFmpeg resources in one place so every early return still frees them.
@@ -51,18 +52,15 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
     } cleanup;
 
     if (frame_rate <= 0) {
-        std::cerr << "Invalid frame rate" << std::endl;
-        return;
+        throw std::invalid_argument("Invalid frame rate");
     }
 
     if (avformat_open_input(&cleanup.fmt, input_path.string().c_str(), nullptr, nullptr) < 0) {
-        std::cerr << "Failed to open input file" << std::endl;
-        return;
+        throw std::runtime_error("Failed to open input file");
     }
 
     if (avformat_find_stream_info(cleanup.fmt, nullptr) < 0) {
-        std::cerr << "Failed to read stream info" << std::endl;
-        return;
+        throw std::runtime_error("Failed to read stream info");
     }
 
     int video_stream_index = -1;
@@ -74,26 +72,22 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
     }
 
     if (video_stream_index < 0) {
-        std::cerr << "No video stream found" << std::endl;
-        return;
+        throw std::runtime_error("No video stream found");
     }
 
     const AVCodecParameters* codec_par = cleanup.fmt->streams[video_stream_index]->codecpar;
     const AVCodec* dec = avcodec_find_decoder(codec_par->codec_id);
     if (!dec) {
-        std::cerr << "Failed to find decoder" << std::endl;
-        return;
+        throw std::runtime_error("Failed to find decoder");
     }
 
     cleanup.dec_ctx = avcodec_alloc_context3(dec);
     if (!cleanup.dec_ctx) {
-        std::cerr << "Failed to allocate decoder context" << std::endl;
-        return;
+        throw std::runtime_error("Failed to allocate decoder context");
     }
 
     if (avcodec_parameters_to_context(cleanup.dec_ctx, codec_par) < 0) {
-        std::cerr << "Failed to copy codec parameters" << std::endl;
-        return;
+        throw std::runtime_error("Failed to copy codec parameters");
     }
 
     const unsigned int cpu_threads = std::max(1u, std::thread::hardware_concurrency());
@@ -101,15 +95,13 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
     cleanup.dec_ctx->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
 
     if (avcodec_open2(cleanup.dec_ctx, dec, nullptr) < 0) {
-        std::cerr << "Failed to open decoder" << std::endl;
-        return;
+        throw std::runtime_error("Failed to open decoder");
     }
 
     cleanup.frame = av_frame_alloc();
     cleanup.rgb_frame = av_frame_alloc();
     if (!cleanup.frame || !cleanup.rgb_frame) {
-        std::cerr << "Failed to allocate frames" << std::endl;
-        return;
+        throw std::runtime_error("Failed to allocate frames");
     }
 
     // Compute target dimensions if one of them is zero to preserve aspect ratio.
@@ -122,9 +114,18 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
     // Common terminal fonts have char height ≈ 2 * width.
     constexpr double char_aspect = 2.0;
 
+    auto normalize_pixel_format = [](const AVPixelFormat format) {
+        switch (format) {
+            case AV_PIX_FMT_YUVJ420P: return AV_PIX_FMT_YUV420P;
+            case AV_PIX_FMT_YUVJ422P: return AV_PIX_FMT_YUV422P;
+            case AV_PIX_FMT_YUVJ444P: return AV_PIX_FMT_YUV444P;
+            case AV_PIX_FMT_YUVJ440P: return AV_PIX_FMT_YUV440P;
+            default: return format;
+        }
+    };
+
     if (target_w <= 0 && target_h <= 0) {
-        std::cerr << "Invalid target dimensions" << std::endl;
-        return;
+        throw std::invalid_argument("Invalid target dimensions");
     }
 
     if (target_h <= 0) {
@@ -136,7 +137,7 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
     cleanup.sws = sws_getContext(
         cleanup.dec_ctx->width,
         cleanup.dec_ctx->height,
-        cleanup.dec_ctx->pix_fmt,
+        normalize_pixel_format(cleanup.dec_ctx->pix_fmt),
         target_w,
         target_h,
         AV_PIX_FMT_RGB24,
@@ -146,20 +147,17 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
         nullptr
     );
     if (!cleanup.sws) {
-        std::cerr << "Failed to create scaling context" << std::endl;
-        return;
+        throw std::runtime_error("Failed to create scaling context");
     }
 
     const int rgb_buffer_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, target_w, target_h, 1);
     if (rgb_buffer_size < 0) {
-        std::cerr << "Failed to allocate RGB buffer" << std::endl;
-        return;
+        throw std::runtime_error("Failed to allocate RGB buffer");
     }
 
     cleanup.rgb_buffer = static_cast<uint8_t*>(av_malloc(rgb_buffer_size));
     if (!cleanup.rgb_buffer) {
-        std::cerr << "Failed to allocate RGB memory" << std::endl;
-        return;
+        throw std::runtime_error("Failed to allocate RGB memory");
     }
 
     if (av_image_fill_arrays(
@@ -171,8 +169,7 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
             target_h,
             1
         ) < 0) {
-        std::cerr << "Failed to bind RGB buffer to frame" << std::endl;
-        return;
+        throw std::runtime_error("Failed to bind RGB buffer to frame");
     }
 
     AVStream* video_stream = cleanup.fmt->streams[video_stream_index];
@@ -202,6 +199,24 @@ void GenerateFrames::generate(std::vector<DataStructures::Frame> &frames, const 
 
     // Convert each decoded frame from the source pixel format into packed RGB24.
     auto append_frame = [&](const AVFrame * source_frame) {
+        const int src_range =
+            source_frame->color_range == AVCOL_RANGE_JPEG || cleanup.dec_ctx->color_range == AVCOL_RANGE_JPEG
+                ? 1
+                : 0;
+
+        if (sws_setColorspaceDetails(
+                cleanup.sws,
+                sws_getCoefficients(SWS_CS_DEFAULT),
+                src_range,
+                sws_getCoefficients(SWS_CS_DEFAULT),
+                1,
+                0,
+                1 << 16,
+                1 << 16
+            ) < 0) {
+            throw std::runtime_error("Failed to configure colorspace conversion");
+        }
+
         sws_scale(
             cleanup.sws,
             source_frame->data,
