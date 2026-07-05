@@ -9,6 +9,7 @@
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <algorithm>
 
 namespace fs = std::filesystem;
 
@@ -105,19 +106,21 @@ int main(const int argc, char** argv) {
             std::cout << rendered_frames.back() << std::flush;
         else {
             size_t frame_count = rendered_frames.size();
+            const auto target_ms = use_source_fps ? (1000.0 / source_fps) : (1000.0 / frame_rate);
+            std::chrono::steady_clock::time_point start, end;
             while (!rendered_frames.empty()) {
+                start = std::chrono::steady_clock::now();
                 const std::string& frame = rendered_frames.back();
                 std::cout << frame << std::flush;
-                if (use_source_fps) {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(1000.0 / source_fps)));
-                } else {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1000 / frame_rate));
-                }
+                rendered_frames.pop_back();
+                frame_count--;
+                end = std::chrono::steady_clock::now();
+                const auto elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
+                const auto sleep_ms = std::max(0.0, target_ms - elapsed_ms);
+                std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep_ms)));
                 if (frame_count > 0) {
                     std::cout << "\033[2J\033[H" << std::flush;
                 }
-                rendered_frames.pop_back();
-                frame_count--;
             }
         }
     }
