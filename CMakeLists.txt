@@ -19,6 +19,8 @@ add_executable(img_to_ascii
         src/GenerateFrames.cpp
         include/dataStructures.h
         src/miniaudio.c
+        include/AudioPlayer.h
+        include/SyncClock.h
 )
 
 target_include_directories(img_to_ascii PRIVATE

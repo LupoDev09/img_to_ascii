@@ -1,7 +1,11 @@
+#include "AudioPlayer.h"
+#include "SyncClock.h"
+
+
 #include <GenerateFrames.h>
 #include <Renderer.h>
-#include <dataStructures.h>
 #include <cxxopts.hpp>
+#include <dataStructures.h>
 #include <miniaudio.h>
 
 #include <chrono>
@@ -21,14 +25,6 @@ void get_audio_file(const std::string& input_file, const std::string& output_fil
     output_file_path + "\"";
     system(command.c_str());
 }
-
-struct AudioEngin {
-    ma_engine engine;
-
-    ~AudioEngin() {
-        ma_engine_uninit(&engine);
-    }
-};
 
 /*
  * TODO: Improve Audio support
@@ -111,28 +107,28 @@ int main(const int argc, char** argv) {
               << "No Output: " << (no_output ? "true" : "false") << '\n'
               << "Starting video to ascii conversion..." << std::endl;
 
-    std::string Audio_output_file_path = "audio.wav";
-    get_audio_file(input, Audio_output_file_path);
-    AudioEngin* engine = nullptr;
-    if (fs::exists(Audio_output_file_path)) {
-        engine = new AudioEngin();
-        if (ma_engine_init(nullptr, &engine->engine) != MA_SUCCESS) {
-            std::cerr << "Audio init failed\n";
-            return -1;
-        }
-    }
+    AudioPlayer audio;
+    SyncClock clock;
 
+    std::string audio_file = "audio.wav";
+    get_audio_file(input, audio_file);
+
+    VERBOSE("Loading audio file...");
+    audio.load(audio_file);
+    VERBOSE("Audio file loaded successfully.");
+
+    VERBOSE("Configure Renderer");
     Renderer renderer;
     renderer.config.color = !no_color;
     if (!charset.empty()) {
         renderer.config.charset = charset32;
     }
+    VERBOSE("Configured Renderer");
 
     VERBOSE("Starting frame generation and output...");
     bool first_frame = true;
     double target_ms = 0.0; // Default value, will be overwritten below
-    double source_fps = 0.0; // holds the fps from the first frame
-    auto last_tick = std::chrono::steady_clock::now();
+    size_t frame_index = 0;
     GenerateFrames::generate(input_path, frame_rate, width, height,
         [&](DataStructures::Frame&& frame) {
             if (!first_frame && !no_output) {
@@ -140,8 +136,10 @@ int main(const int argc, char** argv) {
             }
 
             if (first_frame) {
-                source_fps = frame.source_fps; // Setz die Zeit die durchgängig genutzt wird zum Warten
-                last_tick = std::chrono::steady_clock::now(); // setzt last_tick auf den Start des ganzen
+                clock.start();      // Video-Zeitbasis starten
+                audio.play();       // Audio startet exakt gleichzeitig
+
+                const double source_fps = frame.source_fps; // Setz die Zeit die durchgängig genutzt wird zum Warten
 
                 // Calculate the target time to wait
                 target_ms = frame_rate > 0
@@ -149,11 +147,6 @@ int main(const int argc, char** argv) {
                 : 1000.0 / source_fps;
 
                 first_frame = false;
-
-                // Starte das playback, wenn die engine existiert
-                if (engine != nullptr) {
-                    ma_engine_play_sound(&engine->engine, Audio_output_file_path.c_str(), nullptr);
-                }
             }
 
             const std::string rendered = renderer.render_frame(frame); // Rendert den frame in einen vector
@@ -162,23 +155,16 @@ int main(const int argc, char** argv) {
                 std::cout << rendered << std::flush; // output the frame
             }
 
-            const auto now = std::chrono::steady_clock::now();
-            const double elapsed_ms = std::chrono::duration<double, std::milli>(now - last_tick).count();
-
-            if (elapsed_ms < target_ms) {
-                std::this_thread::sleep_for(
-                    std::chrono::milliseconds(static_cast<int>(target_ms - elapsed_ms))
-                );
-            }
-
-            last_tick = std::chrono::steady_clock::now();
+            const double expected = frame_index * target_ms;
+            clock.wait_until(expected);
+            frame_index++;
     });
 
-    if (engine != nullptr) {
-        fs::remove(Audio_output_file_path);
-    }
-    delete engine;
     VERBOSE("Frame generation and output completed.");
+    VERBOSE("Cleaning up audio resources...");
+    audio.stop();
+    audio.deleteAudioFile();
+    VERBOSE("Audio file deleted");
     VERBOSE("Bye :3");
     return 0;
 }
