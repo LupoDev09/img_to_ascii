@@ -9,13 +9,13 @@
 
 
 class Renderer {
-    [[nodiscard]] char get_char(const float &luminance) const;
+    [[nodiscard]] char32_t get_char(const float &luminance) const;
 
 public:
     struct Config {
         // Rendering uses the decoded frame dimensions, so only palette and color output are configurable here.
         bool color = true;
-        std::string charset = " .:-=+*#%@";
+        std::u32string charset = U" ░▒▓█";
     } config;
 
     /**
@@ -23,7 +23,7 @@ public:
      * @param frame the frame to process
      * @return the rendered frame
      */
-    [[nodiscard]] std::string render_frame(const DataStructures::Frame& frame) const;
+    [[nodiscard]] std::string render_frame(const DataStructures::Frame &frame) const;
 };
 
 

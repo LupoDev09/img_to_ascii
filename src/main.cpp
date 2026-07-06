@@ -36,7 +36,7 @@ int main(const int argc, char** argv) {
     // Group: Output
     options.add_options("Output")
     ("no-color", "Disable the color in the output", cxxopts::value<bool>()->default_value("false"))
-    ("c,charset", "Charset to use for ascii mapping", cxxopts::value<std::string>()->default_value(" .:-=+*#%@"));
+    ("c,charset", "Charset to use for ascii mapping", cxxopts::value<std::string>()->default_value(" ░▒▓█"));
 
     // Group: General
     options.add_options("General")
@@ -64,7 +64,7 @@ int main(const int argc, char** argv) {
     const int height = parse_result["h"].as<int>();
     const bool no_output = parse_result["no-output"].as<bool>();
     const bool no_color = parse_result["no-color"].as<bool>();
-
+    std::u32string charset32 = utf8_to_utf32(charset);
     VERBOSE_MODE = verbose;
 
     const std::filesystem::path input_path = input;
@@ -95,10 +95,11 @@ int main(const int argc, char** argv) {
               << "No Output: " << (no_output ? "true" : "false") << '\n'
               << "Starting video to ascii conversion..." << std::endl;
 
+
     Renderer renderer;
     renderer.config.color = !no_color;
     if (!charset.empty()) {
-        renderer.config.charset = charset;
+        renderer.config.charset = charset32;
     }
 
     VERBOSE("Starting frame generation and output...");
