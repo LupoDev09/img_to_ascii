@@ -11,20 +11,12 @@
 #include <chrono>
 #include <filesystem>
 #include <iostream>
-#include <thread>
 
 namespace fs = std::filesystem;
 
 bool VERBOSE_MODE = false;
 #define VERBOSE(msg) if (VERBOSE_MODE) std::clog << msg << std::endl
 
-void get_audio_file(const std::string& input_file, const std::string& output_file_path) {
-    const std::string command =
-    "ffmpeg -y -i \"" + input_file +
-    "\" -vn -acodec pcm_s16le -ar 44100 -ac 2 \"" +
-    output_file_path + "\"";
-    system(command.c_str());
-}
 
 /*
  * TODO: Improve Audio support
@@ -111,10 +103,9 @@ int main(const int argc, char** argv) {
     SyncClock clock;
 
     std::string audio_file = "audio.wav";
-    get_audio_file(input, audio_file);
 
     VERBOSE("Loading audio file...");
-    audio.load(audio_file);
+    audio.load(input, audio_file);
     VERBOSE("Audio file loaded successfully.");
 
     VERBOSE("Configure Renderer");
@@ -137,8 +128,9 @@ int main(const int argc, char** argv) {
 
             if (first_frame) {
                 clock.start();      // Video-Zeitbasis starten
-                audio.play();       // Audio startet exakt gleichzeitig
-
+                if (!no_output) {
+                    audio.play();       // Audio startet exakt gleichzeitig
+                }
                 const double source_fps = frame.source_fps; // Setz die Zeit die durchgängig genutzt wird zum Warten
 
                 // Calculate the target time to wait
@@ -161,10 +153,12 @@ int main(const int argc, char** argv) {
     });
 
     VERBOSE("Frame generation and output completed.");
+
     VERBOSE("Cleaning up audio resources...");
     audio.stop();
     audio.deleteAudioFile();
     VERBOSE("Audio file deleted");
+
     VERBOSE("Bye :3");
     return 0;
 }
