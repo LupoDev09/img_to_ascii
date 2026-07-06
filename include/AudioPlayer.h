@@ -79,7 +79,7 @@ public:
     [[nodiscard]] double get_time_ms() const {
         if (!playing) return 0.0;
 
-        auto now = std::chrono::steady_clock::now();
+        const auto now = std::chrono::steady_clock::now();
         return std::chrono::duration<double, std::milli>(now - start_time).count();
     }
 
@@ -101,7 +101,7 @@ private:
         int audio_stream_index = -1;
         for (unsigned int i = 0; i < format_ctx->nb_streams; i++) {
             if (format_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
-                audio_stream_index = i;
+                audio_stream_index = static_cast<int>(i);
                 break;
             }
         }
@@ -174,11 +174,11 @@ private:
             out.write("fmt ", 4);
             int32_t subchunk1_size = 16;
             int16_t audio_format = 1;
-            int16_t num_channels = channels;
+            auto num_channels = static_cast<int16_t>(channels);
             int32_t sr = sample_rate;
             int16_t bits_per_sample = 16;
             int32_t byte_rate = sr * channels * bits_per_sample / 8;
-            int16_t block_align = channels * bits_per_sample / 8;
+            auto block_align = static_cast<int16_t>(channels * bits_per_sample / 8);
 
             out.write(reinterpret_cast<char*>(&subchunk1_size), 4);
             out.write(reinterpret_cast<char*>(&audio_format), 2);
@@ -253,8 +253,8 @@ private:
         // WAV Header korrigieren
         auto file_size = static_cast<std::streamoff>(out.tellp());
 
-        int32_t data_size = static_cast<int32_t>(file_size - 44);
-        int32_t chunk_size = static_cast<int32_t>(file_size - 8);
+        auto data_size = static_cast<int32_t>(file_size - 44);
+        auto chunk_size = static_cast<int32_t>(file_size - 8);
 
         out.seekp(4);
         out.write(reinterpret_cast<char*>(&chunk_size), 4);

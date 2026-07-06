@@ -119,7 +119,7 @@ int main(const int argc, char** argv) {
     VERBOSE("Starting frame generation and output...");
     bool first_frame = true;
     double target_ms = 0.0; // Default value, will be overwritten below
-    size_t frame_index = 0;
+    unsigned int frame_index = 0;
     GenerateFrames::generate(input_path, frame_rate, width, height,
         [&](DataStructures::Frame&& frame) {
             if (!first_frame && !no_output) {
