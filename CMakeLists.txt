@@ -8,9 +8,11 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(FFMPEG REQUIRED
         libavformat
         libavcodec
-        libswscale
         libavutil
+        libswscale
+        libswresample
 )
+
 
 add_executable(img_to_ascii
         src/main.cpp
@@ -28,20 +30,10 @@ target_include_directories(img_to_ascii PRIVATE
         ${FFMPEG_INCLUDE_DIRS}
 )
 
-target_link_libraries(img_to_ascii PRIVATE
-        ${FFMPEG_LIBRARIES}
-        avformat
-        avcodec
-        swscale
-        avutil
-        swresample
-)
+target_link_libraries(img_to_ascii PRIVATE ${FFMPEG_LIBRARIES})
 
 target_compile_options(img_to_ascii PRIVATE
         ${FFMPEG_CFLAGS_OTHER}
-)
-
-target_compile_options(img_to_ascii PRIVATE
         -Wall
         -Wextra
         -Wpedantic
