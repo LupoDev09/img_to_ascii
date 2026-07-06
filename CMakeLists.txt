@@ -30,6 +30,11 @@ target_include_directories(img_to_ascii PRIVATE
 
 target_link_libraries(img_to_ascii PRIVATE
         ${FFMPEG_LIBRARIES}
+        avformat
+        avcodec
+        swscale
+        avutil
+        swresample
 )
 
 target_compile_options(img_to_ascii PRIVATE
