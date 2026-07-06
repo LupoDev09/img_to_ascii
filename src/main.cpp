@@ -1,8 +1,8 @@
 #include <GenerateFrames.h>
 #include <Renderer.h>
-#include <cxxopts.hpp>
-
 #include <dataStructures.h>
+#include <cxxopts.hpp>
+#include <miniaudio.h>
 
 #include <chrono>
 #include <filesystem>
@@ -14,8 +14,24 @@ namespace fs = std::filesystem;
 bool VERBOSE_MODE = false;
 #define VERBOSE(msg) if (VERBOSE_MODE) std::clog << msg << std::endl
 
+void get_audio_file(const std::string& input_file, const std::string& output_file_path) {
+    const std::string command =
+    "ffmpeg -y -i \"" + input_file +
+    "\" -vn -acodec pcm_s16le -ar 44100 -ac 2 \"" +
+    output_file_path + "\"";
+    system(command.c_str());
+}
+
+struct AudioEngin {
+    ma_engine engine;
+
+    ~AudioEngin() {
+        ma_engine_uninit(&engine);
+    }
+};
+
 /*
- * TODO: Implement Audio support
+ * TODO: Improve Audio support
  */
 int main(const int argc, char** argv) {
     cxxopts::Options options("Img_to_ascii", "Img_to_ascii another rewrite");
@@ -95,6 +111,16 @@ int main(const int argc, char** argv) {
               << "No Output: " << (no_output ? "true" : "false") << '\n'
               << "Starting video to ascii conversion..." << std::endl;
 
+    std::string Audio_output_file_path = "audio.wav";
+    get_audio_file(input, Audio_output_file_path);
+    AudioEngin* engine = nullptr;
+    if (fs::exists(Audio_output_file_path)) {
+        engine = new AudioEngin();
+        if (ma_engine_init(nullptr, &engine->engine) != MA_SUCCESS) {
+            std::cerr << "Audio init failed\n";
+            return -1;
+        }
+    }
 
     Renderer renderer;
     renderer.config.color = !no_color;
@@ -123,6 +149,11 @@ int main(const int argc, char** argv) {
                 : 1000.0 / source_fps;
 
                 first_frame = false;
+
+                // Starte das playback, wenn die engine existiert
+                if (engine != nullptr) {
+                    ma_engine_play_sound(&engine->engine, Audio_output_file_path.c_str(), nullptr);
+                }
             }
 
             const std::string rendered = renderer.render_frame(frame); // Rendert den frame in einen vector
@@ -143,6 +174,10 @@ int main(const int argc, char** argv) {
             last_tick = std::chrono::steady_clock::now();
     });
 
+    if (engine != nullptr) {
+        fs::remove(Audio_output_file_path);
+    }
+    delete engine;
     VERBOSE("Frame generation and output completed.");
     VERBOSE("Bye :3");
     return 0;
