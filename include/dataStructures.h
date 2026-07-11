@@ -9,26 +9,49 @@
 #include <vector>
 
 namespace DataStructures {
+    /**
+     * @struct Pixel
+     * @brief Represents an RGB pixel with 8 bits per channel.
+     */
     struct Pixel {
-        uint8_t r, g, b;
+        uint8_t r; ///< Red channel (0-255)
+        uint8_t g; ///< Green channel (0-255)
+        uint8_t b; ///< Blue channel (0-255)
 
+        /**
+         * @brief Calculate the perceived luminance of the pixel.
+         * @return Luminance value using standard perception weights (BT.709).
+         * 
+         * Uses the formula: L = 0.2126*R + 0.7152*G + 0.0722*B
+         * This weighted average better matches human perception than simple averaging.
+         */
         [[nodiscard]] float luminance() const {
-            // Wahrnehmungsgewichtung (nicht einfach Mittelwert!)
             return 0.2126f * static_cast<float>(r)
                  + 0.7152f * static_cast<float>(g)
                  + 0.0722f * static_cast<float>(b);
         }
     };
 
+    /**
+     * @struct Frame
+     * @brief Represents a decoded video frame with RGB pixel data.
+     */
     struct Frame {
-        int width;
-        int height;
-        double source_fps;
-        std::vector<Pixel> data;
+        int width;               ///< Frame width in pixels
+        int height;              ///< Frame height in pixels
+        double source_fps;       ///< Original frame rate from the source video
+        std::vector<Pixel> data; ///< Pixel data in row-major order (width * height pixels)
     };
 }
 
-// einfache UTF-8 → UTF-32 Konvertierung (minimalistisch)
+/**
+ * @brief Convert UTF-8 encoded string to UTF-32 character sequence.
+ * @param input UTF-8 encoded string
+ * @return UTF-32 string; invalid sequences are replaced with replacement character (U+FFFD)
+ * 
+ * Handles all valid UTF-8 sequences (1-4 byte sequences).
+ * Invalid byte sequences are converted to the Unicode replacement character.
+ */
 inline std::u32string utf8_to_utf32(const std::string& input) {
     std::u32string result;
     result.reserve(input.size());
@@ -89,6 +112,14 @@ inline std::u32string utf8_to_utf32(const std::string& input) {
     return result;
 }
 
+/**
+ * @brief Simple conversion from ASCII string to UTF-32.
+ * @param s ASCII/single-byte encoded string
+ * @return UTF-32 string where each character is zero-extended to 32 bits
+ * 
+ * Only works correctly with ASCII strings (0-127 range).
+ * For UTF-8 input, use utf8_to_utf32() instead.
+ */
 inline std::u32string to_u32(const std::string& s) {
     std::u32string result;
     result.reserve(s.size());
@@ -98,6 +129,19 @@ inline std::u32string to_u32(const std::string& s) {
     return result;
 }
 
+/**
+ * @brief Convert a single UTF-32 code point to UTF-8 byte sequence.
+ * @param cp Unicode code point (0x0 to 0x10FFFF)
+ * @return UTF-8 encoded string; invalid code points are converted to U+FFFD (replacement character)
+ * 
+ * Supports all valid Unicode ranges:
+ * - 1-byte: 0x00 - 0x7F
+ * - 2-byte: 0x80 - 0x7FF
+ * - 3-byte: 0x800 - 0xFFFF
+ * - 4-byte: 0x10000 - 0x10FFFF
+ * 
+ * Code points outside valid ranges are replaced with the Unicode replacement character (U+FFFD).
+ */
 inline std::string utf32_to_utf8(const char32_t cp) {
     std::string out;
 
