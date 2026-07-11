@@ -14,15 +14,35 @@
 
 namespace fs = std::filesystem;
 
+/// Global flag to control verbose logging throughout the application
 bool VERBOSE_MODE = false;
+/// Macro to output messages only when VERBOSE_MODE is enabled
 #define VERBOSE(msg) if (VERBOSE_MODE) std::clog << msg << std::endl
 
 
-/*
- * TODO: Improve Audio support
+/**
+ * @brief Convert a video file to ASCII art animation.
+ * 
+ * Reads a video file, extracts frames and audio, scales frames to specified dimensions,
+ * converts pixels to ASCII characters based on luminance, and displays the animation
+ * in the terminal with optional color support and synchronized audio.
+ * 
+ * Workflow:
+ * 1. Parse command-line arguments for input file, output dimensions, frame rate, etc.
+ * 2. Validate input parameters (file exists, dimensions valid, etc.)
+ * 3. Extract and prepare audio from video file
+ * 4. Configure renderer with color and character palette settings
+ * 5. Decode video frames in a loop:
+ *    - Scale frames to target dimensions
+ *    - Convert each frame to ASCII art
+ *    - Output ASCII art with proper timing
+ *    - Synchronize with audio playback
+ * 6. Clean up resources (audio file, etc.)
+ * 
+ * @return 0 on success, 1 on error
  */
 int main(const int argc, char** argv) {
-    cxxopts::Options options("Img_to_ascii", "Img_to_ascii another rewrite");
+    cxxopts::Options options("Img_to_ascii", "Convert video files to ASCII art animations");
 
     // Group: Input
     options.add_options("Input")
@@ -30,24 +50,24 @@ int main(const int argc, char** argv) {
 
     // Group: Sizing (width / height)
     options.add_options("Sizing")
-    ("w,width", "Width of the output ascii video", cxxopts::value<int>()->default_value("0"))
-    ("h,height", "Height of the output ascii video", cxxopts::value<int>()->default_value("0"));
+    ("w,width", "Width of the output ascii video (0 = auto-calculate from height)", cxxopts::value<int>()->default_value("0"))
+    ("h,height", "Height of the output ascii video (0 = auto-calculate from width)", cxxopts::value<int>()->default_value("0"));
 
     // Group: Video / Playback
     options.add_options("Playback")
-    ("f,fps", "Frame rate of the output ascii video (default is source)", cxxopts::value<int>()->default_value("0"))
-    ("no-audio", "Disable audio playback", cxxopts::value<bool>()->default_value("false"));
+    ("f,fps", "Frame rate of the output ascii video (0 = use source frame rate)", cxxopts::value<int>()->default_value("0"))
+    ("no-audio", "Disable audio playback during animation", cxxopts::value<bool>()->default_value("false"));
 
     // Group: Output
     options.add_options("Output")
-    ("no-color", "Disable the color in the output", cxxopts::value<bool>()->default_value("false"))
-    ("c,charset", "Charset to use for ascii mapping", cxxopts::value<std::string>()->default_value(" ░▒▓█"));
+    ("no-color", "Disable ANSI color output (output grayscale only)", cxxopts::value<bool>()->default_value("false"))
+    ("c,charset", "Character palette for ASCII mapping (darker to lighter)", cxxopts::value<std::string>()->default_value(" ░▒▓█"));
 
     // Group: General
     options.add_options("General")
-    ("v,verbose", "Enable verbose output", cxxopts::value<bool>()->default_value("false"))
-    ("help", "Print help")
-    ("no-output", "Do not output the ascii video to stdout", cxxopts::value<bool>()->default_value("false"));
+    ("v,verbose", "Enable verbose diagnostic output to stderr", cxxopts::value<bool>()->default_value("false"))
+    ("help", "Print this help message")
+    ("no-output", "Process video without outputting ASCII animation to stdout", cxxopts::value<bool>()->default_value("false"));
 
     const cxxopts::ParseResult parse_result = options.parse(argc, argv);
     if (parse_result.count("help")) {
@@ -126,22 +146,24 @@ int main(const int argc, char** argv) {
 
     VERBOSE("Starting frame generation and output...");
     bool first_frame = true;
-    double target_ms = 0.0; // Default value, will be overwritten below
+    double target_ms = 0.0;
     unsigned int frame_index = 0;
     GenerateFrames::generate(input_path, frame_rate, width, height,
         [&](DataStructures::Frame&& frame) {
+            // Clear previous frame and move cursor to home position
             if (!first_frame && !no_output) {
-                std::cout << "\033[2J\033[H"; // alten Frame löschen
+                std::cout << "\033[2J\033[H";
             }
 
+            // Initialize timing and playback on first frame
             if (first_frame) {
-                clock.start();      // Video-Zeitbasis starten
+                clock.start();
                 if (!no_output && !no_audio) {
-                    audio.play();       // Audio startet exakt gleichzeitig
+                    audio.play();
                 }
-                const double source_fps = frame.source_fps; // Setz die Zeit die durchgängig genutzt wird zum Warten
+                const double source_fps = frame.source_fps;
 
-                // Calculate the target time to wait
+                // Calculate target time per frame (either custom fps or source fps)
                 target_ms = frame_rate > 0
                 ? 1000.0 / frame_rate
                 : 1000.0 / source_fps;
@@ -149,12 +171,14 @@ int main(const int argc, char** argv) {
                 first_frame = false;
             }
 
-            const std::string rendered = renderer.render_frame(frame); // Rendert den frame in einen vector
+            // Convert frame to ASCII art
+            const std::string rendered = renderer.render_frame(frame);
 
             if (!no_output) {
-                std::cout << rendered << std::flush; // output the frame
+                std::cout << rendered << std::flush;
             }
 
+            // Synchronize with calculated frame time
             const double expected = frame_index * target_ms;
             clock.wait_until(expected);
             frame_index++;

@@ -19,20 +19,59 @@ extern "C" {
 #include <libswresample/swresample.h>
 }
 
+/**
+ * @class AudioPlayer
+ * @brief Extracts and plays audio from video files with synchronized timing.
+ * 
+ * Decodes audio from various video formats (via FFmpeg), converts to standardized PCM format,
+ * writes to WAV file, and plays back with precise timing for video synchronization.
+ * 
+ * Handles:
+ * - Audio extraction from video containers (MP4, MKV, AVI, etc.)
+ * - Format conversion to stereo 44.1kHz S16 PCM
+ * - WAV file creation with proper headers
+ * - Playback via miniaudio backend
+ * - Video-audio synchronization via elapsed time tracking
+ * - Files without audio streams (graceful degradation)
+ */
 class AudioPlayer {
 public:
+    /**
+     * @brief Initialize audio engine.
+     * @throws std::runtime_error if audio engine initialization fails
+     * 
+     * Automatically selects the appropriate audio backend for the platform.
+     */
     AudioPlayer() {
-        // Initialisiert Audio Engine (Backend automatisch gewählt)
         if (ma_engine_init(nullptr, &engine) != MA_SUCCESS) {
             throw std::runtime_error("Failed to init audio engine");
         }
     }
 
+    /**
+     * @brief Clean up audio resources.
+     * 
+     * Stops playback and uninitializes the audio engine.
+     * Safe to call even if audio is not currently playing.
+     */
     ~AudioPlayer() {
-        stop(); // Sicherheit: Sound stoppen bevor Engine zerstört wird
+        stop();
         ma_engine_uninit(&engine);
     }
 
+    /**
+     * @brief Extract audio from a video file and prepare for playback.
+     * 
+     * Decodes audio from the input video, converts to standard format (Stereo, 44.1kHz, S16),
+     * and writes to a WAV file. Handles files without audio gracefully.
+     * 
+     * @param input_file Path to video file containing audio
+     * @param output_file_path Path where to write the extracted WAV file
+     * 
+     * @throws std::runtime_error if input file doesn't exist or audio extraction fails
+     * 
+     * Any existing file at output_file_path is automatically removed and replaced.
+     */
     void load(const std::string& input_file, const std::string& output_file_path) {
         if (!std::filesystem::exists(input_file)) {
             throw std::runtime_error("Input file does not exist");
@@ -46,6 +85,16 @@ public:
         audio_file = output_file_path;
     }
 
+    /**
+     * @brief Start audio playback.
+     * 
+     * Begins playing the loaded audio file synchronized with external timing.
+     * Sets up timing reference for get_time_ms() to track playback position.
+     * 
+     * @throws std::runtime_error if no audio file is loaded or playback fails
+     * 
+     * Safe to call multiple times (subsequent calls have no effect).
+     */
     void play() {
         if (file_has_no_audio) {
             return;
@@ -54,7 +103,7 @@ public:
             throw std::runtime_error("No audio file loaded");
         }
 
-        // Sound initialisieren (gibt dir Kontrolle über Stop etc.)
+        // Initialize sound with full playback control
         if (ma_sound_init_from_file(&engine, audio_file.c_str(), 0, nullptr, nullptr, &sound) != MA_SUCCESS) {
             throw std::runtime_error("Failed to load sound");
         }
@@ -65,6 +114,12 @@ public:
         playing = true;
     }
 
+    /**
+     * @brief Stop audio playback.
+     * 
+     * Halts playback and frees associated resources.
+     * Safe to call when audio is not playing.
+     */
     void stop() {
         if (playing && !file_has_no_audio) {
             ma_sound_stop(&sound);
@@ -73,12 +128,25 @@ public:
         }
     }
 
+    /**
+     * @brief Delete the extracted WAV audio file.
+     * 
+     * Removes the temporary WAV file created during load().
+     * Safe to call even if the file doesn't exist.
+     */
     void deleteAudioFile() const {
         if (!audio_file.empty()) {
             std::filesystem::remove(audio_file);
         }
     }
 
+    /**
+     * @brief Get the current playback position in milliseconds.
+     * @return Elapsed time since play() was called, in milliseconds
+     * 
+     * Returns 0 if audio is not currently playing.
+     * Used to synchronize video frames with audio during playback.
+     */
     [[nodiscard]] double get_time_ms() const {
         if (!playing) return 0.0;
 
@@ -87,10 +155,29 @@ public:
     }
 
 private:
+    /**
+     * @brief Extract and convert audio from video file to WAV format.
+     * 
+     * Decodes audio stream from video, resamples to Stereo 44.1kHz S16,
+     * and writes to WAV file with proper headers. Handles files without
+     * audio by setting file_has_no_audio flag.
+     * 
+     * Process:
+     * 1. Open video file with FFmpeg
+     * 2. Find audio stream
+     * 3. Create resampler to target format
+     * 4. Decode frames and resample
+     * 5. Write to WAV file with corrected headers
+     * 6. Clean up all FFmpeg resources
+     * 
+     * @param input_file Source video file
+     * @param output_file_path Destination WAV file path
+     * @throws std::runtime_error on file, I/O or codec errors
+     */
     void get_audio_file(const std::string& input_file, const std::string& output_file_path) {
         AVFormatContext* format_ctx = nullptr;
 
-        // Datei öffnen
+        // Open video file
         if (avformat_open_input(&format_ctx, input_file.c_str(), nullptr, nullptr) != 0) {
             throw std::runtime_error("Failed to open input file");
         }
@@ -100,7 +187,7 @@ private:
             throw std::runtime_error("Failed to find stream info");
         }
 
-        // Audio Stream finden
+        // Find audio stream
         int audio_stream_index = -1;
         for (unsigned int i = 0; i < format_ctx->nb_streams; i++) {
             if (format_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
@@ -137,7 +224,7 @@ private:
             throw std::runtime_error("Failed to open codec");
         }
 
-        // Ziel: immer sauberes PCM (S16, Stereo, 44100Hz)
+        // Target format: stereo PCM S16 at 44.1kHz
         SwrContext* swr = nullptr;
 
         AVChannelLayout out_ch_layout;
@@ -168,7 +255,7 @@ private:
             throw std::runtime_error("Failed to open output file");
         }
 
-        // WAV Header schreiben (Platzhalter)
+        // Write WAV header (placeholder, will be corrected at end)
         auto write_wav_header = [&](const int sample_rate, const int channels) {
             out.write("RIFF", 4);
             int32_t chunk_size = 0;
@@ -205,7 +292,7 @@ private:
         uint8_t* out_buffer = nullptr;
         int out_linesize;
 
-        // Decode Loop
+        // Decode loop: extract and resample audio frames
         while (av_read_frame(format_ctx, packet) >= 0) {
             if (packet->stream_index == audio_stream_index) {
 
@@ -223,7 +310,7 @@ private:
                             frame->nb_samples
                         );
 
-                        // Interleaved schreiben
+                        // Write interleaved audio samples
                         out.write(reinterpret_cast<char*>(out_buffer),static_cast<std::streamsize>(samples * 2 * sizeof(int16_t)));
 
                         av_freep(&out_buffer);
@@ -233,7 +320,7 @@ private:
             av_packet_unref(packet);
         }
 
-        // Decoder flush (wichtig für letzte Frames)
+        // Flush decoder for remaining frames
         avcodec_send_packet(codec_ctx, nullptr);
         while (avcodec_receive_frame(codec_ctx, frame) == 0) {
             av_samples_alloc(&out_buffer, &out_linesize, 2,
@@ -251,7 +338,7 @@ private:
             av_freep(&out_buffer);
         }
 
-        // WAV Header korrigieren
+        // Correct WAV headers with actual file size
         auto file_size = static_cast<std::streamoff>(out.tellp());
 
         auto data_size = static_cast<int32_t>(file_size - 44);
@@ -263,7 +350,7 @@ private:
         out.seekp(40);
         out.write(reinterpret_cast<char*>(&data_size), 4);
 
-        // Cleanup
+        // Clean up FFmpeg resources
         swr_free(&swr);
         av_frame_free(&frame);
         av_packet_free(&packet);
@@ -273,14 +360,13 @@ private:
         out.close();
     }
 
-    ma_engine engine{};
-    ma_sound sound{}; // wichtig: wir speichern den Sound jetzt!
+    ma_engine engine{};                     ///< Miniaudio engine instance
+    ma_sound sound{};                       ///< Sound currently playing
 
-    std::string audio_file;
-
-    std::chrono::steady_clock::time_point start_time;
-    bool playing = false;
-    bool file_has_no_audio = false;
+    std::string audio_file;                 ///< Path to loaded WAV file
+    std::chrono::steady_clock::time_point start_time; ///< Playback start time reference
+    bool playing = false;                   ///< Current playback state
+    bool file_has_no_audio = false;         ///< Flag if source video has no audio stream
 };
 
 #endif // IMG_TO_ASCII_AUDIOPLAYER_H
