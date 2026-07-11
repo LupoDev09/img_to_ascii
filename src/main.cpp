@@ -17,7 +17,7 @@ namespace fs = std::filesystem;
 /// Global flag to control verbose logging throughout the application
 bool VERBOSE_MODE = false;
 /// Macro to output messages only when VERBOSE_MODE is enabled
-#define VERBOSE(msg) if (VERBOSE_MODE) std::clog << msg << std::endl
+#define VERBOSE(msg) if (VERBOSE_MODE) std::clog << (msg) << std::endl
 
 
 /**

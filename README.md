@@ -1,6 +1,14 @@
 # img_to_ascii
 
-A CLI tool that converts video files into real-time ASCII art animations displayed in the terminal, with synchronized audio playback and optional color support.
+A CLI tool that converts video/image files into real-time ASCII art animations displayed in the terminal, with synchronized audio playback and optional color support.
+
+## TODOs
+- [ ] Find a way to save the audio in memory instead of saving it in a temporary file
+- [ ] Add some kind of progress bar for the audio playback
+- [ ] Add a way to skip frames if the processing is too slow
+- [ ] Add a way to render the subtitle stream of the video if it exists
+- [ ] Maybe render and decode the video on the GPU if available
+- [ ] Add more TODOs for the project
 
 ## Features
 

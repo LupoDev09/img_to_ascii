@@ -306,7 +306,7 @@ private:
                             swr,
                             &out_buffer,
                             frame->nb_samples,
-                            (const uint8_t**)frame->data,
+                            frame->data,
                             frame->nb_samples
                         );
 
@@ -330,7 +330,7 @@ private:
                 swr,
                 &out_buffer,
                 frame->nb_samples,
-                (const uint8_t**)frame->data,
+                frame->data,
                 frame->nb_samples
             );
 

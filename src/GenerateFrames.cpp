@@ -34,12 +34,21 @@ extern "C" {
 void GenerateFrames::generate(const std::filesystem::path &input_path, const int frame_rate, const int width, const int height, const FrameCallback &on_frame) {
     // Keep FFmpeg resources in one place so every early return still frees them.
     struct Cleanup {
-        AVFormatContext* fmt = nullptr;
-        AVCodecContext* dec_ctx = nullptr;
-        AVFrame* frame = nullptr;
-        AVFrame* rgb_frame = nullptr;
-        SwsContext* sws = nullptr;
-        uint8_t* rgb_buffer = nullptr;
+        AVFormatContext* fmt;
+        AVCodecContext*  dec_ctx;
+        AVFrame*         frame;
+        AVFrame*         rgb_frame;
+        SwsContext*      sws;
+        uint8_t*         rgb_buffer;
+
+        Cleanup() {
+            fmt = nullptr;
+            dec_ctx = nullptr;
+            frame = nullptr;
+            rgb_frame = nullptr;
+            sws = nullptr;
+            rgb_buffer = nullptr;
+        }
 
         ~Cleanup() {
             av_free(rgb_buffer);
@@ -129,9 +138,9 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
     }
 
     if (target_h <= 0) {
-        target_h = std::max(1, static_cast<int>(std::llround((static_cast<double>(src_h) * static_cast<double>(target_w)) / (static_cast<double>(src_w) * char_aspect))));
+        target_h = std::max(1, static_cast<int>(std::llround(static_cast<double>(src_h) * static_cast<double>(target_w) / (static_cast<double>(src_w) * char_aspect))));
     } else if (target_w <= 0) {
-        target_w = std::max(1, static_cast<int>(std::llround((static_cast<double>(src_w) * static_cast<double>(target_h) * char_aspect) / static_cast<double>(src_h))));
+        target_w = std::max(1, static_cast<int>(std::llround(static_cast<double>(src_w) * static_cast<double>(target_h) * char_aspect / static_cast<double>(src_h))));
     }
 
     cleanup.sws = sws_getContext(
