@@ -157,11 +157,11 @@ public:
 private:
     /**
      * @brief Extract and convert audio from video file to WAV format.
-     * 
+     *
      * Decodes audio stream from video, resamples to Stereo 44.1kHz S16,
      * and writes to WAV file with proper headers. Handles files without
      * audio by setting file_has_no_audio flag.
-     * 
+     *
      * Process:
      * 1. Open video file with FFmpeg
      * 2. Find audio stream
@@ -169,197 +169,181 @@ private:
      * 4. Decode frames and resample
      * 5. Write to WAV file with corrected headers
      * 6. Clean up all FFmpeg resources
-     * 
+     *
      * @param input_file Source video file
      * @param output_file_path Destination WAV file path
      * @throws std::runtime_error on file, I/O or codec errors
      */
-    void get_audio_file(const std::string& input_file, const std::string& output_file_path) {
-        AVFormatContext* format_ctx = nullptr;
+    void get_audio_file(const std::string &input_file, const std::string &output_file_path) {
+        Cleanup cleanup;
 
         // Open video file
-        if (avformat_open_input(&format_ctx, input_file.c_str(), nullptr, nullptr) != 0) {
+        AVFormatContext *raw_format_ctx = nullptr;
+        if (avformat_open_input(&raw_format_ctx, input_file.c_str(), nullptr, nullptr) != 0) {
             throw std::runtime_error("Failed to open input file");
         }
+        // Ownership an unique_ptr übergeben
+        cleanup.format_ctx.reset(raw_format_ctx);
 
-        if (avformat_find_stream_info(format_ctx, nullptr) < 0) {
-            avformat_close_input(&format_ctx);
+        // Die stream informationen sammeln
+        if (avformat_find_stream_info(cleanup.format_ctx.get(), nullptr) < 0) {
             throw std::runtime_error("Failed to find stream info");
         }
 
         // Find audio stream
         int audio_stream_index = -1;
-        for (unsigned int i = 0; i < format_ctx->nb_streams; i++) {
-            if (format_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+        for (unsigned int i = 0; i < cleanup.format_ctx->nb_streams; i++) {
+            if (cleanup.format_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
                 audio_stream_index = static_cast<int>(i);
                 break;
             }
         }
 
+        // Wenn es keinen audiostream gibt, gibt einfach den bool dafür auf true setzen und abbrechen
         if (audio_stream_index == -1) {
-            avformat_close_input(&format_ctx);
             file_has_no_audio = true;
             return;
         }
 
-        AVCodecParameters* codecpar = format_ctx->streams[audio_stream_index]->codecpar;
 
-        const AVCodec* codec = avcodec_find_decoder(codecpar->codec_id);
+        AVCodecParameters *codecpar = cleanup.format_ctx->streams[audio_stream_index]->codecpar;
+        const AVCodec *codec = avcodec_find_decoder(codecpar->codec_id);
         if (!codec) {
-            avformat_close_input(&format_ctx);
             throw std::runtime_error("Unsupported codec");
         }
 
-        AVCodecContext* codec_ctx = avcodec_alloc_context3(codec);
-        if (!codec_ctx) {
-            avformat_close_input(&format_ctx);
+
+        // Codec Context erstellen
+        cleanup.codec_ctx.reset(avcodec_alloc_context3(codec));
+
+        if (!cleanup.codec_ctx) {
             throw std::runtime_error("Failed to alloc codec context");
         }
 
-        avcodec_parameters_to_context(codec_ctx, codecpar);
+        if (avcodec_parameters_to_context(cleanup.codec_ctx.get(), codecpar) < 0) {
+            throw std::runtime_error("Failed copying codec parameters");
+        }
 
-        if (avcodec_open2(codec_ctx, codec, nullptr) < 0) {
-            avcodec_free_context(&codec_ctx);
-            avformat_close_input(&format_ctx);
+        if (avcodec_open2(cleanup.codec_ctx.get(), codec, nullptr) < 0) {
             throw std::runtime_error("Failed to open codec");
         }
 
         // Target format: stereo PCM S16 at 44.1kHz
-        SwrContext* swr = nullptr;
-
         AVChannelLayout out_ch_layout;
-        av_channel_layout_default(&out_ch_layout, 2); // Stereo
+        av_channel_layout_default(&out_ch_layout, 2);
+        AVChannelLayout in_ch_layout = cleanup.codec_ctx->ch_layout;
+        SwrContext *raw_swr = nullptr;
 
-        AVChannelLayout in_ch_layout = codec_ctx->ch_layout;
+        int ret = swr_alloc_set_opts2(&raw_swr, &out_ch_layout, AV_SAMPLE_FMT_S16,44100, &in_ch_layout,
+        cleanup.codec_ctx->sample_fmt,cleanup.codec_ctx->sample_rate,0, nullptr);
 
-        swr_alloc_set_opts2(
-            &swr,
-            &out_ch_layout,
-            AV_SAMPLE_FMT_S16,
-            44100,
-
-            &in_ch_layout,
-            codec_ctx->sample_fmt,
-            codec_ctx->sample_rate,
-
-            0, nullptr
-        );
-
-        if (!swr) {
+                if (ret < 0) {
             throw std::runtime_error("Failed to allocate swr context");
         }
-        swr_init(swr);
+        cleanup.swr.reset(raw_swr);
+
+
+        if (swr_init(cleanup.swr.get()) < 0) {
+            throw std::runtime_error("Failed to init swr");
+        }
 
         std::ofstream out(output_file_path, std::ios::binary);
         if (!out.is_open()) {
             throw std::runtime_error("Failed to open output file");
         }
-
-        // Write WAV header (placeholder, will be corrected at end)
         auto write_wav_header = [&](const int sample_rate, const int channels) {
-            out.write("RIFF", 4);
             int32_t chunk_size = 0;
-            out.write(reinterpret_cast<char*>(&chunk_size), 4);
+            out.write("RIFF", 4);
+            out.write(reinterpret_cast<char *>(&chunk_size), 4);
             out.write("WAVE", 4);
-
             out.write("fmt ", 4);
+
             int32_t subchunk1_size = 16;
             int16_t audio_format = 1;
             auto num_channels = static_cast<int16_t>(channels);
             int32_t sr = sample_rate;
             int16_t bits_per_sample = 16;
+
             int32_t byte_rate = sr * channels * bits_per_sample / 8;
+
             auto block_align = static_cast<int16_t>(channels * bits_per_sample / 8);
 
-            out.write(reinterpret_cast<char*>(&subchunk1_size), 4);
-            out.write(reinterpret_cast<char*>(&audio_format), 2);
-            out.write(reinterpret_cast<char*>(&num_channels), 2);
-            out.write(reinterpret_cast<char*>(&sr), 4);
-            out.write(reinterpret_cast<char*>(&byte_rate), 4);
-            out.write(reinterpret_cast<char*>(&block_align), 2);
-            out.write(reinterpret_cast<char*>(&bits_per_sample), 2);
+            out.write(reinterpret_cast<char *>(&subchunk1_size), 4);
+            out.write(reinterpret_cast<char *>(&audio_format), 2);
+            out.write(reinterpret_cast<char *>(&num_channels), 2);
+            out.write(reinterpret_cast<char *>(&sr), 4);
+            out.write(reinterpret_cast<char *>(&byte_rate), 4);
+            out.write(reinterpret_cast<char *>(&block_align), 2);
+            out.write(reinterpret_cast<char *>(&bits_per_sample), 2);
 
             out.write("data", 4);
+
             int32_t data_size = 0;
-            out.write(reinterpret_cast<char*>(&data_size), 4);
+            out.write(reinterpret_cast<char *>(&data_size), 4);
         };
 
         write_wav_header(44100, 2);
 
-        AVPacket* packet = av_packet_alloc();
-        AVFrame* frame = av_frame_alloc();
-
-        uint8_t* out_buffer = nullptr;
+        uint8_t *out_buffer = nullptr;
         int out_linesize;
 
-        // Decode loop: extract and resample audio frames
-        while (av_read_frame(format_ctx, packet) >= 0) {
-            if (packet->stream_index == audio_stream_index) {
-
-                if (avcodec_send_packet(codec_ctx, packet) == 0) {
-                    while (avcodec_receive_frame(codec_ctx, frame) == 0) {
-
-                        av_samples_alloc(&out_buffer, &out_linesize, 2,
-                                         frame->nb_samples, AV_SAMPLE_FMT_S16, 0);
+        // Decode loop
+        while (av_read_frame(cleanup.format_ctx.get(), cleanup.packet.get()) >= 0) {
+            if (cleanup.packet->stream_index == audio_stream_index) {
+                if (avcodec_send_packet(cleanup.codec_ctx.get(), cleanup.packet.get()) == 0) {
+                    while (avcodec_receive_frame(cleanup.codec_ctx.get(), cleanup.frame.get()) == 0) {
+                        av_samples_alloc(&out_buffer, &out_linesize, 2, cleanup.frame->nb_samples, AV_SAMPLE_FMT_S16, 0);
 
                         int samples = swr_convert(
-                            swr,
-                            &out_buffer,
-                            frame->nb_samples,
-                            frame->data,
-                            frame->nb_samples
-                        );
+                                cleanup.swr.get(), &out_buffer, cleanup.frame->nb_samples,
+                                cleanup.frame->data, cleanup.frame->nb_samples);
 
-                        // Write interleaved audio samples
-                        out.write(reinterpret_cast<char*>(out_buffer),static_cast<std::streamsize>(samples * 2 * sizeof(int16_t)));
-
+                        out.write(reinterpret_cast<char *>(out_buffer), static_cast<std::streamsize>(samples * 2 * sizeof(int16_t)));
                         av_freep(&out_buffer);
                     }
                 }
             }
-            av_packet_unref(packet);
+            av_packet_unref(cleanup.packet.get());
         }
 
-        // Flush decoder for remaining frames
-        avcodec_send_packet(codec_ctx, nullptr);
-        while (avcodec_receive_frame(codec_ctx, frame) == 0) {
-            av_samples_alloc(&out_buffer, &out_linesize, 2,
-                             frame->nb_samples, AV_SAMPLE_FMT_S16, 0);
+
+
+        // Flush decoder
+        avcodec_send_packet(cleanup.codec_ctx.get(), nullptr);
+        while (avcodec_receive_frame(cleanup.codec_ctx.get(), cleanup.frame.get()) == 0) {
+            av_samples_alloc(
+                    &out_buffer,
+                    &out_linesize,
+                    2,
+                    cleanup.frame->nb_samples,
+                    AV_SAMPLE_FMT_S16,
+                    0);
 
             int samples = swr_convert(
-                swr,
-                &out_buffer,
-                frame->nb_samples,
-                frame->data,
-                frame->nb_samples
-            );
+                    cleanup.swr.get(),
+                    &out_buffer,
+                    cleanup.frame->nb_samples,
+                    cleanup.frame->data,
+                    cleanup.frame->nb_samples);
 
-            out.write(reinterpret_cast<char*>(out_buffer), static_cast<std::streamsize>(samples * 2 * sizeof(int16_t)));
+
+            out.write(reinterpret_cast<char *>(out_buffer), static_cast<std::streamsize>(samples * 2 * sizeof(int16_t)));
             av_freep(&out_buffer);
         }
 
-        // Correct WAV headers with actual file size
-        auto file_size = static_cast<std::streamoff>(out.tellp());
 
+
+        // WAV Header korrigieren
+        auto file_size = static_cast<std::streamoff>(out.tellp());
         auto data_size = static_cast<int32_t>(file_size - 44);
         auto chunk_size = static_cast<int32_t>(file_size - 8);
 
         out.seekp(4);
-        out.write(reinterpret_cast<char*>(&chunk_size), 4);
-
+        out.write(reinterpret_cast<char *>(&chunk_size), 4);
         out.seekp(40);
-        out.write(reinterpret_cast<char*>(&data_size), 4);
-
-        // Clean up FFmpeg resources
-        swr_free(&swr);
-        av_frame_free(&frame);
-        av_packet_free(&packet);
-        avcodec_free_context(&codec_ctx);
-        avformat_close_input(&format_ctx);
-
+        out.write(reinterpret_cast<char *>(&data_size), 4);
         out.close();
     }
-
     ma_engine engine{};                     ///< Miniaudio engine instance
     ma_sound sound{};                       ///< Sound currently playing
 
@@ -367,6 +351,61 @@ private:
     std::chrono::steady_clock::time_point start_time; ///< Playback start time reference
     bool playing = false;                   ///< Current playback state
     bool file_has_no_audio = false;         ///< Flag if source video has no audio stream
+
+    struct Cleanup {
+
+        using FormatPtr = std::unique_ptr<
+            AVFormatContext,
+            decltype([](AVFormatContext* ctx) {
+                if (ctx) {
+                    avformat_close_input(&ctx);
+                }
+            })
+        >;
+
+        using CodecPtr = std::unique_ptr<
+            AVCodecContext,
+            decltype([](AVCodecContext* ctx) {
+                if (ctx) {
+                    avcodec_free_context(&ctx);
+                }
+            })
+        >;
+
+        using FramePtr = std::unique_ptr<
+            AVFrame,
+            decltype([](AVFrame* frame) {
+                if (frame) {
+                    av_frame_free(&frame);
+                }
+            })
+        >;
+
+        using PacketPtr = std::unique_ptr<
+            AVPacket,
+            decltype([](AVPacket* packet) {
+                if (packet) {
+                    av_packet_free(&packet);
+                }
+            })
+        >;
+
+        using SwrPtr = std::unique_ptr<
+            SwrContext,
+            decltype([](SwrContext* swr) {
+                if (swr) {
+                    swr_free(&swr);
+                }
+            })
+        >;
+
+
+        FormatPtr format_ctx{nullptr};
+        CodecPtr codec_ctx{nullptr};
+        FramePtr frame{av_frame_alloc()};
+        PacketPtr packet{av_packet_alloc()};
+        SwrPtr swr{nullptr};
+    };
 };
 
 #endif // IMG_TO_ASCII_AUDIOPLAYER_H
