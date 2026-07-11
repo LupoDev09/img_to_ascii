@@ -2,7 +2,7 @@
 // Created by lupo on 04.07.26.
 //
 
-#include <GenerateFrames.h>
+#include <GenerateFrames.hpp>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
