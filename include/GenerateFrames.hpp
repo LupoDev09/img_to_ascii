@@ -6,7 +6,7 @@
 #define IMG_TO_ASCII_GENERATEFRAMES_H
 #include <filesystem>
 
-#include <dataStructures.h>
+#include <dataStructures.hpp>
 #include <functional>
 
 /**

@@ -2,7 +2,8 @@
 // Created by lupo on 04.07.26.
 //
 
-#include <Renderer.h>
+#include <Renderer.hpp>
+#include <utf8_stuff.hpp>
 
 inline char32_t Renderer::get_char(const float &luminance) const {
     const size_t charset_length = this->config.charset.length();
@@ -27,7 +28,7 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
                 output += std::to_string(pixel.b);
                 output += "m";
 
-                output += utf32_to_utf8(get_char(pixel.luminance()));
+                output += utf_8_stuff::utf32_to_utf8(get_char(pixel.luminance()));
 
                 output += "\033[0m";
             }
@@ -37,7 +38,7 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
         for (int y = 0; y < frame.height; ++y) {
             for (int x = 0; x < frame.width; ++x) {
                 const auto& pixel = frame.data[y * frame.width + x];
-                output += utf32_to_utf8(get_char(pixel.luminance()));
+                output += utf_8_stuff::utf32_to_utf8(get_char(pixel.luminance()));
             }
             output += '\n';
         }

@@ -1,12 +1,12 @@
-#include "AudioPlayer.h"
-#include "SyncClock.h"
+#include <AudioPlayer.hpp>
+#include <SyncClock.hpp>
+#include <utf8_stuff.hpp>
 
 
-#include <GenerateFrames.h>
-#include <Renderer.h>
+#include <GenerateFrames.hpp>
+#include <Renderer.hpp>
 #include <cxxopts.hpp>
-#include <dataStructures.h>
-#include <miniaudio.h>
+#include <dataStructures.hpp>
 
 #include <chrono>
 #include <filesystem>
@@ -82,15 +82,15 @@ int main(const int argc, char** argv) {
     }
 
     const std::string input = parse_result["i"].as<std::string>();
-    const int frame_rate = parse_result["f"].as<int>();
     const std::string charset = parse_result["c"].as<std::string>();
-    const bool verbose = parse_result["v"].as<bool>();
     const int width = parse_result["w"].as<int>();
     const int height = parse_result["h"].as<int>();
+    const int frame_rate = parse_result["f"].as<int>();
+    const bool verbose = parse_result["v"].as<bool>();
     const bool no_output = parse_result["no-output"].as<bool>();
     const bool no_color = parse_result["no-color"].as<bool>();
     const bool no_audio = parse_result["no-audio"].as<bool>();
-    std::u32string charset32 = utf8_to_utf32(charset);
+    std::u32string charset32 = utf_8_stuff::utf8_to_utf32(charset);
     VERBOSE_MODE = verbose;
 
     const std::filesystem::path input_path = input;
@@ -139,7 +139,7 @@ int main(const int argc, char** argv) {
     VERBOSE("Configure Renderer");
     Renderer renderer;
     renderer.config.color = !no_color;
-    if (!charset.empty()) {
+    if (!charset32.empty()) {
         renderer.config.charset = charset32;
     }
     VERBOSE("Configured Renderer");

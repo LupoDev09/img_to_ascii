@@ -4,7 +4,7 @@
 
 #ifndef IMG_TO_ASCII_RENDERER_H
 #define IMG_TO_ASCII_RENDERER_H
-#include <dataStructures.h>
+#include <dataStructures.hpp>
 #include <string>
 
 /**

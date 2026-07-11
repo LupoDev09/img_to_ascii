@@ -2,7 +2,7 @@
 // Created by lupo on 04.07.26.
 //
 
-#include <GenerateFrames.h>
+#include <GenerateFrames.hpp>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -20,7 +20,7 @@ extern "C" {
 #include <vector>
 #include <thread>
 
-#include <dataStructures.h>
+#include <dataStructures.hpp>
 
 /**
  * @brief Decode a video file and return scaled RGB frames in memory.

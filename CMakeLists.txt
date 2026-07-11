@@ -17,12 +17,9 @@ pkg_check_modules(FFMPEG REQUIRED
 add_executable(img_to_ascii
         src/main.cpp
         src/Renderer.cpp
-        include/Renderer.h
         src/GenerateFrames.cpp
-        include/dataStructures.h
         src/miniaudio.c
-        include/AudioPlayer.h
-        include/SyncClock.h
+        src/utf8_stuff.cpp
 )
 
 target_include_directories(img_to_ascii PRIVATE
