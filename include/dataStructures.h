@@ -32,7 +32,7 @@ namespace DataStructures {
 inline std::u32string utf8_to_utf32(const std::string& input) {
     std::u32string result;
     result.reserve(input.size());
-    const unsigned char* data = reinterpret_cast<const unsigned char*>(input.data());
+    const auto* data = reinterpret_cast<const unsigned char*>(input.data());
     const size_t size = input.size();
 
     for (size_t i = 0; i < size;) {

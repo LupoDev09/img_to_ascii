@@ -47,6 +47,9 @@ public:
     }
 
     void play() {
+        if (file_has_no_audio) {
+            return;
+        }
         if (audio_file.empty()) {
             throw std::runtime_error("No audio file loaded");
         }
@@ -63,7 +66,7 @@ public:
     }
 
     void stop() {
-        if (playing) {
+        if (playing && !file_has_no_audio) {
             ma_sound_stop(&sound);
             ma_sound_uninit(&sound);
             playing = false;
@@ -84,7 +87,7 @@ public:
     }
 
 private:
-    static void get_audio_file(const std::string& input_file, const std::string& output_file_path) {
+    void get_audio_file(const std::string& input_file, const std::string& output_file_path) {
         AVFormatContext* format_ctx = nullptr;
 
         // Datei öffnen
@@ -108,7 +111,8 @@ private:
 
         if (audio_stream_index == -1) {
             avformat_close_input(&format_ctx);
-            throw std::runtime_error("No audio stream found");
+            file_has_no_audio = true;
+            return;
         }
 
         AVCodecParameters* codecpar = format_ctx->streams[audio_stream_index]->codecpar;
@@ -165,7 +169,7 @@ private:
         }
 
         // WAV Header schreiben (Platzhalter)
-        auto write_wav_header = [&](int sample_rate, int channels) {
+        auto write_wav_header = [&](const int sample_rate, const int channels) {
             out.write("RIFF", 4);
             int32_t chunk_size = 0;
             out.write(reinterpret_cast<char*>(&chunk_size), 4);
@@ -220,8 +224,7 @@ private:
                         );
 
                         // Interleaved schreiben
-                        out.write(reinterpret_cast<char*>(out_buffer),
-                                  samples * 2 * sizeof(int16_t));
+                        out.write(reinterpret_cast<char*>(out_buffer),static_cast<std::streamsize>(samples * 2 * sizeof(int16_t)));
 
                         av_freep(&out_buffer);
                     }
@@ -244,9 +247,7 @@ private:
                 frame->nb_samples
             );
 
-            out.write(reinterpret_cast<char*>(out_buffer),
-                      samples * 2 * sizeof(int16_t));
-
+            out.write(reinterpret_cast<char*>(out_buffer), static_cast<std::streamsize>(samples * 2 * sizeof(int16_t)));
             av_freep(&out_buffer);
         }
 
@@ -279,6 +280,7 @@ private:
 
     std::chrono::steady_clock::time_point start_time;
     bool playing = false;
+    bool file_has_no_audio = false;
 };
 
 #endif // IMG_TO_ASCII_AUDIOPLAYER_H

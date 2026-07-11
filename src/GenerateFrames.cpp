@@ -250,11 +250,12 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
     }
 
     // Flush the decoder to process any remaining frames.
-    avcodec_send_packet(cleanup.dec_ctx, nullptr);
-    while (avcodec_receive_frame(cleanup.dec_ctx, cleanup.frame) >= 0) {
-        if (decoded_frame_index % frame_step == 0) {
-            append_frame(cleanup.frame);
+    if (avcodec_send_packet(cleanup.dec_ctx, nullptr) >= 0) {
+        while (avcodec_receive_frame(cleanup.dec_ctx, cleanup.frame) >= 0) {
+            if (decoded_frame_index % frame_step == 0) {
+                append_frame(cleanup.frame);
+            }
+            ++decoded_frame_index;
         }
-        ++decoded_frame_index;
     }
 }

@@ -35,7 +35,8 @@ int main(const int argc, char** argv) {
 
     // Group: Video / Playback
     options.add_options("Playback")
-    ("f,fps", "Frame rate of the output ascii video (default is source)", cxxopts::value<int>()->default_value("0"));
+    ("f,fps", "Frame rate of the output ascii video (default is source)", cxxopts::value<int>()->default_value("0"))
+    ("no-audio", "Disable audio playback", cxxopts::value<bool>()->default_value("false"));
 
     // Group: Output
     options.add_options("Output")
@@ -68,6 +69,7 @@ int main(const int argc, char** argv) {
     const int height = parse_result["h"].as<int>();
     const bool no_output = parse_result["no-output"].as<bool>();
     const bool no_color = parse_result["no-color"].as<bool>();
+    const bool no_audio = parse_result["no-audio"].as<bool>();
     std::u32string charset32 = utf8_to_utf32(charset);
     VERBOSE_MODE = verbose;
 
@@ -97,6 +99,7 @@ int main(const int argc, char** argv) {
               << "Verbose: " << (verbose ? "true" : "false") << '\n'
               << "No Color: " << (no_color ? "true" : "false") << '\n'
               << "No Output: " << (no_output ? "true" : "false") << '\n'
+              << "No Audio: " << (no_audio ? "true" : "false") << '\n'
               << "Starting video to ascii conversion..." << std::endl;
 
     AudioPlayer audio;
@@ -105,8 +108,13 @@ int main(const int argc, char** argv) {
     std::string audio_file = "audio.wav";
 
     VERBOSE("Loading audio file...");
-    audio.load(input, audio_file);
-    VERBOSE("Audio file loaded successfully.");
+    if (no_audio) {
+        VERBOSE("Audio playback is disabled.");
+    } else {
+        VERBOSE("Audio playback is enabled.");
+        audio.load(input, audio_file);
+        VERBOSE("Audio file loaded successfully.");
+    }
 
     VERBOSE("Configure Renderer");
     Renderer renderer;
@@ -128,7 +136,7 @@ int main(const int argc, char** argv) {
 
             if (first_frame) {
                 clock.start();      // Video-Zeitbasis starten
-                if (!no_output) {
+                if (!no_output && !no_audio) {
                     audio.play();       // Audio startet exakt gleichzeitig
                 }
                 const double source_fps = frame.source_fps; // Setz die Zeit die durchgängig genutzt wird zum Warten
