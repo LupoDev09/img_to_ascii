@@ -17,6 +17,11 @@ AudioPlayer::~AudioPlayer() {
     stop();
     unload();
     ma_engine_uninit(&engine);
+    if (audio_extractor.freeAudioData()) {
+        DEBUG("Audio data freed successfully");
+    } else {
+        DEBUG("Audio data free failed");
+    }
     DEBUG("Audio engine uninitialized successfully");
 }
 

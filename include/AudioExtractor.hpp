@@ -12,40 +12,75 @@
 #include <cstring>
 
 extern "C" {
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
 #include <libswresample/swresample.h>
-#include <libavutil/opt.h>
 }
 
 class AudioExtractor {
 public:
-    // Konstruktor: extrahiert die Audiospur aus der übergebenen Datei
+    /**
+     * @brief Constructs an AudioExtractor and optionally loads an audio file.
+     * @param filepath the file to load (optional)
+     * @throws std::runtime_error if something goes wrong in the extraction process
+     */
     explicit AudioExtractor(const std::string& filepath = "");
 
-    // Destruktor
+    /**
+     * @brief Destroys the AudioExtractor and frees its resources.
+     */
     ~AudioExtractor();
 
     // Keine Kopien oder Zuweisungen
     AudioExtractor(const AudioExtractor&) = delete;
     AudioExtractor& operator=(const AudioExtractor&) = delete;
 
-    // Lädt die Audiospur aus der angegebenen Datei und speichert sie intern
+    /**
+     * @brief Loads an audio file and extracts its audio stream into memory.
+     * @param filepath the path to the file to load
+     * @return whether the extraction was successful
+     * @throws std::runtime_error if the extraction fails
+     */
     [[nodiscard]] bool loadFile(const std::string& filepath);
 
-    // Liefert true, wenn eine Audiospur gefunden wurde
+    /**
+     * @brief Checks if the extractor has successfully extracted an audio stream from the loaded file.
+     * @return whether the extractor has successfully extracted an audio stream from the loaded file
+     */
     [[nodiscard]] bool hasAudio() const;
 
-    // Zeiger auf die extrahierten Audiodaten (nullptr, falls keine Spur vorhanden)
+    /**
+     * @brief Returns a pointer to the extracted audio data.
+     * @return a pointer to the extracted audio data (nullptr if no audio is available)
+     */
     [[nodiscard]] const uint8_t* getAudioData() const;
+
+    /**
+     * @brief Frees the memory allocated for the extracted audio data.
+     * @return whether the operation was successful
+     */
     [[nodiscard]] bool freeAudioData();
 
-    // Größe der Audiodaten in Bytes
+    /**
+     * @brief Returns the size of the extracted audio data in bytes.
+     * @return the size of the extracted audio data in bytes
+     */
     [[nodiscard]] size_t getAudioDataSize() const;
 
-    // Eigenschaften des extrahierten Audios
+    /**
+     * @brief Returns the sample rate of the extracted audio data.
+     * @return the sample rate of the extracted audio data
+     */
     [[nodiscard]] int getSampleRate() const;
+
+    /**
+     * @brief Returns the number of channels in the extracted audio data.
+     * @return the number of channels in the extracted audio data
+     */
     [[nodiscard]] int getChannels() const;
+
+    /**
+     * @brief Returns the sample format of the extracted audio data.
+     * @return the sample format of the extracted audio data
+     */
     [[nodiscard]] AVSampleFormat getSampleFormat() const;
 
 private:
@@ -55,7 +90,11 @@ private:
     AVSampleFormat sampleFmt = AV_SAMPLE_FMT_NONE;
     bool audioFound   = false;
 
-    // Extraktionslogik
+    /**
+     * @brief Extracts the audio stream from the given video file and stores it in memory.
+     * @param filepath the path to the video file from which to extract audio
+     * @throws std::runtime_error if the extraction fails
+     */
     void extractAudio(const std::string& filepath);
 };
 

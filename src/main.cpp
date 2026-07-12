@@ -15,7 +15,6 @@
 namespace fs = std::filesystem;
 
 
-
 /**
  * @brief Convert a video file to ASCII art animation.
  * 
