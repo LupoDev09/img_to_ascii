@@ -24,10 +24,13 @@ namespace DataStructures {
          * Uses the formula: L = 0.2126*R + 0.7152*G + 0.0722*B
          * This weighted average better matches human perception than simple averaging.
          */
-        [[nodiscard]] float luminance() const {
-            return 0.2126f * static_cast<float>(r)
-                 + 0.7152f * static_cast<float>(g)
-                 + 0.0722f * static_cast<float>(b);
+        [[nodiscard]] uint8_t CalculateLuminance() const {
+            /*
+            * Der onliner hier unten entspricht:
+            * 0.2126f * r + 0.7152f * g + 0.0722f * b
+            */
+            
+            return (r*54 + g*183 + b*19) >> 8;
         }
     };
 

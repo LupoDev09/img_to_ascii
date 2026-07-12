@@ -48,6 +48,9 @@ private:
     std::array<std::string, 256> number_lut;  ///< Lookup table for luminance to character mapping
     std::array<std::string, 256> char_lut;   ///< Lookup table for character mapping
 
+    static constexpr std::string_view COLOR_PREFIX = "\033[38;2;";
+    static constexpr std::string_view COLOR_RESET = "\033[0m";
+
     void build_char_lut();
 };
 

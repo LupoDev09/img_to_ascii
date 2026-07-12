@@ -41,9 +41,7 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
 
     if (this->config.color) {
         DEBUG("Rendering with color enabled");
-        output.append("\033[0m");
-        constexpr std::string_view COLOR_PREFIX = "\033[38;2;";
-        constexpr std::string_view COLOR_RESET = "\033[0m";
+        output.append(COLOR_RESET);
 
         uint8_t last_r = 0, last_g = 0, last_b = 0;
 
@@ -71,17 +69,10 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
                     first_pixel_in_line = false;
                 }
 
-                output.append(char_lut[std::clamp(
-                    static_cast<int>(pixel.luminance()),
-                    0,
-                    255
-                    )]);
+                output.append(char_lut[pixel.CalculateLuminance()]);
             }
             output.append(COLOR_RESET);  // Reset color at the end of each line
             output.push_back('\n');
-            last_r = 0;
-            last_g = 0;
-            last_b = 0;
         }
     } else {
         DEBUG("Rendering with color disabled");
@@ -90,13 +81,9 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
             const DataStructures::Pixel * row = &frame.data[y * frame.width];
             for (int x = 0; x < frame.width; ++x) {
                 const auto& pixel = row[x];
-                output.append(char_lut[std::clamp(
-                    static_cast<int>(pixel.luminance()),
-                    0,
-                    255
-                    )]);
+                output.append(char_lut[pixel.CalculateLuminance()]);
             }
-            output.append("\n");
+            output.push_back('\n');
         }
     }
 
