@@ -14,15 +14,15 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
-#include <filesystem>
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <format>
 #include <iostream>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
-#include <thread>
-#include <format>
 
 /**
  * @brief Decode a video file and return scaled RGB frames in memory.
@@ -39,12 +39,12 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
 
     // Keep FFmpeg resources in one place so every early return still frees them.
     struct Cleanup {
-        AVFormatContext* fmt;
-        AVCodecContext*  dec_ctx;
-        AVFrame*         frame;
-        AVFrame*         rgb_frame;
-        SwsContext*      sws;
-        uint8_t*         rgb_buffer;
+        AVFormatContext *fmt;
+        AVCodecContext *dec_ctx;
+        AVFrame *frame;
+        AVFrame *rgb_frame;
+        SwsContext *sws;
+        uint8_t *rgb_buffer;
 
         Cleanup() {
             fmt = nullptr;
@@ -89,8 +89,8 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
         throw std::runtime_error("No video stream found");
     }
 
-    const AVCodecParameters* codec_par = cleanup.fmt->streams[video_stream_index]->codecpar;
-    const AVCodec* dec = avcodec_find_decoder(codec_par->codec_id);
+    const AVCodecParameters *codec_par = cleanup.fmt->streams[video_stream_index]->codecpar;
+    const AVCodec *dec = avcodec_find_decoder(codec_par->codec_id);
     if (!dec) {
         throw std::runtime_error("Failed to find decoder");
     }
@@ -130,11 +130,16 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
 
     auto normalize_pixel_format = [](const AVPixelFormat format) {
         switch (format) {
-            case AV_PIX_FMT_YUVJ420P: return AV_PIX_FMT_YUV420P;
-            case AV_PIX_FMT_YUVJ422P: return AV_PIX_FMT_YUV422P;
-            case AV_PIX_FMT_YUVJ444P: return AV_PIX_FMT_YUV444P;
-            case AV_PIX_FMT_YUVJ440P: return AV_PIX_FMT_YUV440P;
-            default: return format;
+            case AV_PIX_FMT_YUVJ420P:
+                return AV_PIX_FMT_YUV420P;
+            case AV_PIX_FMT_YUVJ422P:
+                return AV_PIX_FMT_YUV422P;
+            case AV_PIX_FMT_YUVJ444P:
+                return AV_PIX_FMT_YUV444P;
+            case AV_PIX_FMT_YUVJ440P:
+                return AV_PIX_FMT_YUV440P;
+            default:
+                return format;
         }
     };
 
@@ -149,24 +154,23 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
     }
 
     cleanup.sws = sws_getContext(
-        cleanup.dec_ctx->width,
-        cleanup.dec_ctx->height,
-        normalize_pixel_format(cleanup.dec_ctx->pix_fmt),
-        target_w,
-        target_h,
-        AV_PIX_FMT_RGB24,
-        SWS_BILINEAR,
-        nullptr,
-        nullptr,
-        nullptr
-    );
+            cleanup.dec_ctx->width,
+            cleanup.dec_ctx->height,
+            normalize_pixel_format(cleanup.dec_ctx->pix_fmt),
+            target_w,
+            target_h,
+            AV_PIX_FMT_RGB24,
+            SWS_BILINEAR,
+            nullptr,
+            nullptr,
+            nullptr);
     if (!cleanup.sws) {
         throw std::runtime_error("Failed to create scaling context");
     }
 
     // Check if the colorspace can be converted
-    if (sws_setColorspaceDetails( cleanup.sws, sws_getCoefficients(SWS_CS_DEFAULT), 0,
-        sws_getCoefficients(SWS_CS_DEFAULT), 1, 0, 1 << 16, 1 << 16) < 0) {
+    if (sws_setColorspaceDetails(cleanup.sws, sws_getCoefficients(SWS_CS_DEFAULT), 0,
+                sws_getCoefficients(SWS_CS_DEFAULT), 1, 0, 1 << 16, 1 << 16) < 0) {
         throw std::runtime_error("Failed to configure colorspace conversion");
     }
 
@@ -175,24 +179,23 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
         throw std::runtime_error("Failed to allocate RGB buffer");
     }
 
-    cleanup.rgb_buffer = static_cast<uint8_t*>(av_malloc(rgb_buffer_size));
+    cleanup.rgb_buffer = static_cast<uint8_t *>(av_malloc(rgb_buffer_size));
     if (!cleanup.rgb_buffer) {
         throw std::runtime_error("Failed to allocate RGB memory");
     }
 
     if (av_image_fill_arrays(
-            cleanup.rgb_frame->data,
-            cleanup.rgb_frame->linesize,
-            cleanup.rgb_buffer,
-            AV_PIX_FMT_RGB24,
-            target_w,
-            target_h,
-            1
-        ) < 0) {
+                cleanup.rgb_frame->data,
+                cleanup.rgb_frame->linesize,
+                cleanup.rgb_buffer,
+                AV_PIX_FMT_RGB24,
+                target_w,
+                target_h,
+                1) < 0) {
         throw std::runtime_error("Failed to bind RGB buffer to frame");
     }
 
-    AVStream* video_stream = cleanup.fmt->streams[video_stream_index];
+    AVStream *video_stream = cleanup.fmt->streams[video_stream_index];
     double source_fps = av_q2d(av_guess_frame_rate(cleanup.fmt, video_stream, nullptr));
     if (source_fps <= 0.0) {
         source_fps = av_q2d(video_stream->avg_frame_rate);
@@ -202,40 +205,38 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
     }
 
     const double effective_fps = (frame_rate > 0)
-    ? static_cast<double>(frame_rate)
-    : source_fps;
+                                         ? static_cast<double>(frame_rate)
+                                         : source_fps;
 
     if (effective_fps <= 0.0) {
         throw std::runtime_error("Could not determine a valid frame rate");
     }
 
     const std::size_t frame_step = std::max<std::size_t>(
-        1,
-        std::llround(source_fps / effective_fps)
-    );
+            1,
+            std::llround(source_fps / effective_fps));
 
     // Convert each decoded frame from the source pixel format into packed RGB24.
-    auto append_frame = [&](const AVFrame * source_frame) {
+    auto append_frame = [&](const AVFrame *source_frame) {
         // scale the frame to the target height and width
         sws_scale(
-            cleanup.sws,
-            source_frame->data,
-            source_frame->linesize,
-            0,
-            cleanup.dec_ctx->height,
-            cleanup.rgb_frame->data,
-            cleanup.rgb_frame->linesize
-        );
+                cleanup.sws,
+                source_frame->data,
+                source_frame->linesize,
+                0,
+                cleanup.dec_ctx->height,
+                cleanup.rgb_frame->data,
+                cleanup.rgb_frame->linesize);
 
         DataStructures::Frame output_frame;
         output_frame.width = target_w;
         output_frame.height = target_h;
-        output_frame.data.resize(static_cast<std::size_t>(target_w) * static_cast<std::size_t>(target_h)); // Reserve space in the vector
+        output_frame.data.resize(static_cast<std::size_t>(target_w) * static_cast<std::size_t>(target_h));// Reserve space in the vector
         output_frame.source_fps = effective_fps;
 
         // write the data in the Frame
         for (int y = 0; y < target_h; ++y) {
-            const uint8_t* row = cleanup.rgb_frame->data[0] + static_cast<std::size_t>(y) * cleanup.rgb_frame->linesize[0];
+            const uint8_t *row = cleanup.rgb_frame->data[0] + static_cast<std::size_t>(y) * cleanup.rgb_frame->linesize[0];
             for (int x = 0; x < target_w; ++x) {
                 const std::size_t index = static_cast<std::size_t>(y) * static_cast<std::size_t>(target_w) + static_cast<std::size_t>(x);
                 const std::size_t rgb_index = static_cast<std::size_t>(x) * 3;

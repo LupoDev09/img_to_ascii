@@ -50,6 +50,10 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
         for (int y = 0; y < frame.height; ++y) {
             bool first_pixel_in_line = true;
             const DataStructures::Pixel * row = &frame.data[y * frame.width];
+#ifdef DEBUG_RENDERER_MODE
+            output.append(std::to_string(y));
+#endif
+
             for (int x = 0; x < frame.width; ++x) {
                 const auto& pixel = row[x];
 

@@ -11,27 +11,25 @@
 #endif
 
 
-static void write_stdout(const std::string& data) {
+static void write_stdout(const std::string &data) {
 #ifdef _WIN32
 
     DWORD written = 0;
     HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 
     WriteFile(
-        stdout_handle,
-        data.data(),
-        static_cast<DWORD>(data.size()),
-        &written,
-        nullptr
-    );
+            stdout_handle,
+            data.data(),
+            static_cast<DWORD>(data.size()),
+            &written,
+            nullptr);
 
 #else
 
     write(
-        STDOUT_FILENO,
-        data.data(),
-        data.size()
-    );
+            STDOUT_FILENO,
+            data.data(),
+            data.size());
 
 #endif
 }

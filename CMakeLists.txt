@@ -130,7 +130,9 @@ else()
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # For your own good just activate one of the two debug modes, not both. you dont want the see the flickering
     target_compile_definitions(img_to_ascii PRIVATE DEBUG_MODE)
+    # target_compile_definitions(img_to_ascii PRIVATE DEBUG_RENDERER_MODE)
 else()
     target_compile_definitions(img_to_ascii PRIVATE NDEBUG)
 endif()

@@ -27,7 +27,7 @@ AudioPlayer::~AudioPlayer() {
 
 void AudioPlayer::load(const std::string &path) {
     DEBUG(std::format("Loading audio file: {}", path));
-    unload(); // Für den Fall das was geladen war, das Freigeben
+    unload();// Für den Fall das was geladen war, das Freigeben
 
     if (audio_extractor.loadFile(path) == false) {
         throw std::runtime_error("Failed to load audio");
@@ -36,21 +36,21 @@ void AudioPlayer::load(const std::string &path) {
 
     if (!audio_extractor.getAudioData()) {
         is_something_loaded = false;
-        return; // Keine Audiodaten, also nichts zu tun
+        return;// Keine Audiodaten, also nichts zu tun
     }
     DEBUG("Audio data available");
 
     // 2. Format für Miniaudio aus den Eigenschaften des Extractor
-    constexpr ma_format format = ma_format_s16;   // wir haben AV_SAMPLE_FMT_S16 als Ziel
+    constexpr ma_format format = ma_format_s16;// wir haben AV_SAMPLE_FMT_S16 als Ziel
     const ma_uint32 channels = audio_extractor.getChannels();
 
     // 3. Audiodaten in den ma_audio_buffer kopieren
     const ma_audio_buffer_config config = ma_audio_buffer_config_init(
-        format,
-        channels,
-        audio_extractor.getAudioDataSize() / (channels * ma_get_bytes_per_sample(format)), // Anzahl Frames
-        audio_extractor.getAudioData(),
-        nullptr   // keine eigene Allokationsfunktion
+            format,
+            channels,
+            audio_extractor.getAudioDataSize() / (channels * ma_get_bytes_per_sample(format)),// Anzahl Frames
+            audio_extractor.getAudioData(),
+            nullptr// keine eigene Allokationsfunktion
     );
     DEBUG("Audio buffer config initialized");
 

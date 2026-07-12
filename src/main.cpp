@@ -172,7 +172,6 @@ int main(const int argc, char** argv) {
                     output.push("\033[2J\033[H"); // Clear screen and move cursor to home position
                 }
 
-
                 first_frame = false;
             }
 
@@ -180,6 +179,7 @@ int main(const int argc, char** argv) {
             const std::string rendered = renderer.render_frame(frame);
 
             if (!no_output) {
+                output.push("\033[H"); // Move cursor to home position for next frame
                 output.push(rendered);
             }
 
