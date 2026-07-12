@@ -3,6 +3,9 @@
 //
 
 #include <GenerateFrames.hpp>
+#include <Verbose.hpp>
+#include <dataStructures.hpp>
+
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -19,8 +22,7 @@ extern "C" {
 #include <utility>
 #include <vector>
 #include <thread>
-
-#include <dataStructures.hpp>
+#include <format>
 
 /**
  * @brief Decode a video file and return scaled RGB frames in memory.
@@ -32,6 +34,9 @@ extern "C" {
  * @param on_frame the function to call when a frame is redy
  */
 void GenerateFrames::generate(const std::filesystem::path &input_path, const int frame_rate, const int width, const int height, const FrameCallback &on_frame) {
+    DEBUG("GenerateFrames: generate got called");
+    DEBUG(std::format("Input path: {}, frame rate: {}, width: {}, height: {}", input_path.string(), frame_rate, width, height));
+
     // Keep FFmpeg resources in one place so every early return still frees them.
     struct Cleanup {
         AVFormatContext* fmt;

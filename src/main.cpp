@@ -118,7 +118,6 @@ int main(const int argc, char** argv) {
 
     std::string audio_file = "audio.wav";
 
-    DEBUG("Loading audio file...");
     if (no_audio) {
         DEBUG("Audio playback is disabled.");
     } else {

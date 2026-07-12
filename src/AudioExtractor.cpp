@@ -84,12 +84,12 @@ int AudioExtractor::getChannels() const {
 }
 
 AVSampleFormat AudioExtractor::getSampleFormat() const {
-    DEBUG(std::format("AudioExtractor: getSampleFormat() called, format = {}", sampleFmt));
+    DEBUG("AudioExtractor: getSampleFormat() called");
     return sampleFmt;
 }
 
 void AudioExtractor::extractAudio(const std::string& filepath) {
-    DEBUG("AudioExtractor: extractAudio() got called with filepath = {}", filepath);
+    DEBUG(std::format("AudioExtractor: extractAudio() got called with filepath = {}", filepath));
 
     // FFmpeg-Strukturen initialisieren
     AVFormatContext* fmtCtx = nullptr;

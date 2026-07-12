@@ -4,8 +4,7 @@
 
 #ifndef IMG_TO_ASCII_SYNCCLOCK_H
 #define IMG_TO_ASCII_SYNCCLOCK_H
-
-#pragma once
+#include "Verbose.hpp"
 #include <chrono>
 #include <thread>
 
@@ -26,6 +25,7 @@ public:
      * Establishes the zero point for all subsequent timing.
      */
     void start() {
+        DEBUG("SyncClock started.");
         start_time = std::chrono::steady_clock::now();
     }
 
@@ -34,6 +34,7 @@ public:
      * @return Elapsed time in milliseconds with floating-point precision
      */
     [[nodiscard]] double now_ms() const {
+        DEBUG("SyncClock: now_ms got called");
         const auto t = std::chrono::steady_clock::now();
         return std::chrono::duration<double, std::milli>(t - start_time).count();
     }
@@ -52,6 +53,8 @@ public:
      * @note This is intended for frame synchronization where target_ms = frame_index * frame_duration
      */
     void wait_until(const double target_ms) const {
+        DEBUG("SyncClock: wait_until got called");
+
         // Maintains stable frame timing without drift by using absolute target time
         while (true) {
             const double current = now_ms();
