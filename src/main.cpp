@@ -12,8 +12,48 @@
 #include <filesystem>
 #include <iostream>
 
-namespace fs = std::filesystem;
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
+// Makes the cursor invisible on construction and visible through a function call or at deconstruction
+struct CursorGuard {
+    CursorGuard() {
+        std::cout << "\033[?25l"; // Hide cursor
+    }
+
+    static void makeVisible() {
+        std::cout << "\033[?25h"; // Show cursor
+    }
+
+    ~CursorGuard() {
+        makeVisible();
+    }
+};
+
+void write_stdout(const std::string& data) {
+#ifdef _WIN32
+    DWORD written = 0;
+    HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    WriteFile(
+        stdout_handle,
+        data.data(),
+        static_cast<DWORD>(data.size()),
+        &written,
+        nullptr
+    );
+
+#else
+    write(
+        STDOUT_FILENO,
+        data.data(),
+        data.size()
+    );
+#endif
+}
 
 /**
  * @brief Convert a video file to ASCII art animation.
@@ -90,7 +130,7 @@ int main(const int argc, char** argv) {
         std::cerr << "Input video file is required" << std::endl;
         return 1;
     }
-    if (!fs::exists(input) || !fs::is_regular_file(input)) {
+    if (!std::filesystem::exists(input) || !std::filesystem::is_regular_file(input)) {
         std::cerr << "Input is invalid" << std::endl;
         return 1;
     }
@@ -130,11 +170,12 @@ int main(const int argc, char** argv) {
     Renderer renderer;
     renderer.config.color = !no_color;
     if (!charset32.empty()) {
-        renderer.config.charset = charset32;
+        renderer.set_charset(charset32);
     }
     DEBUG("Configured Renderer");
 
     DEBUG("Starting frame generation and output...");
+    CursorGuard cursor_guard;
     bool first_frame = true;
     double target_ms = 0.0;
     unsigned int frame_index = 0;
@@ -165,7 +206,7 @@ int main(const int argc, char** argv) {
             const std::string rendered = renderer.render_frame(frame);
 
             if (!no_output) {
-                std::cout << rendered << std::flush;
+                write_stdout(rendered);
             }
 
             // Synchronize with calculated frame time
@@ -173,7 +214,7 @@ int main(const int argc, char** argv) {
             clock.wait_until(expected);
             frame_index++;
     });
-
+    cursor_guard.makeVisible();
     DEBUG("Frame generation and output completed.");
 
     DEBUG("Cleaning up audio resources...");

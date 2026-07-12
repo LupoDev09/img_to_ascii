@@ -9,45 +9,94 @@
 #include <format>
 #include <utf8_stuff.hpp>
 
-inline char32_t Renderer::get_char(const float &luminance) const {
-    const size_t charset_length = this->config.charset.length();
-    const auto index = static_cast<size_t>(luminance / 255.0f * static_cast<float>(charset_length - 1));
-    return this->config.charset.at(index);
+void Renderer::build_char_lut() {
+    const auto& charset = config.charset;
+    const size_t n = charset.size();
+
+    for (size_t i = 0; i < 256; ++i) {
+        const size_t index = static_cast<float>(i) / 255.0f * static_cast<float>(n - 1);
+
+        char_lut[i] = utf_8_stuff::utf32_to_utf8(charset[index]);
+    }
+}
+
+Renderer::Renderer() {
+    // Generiert einen Lookup table für Zahlen, als strings um die nicht immer während des rendering zu generieren
+    for (int i = 0; i < 256; ++i) {
+        number_lut[i] = std::to_string(i);
+    }
+    build_char_lut();
+}
+
+void Renderer::set_charset(const std::u32string &charset) {
+    this->config.charset = charset;
+    // Rebuild the character lookup table
+    this->build_char_lut();
 }
 
 std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
     DEBUG("Renderer: render_frame got called");
     DEBUG(std::format("Rendering frame of size {}x{}", frame.width, frame.height));
     std::string output;
-    output.reserve(frame.width * frame.height * 12);
 
     if (this->config.color) {
         DEBUG("Rendering with color enabled");
+        output.append("\033[0m");
+        constexpr std::string_view COLOR_PREFIX = "\033[38;2;";
+        constexpr std::string_view COLOR_RESET = "\033[0m";
+
+        uint8_t last_r = 0, last_g = 0, last_b = 0;
+
+        // 25 ist die ungefähre anzahl in bytes die ich pro pixel brauche
+        output.reserve(frame.width * frame.height * 26);
         for (int y = 0; y < frame.height; ++y) {
+            bool first_pixel_in_line = true;
+            const DataStructures::Pixel * row = &frame.data[y * frame.width];
             for (int x = 0; x < frame.width; ++x) {
-                const auto& pixel = frame.data[y * frame.width + x];
-                output += "\033[38;2;";
-                output += std::to_string(pixel.r);
-                output += ";";
-                output += std::to_string(pixel.g);
-                output += ";";
-                output += std::to_string(pixel.b);
-                output += "m";
+                const auto& pixel = row[x];
 
-                output += utf_8_stuff::utf32_to_utf8(get_char(pixel.luminance()));
+                // Änder die Ansi sequence nur, wenn sie anders ist als die vorherige oder es der erste frame pixel ist
+                if (first_pixel_in_line || pixel.r != last_r || pixel.g != last_g || pixel.b != last_b) {
+                    output.append(COLOR_PREFIX);
+                    output.append(number_lut[pixel.r]);
+                    output.push_back(';');
+                    output.append(number_lut[pixel.g]);
+                    output.push_back(';');
+                    output.append(number_lut[pixel.b]);
+                    output.push_back('m');
 
-                output += "\033[0m";
+                    last_r = pixel.r;
+                    last_g = pixel.g;
+                    last_b = pixel.b;
+                    first_pixel_in_line = false;
+                }
+
+                output.append(char_lut[std::clamp(
+                    static_cast<int>(pixel.luminance()),
+                    0,
+                    255
+                    )]);
             }
-            output += '\n';
+            output.append(COLOR_RESET);  // Reset color at the end of each line
+            output.push_back('\n');
+            last_r = 0;
+            last_g = 0;
+            last_b = 0;
         }
     } else {
         DEBUG("Rendering with color disabled");
+        output.reserve(frame.width * frame.height * 12);
         for (int y = 0; y < frame.height; ++y) {
+            const DataStructures::Pixel * row = &frame.data[y * frame.width];
             for (int x = 0; x < frame.width; ++x) {
-                const auto& pixel = frame.data[y * frame.width + x];
-                output += utf_8_stuff::utf32_to_utf8(get_char(pixel.luminance()));
+                const auto& pixel = row[x];
+                output.append(char_lut[std::clamp(
+                    static_cast<int>(pixel.luminance()),
+                    0,
+                    255
+                    )]);
             }
-            output += '\n';
+            output.append("\n");
         }
     }
 

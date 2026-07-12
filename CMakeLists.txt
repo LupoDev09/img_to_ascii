@@ -82,7 +82,7 @@ if(NOT FFMPEG_FOUND)
         set(FFMPEG_CFLAGS_OTHER "")
         message(STATUS "FFmpeg found manually: ${FFMPEG_LIBRARIES}")
     else()
-        message(FATAL_ERROR "FFmpeg not found. Set FFMPEG_ROOT or provide paths manually.")
+        message(FATAL_ERROR "FFmpeg not found. Make sure it's installed and set FFMPEG_ROOT or provide paths manually.")
     endif()
 endif()
 

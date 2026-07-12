@@ -4,6 +4,7 @@
 
 #ifndef IMG_TO_ASCII_RENDERER_H
 #define IMG_TO_ASCII_RENDERER_H
+#include <array>
 #include <dataStructures.hpp>
 #include <string>
 
@@ -16,17 +17,9 @@
  * colored terminals or plain text for standard terminals.
  */
 class Renderer {
-    /**
-     * @brief Map a luminance value to a character from the charset.
-     * @param luminance Perceived brightness (0.0 - 255.0)
-     * @return Character corresponding to the luminance level
-     * 
-     * Maps luminance linearly to charset indices, where darker characters represent
-     * lower luminance and brighter characters represent higher luminance.
-     */
-    [[nodiscard]] char32_t get_char(const float &luminance) const;
-
 public:
+    Renderer();
+
     /**
      * @struct Config
      * @brief Rendering configuration options.
@@ -34,9 +27,12 @@ public:
     struct Config {
         /// Enable ANSI color codes in output (true = colored, false = grayscale)
         bool color = true;
+
         /// Character palette for luminance mapping (darker to lighter characters)
         std::u32string charset = U" ░▒▓█";
     } config;
+
+    void set_charset(const std::u32string &charset);
 
     /**
      * @brief Render a video frame into ASCII art.
@@ -48,6 +44,11 @@ public:
      * @return String containing ANSI-formatted ASCII art with embedded control codes
      */
     [[nodiscard]] std::string render_frame(const DataStructures::Frame &frame) const;
+private:
+    std::array<std::string, 256> number_lut;  ///< Lookup table for luminance to character mapping
+    std::array<std::string, 256> char_lut;   ///< Lookup table for character mapping
+
+    void build_char_lut();
 };
 
 #endif// IMG_TO_ASCII_RENDERER_H
