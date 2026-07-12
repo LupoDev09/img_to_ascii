@@ -1,7 +1,7 @@
 #include <AudioPlayer.hpp>
 #include <SyncClock.hpp>
 #include <utf8_stuff.hpp>
-
+#include <Verbose.hpp>
 
 #include <GenerateFrames.hpp>
 #include <Renderer.hpp>
@@ -14,10 +14,6 @@
 
 namespace fs = std::filesystem;
 
-/// Global flag to control verbose logging throughout the application
-bool VERBOSE_MODE = false;
-/// Macro to output messages only when VERBOSE_MODE is enabled
-#define VERBOSE(msg) if (VERBOSE_MODE) std::clog << (msg) << std::endl
 
 
 /**
@@ -65,7 +61,6 @@ int main(const int argc, char** argv) {
 
     // Group: General
     options.add_options("General")
-    ("v,verbose", "Enable verbose diagnostic output to stderr", cxxopts::value<bool>()->default_value("false"))
     ("help", "Print this help message")
     ("no-output", "Process video without outputting ASCII animation to stdout", cxxopts::value<bool>()->default_value("false"));
 
@@ -86,12 +81,10 @@ int main(const int argc, char** argv) {
     const int width = parse_result["w"].as<int>();
     const int height = parse_result["h"].as<int>();
     const int frame_rate = parse_result["f"].as<int>();
-    const bool verbose = parse_result["v"].as<bool>();
     const bool no_output = parse_result["no-output"].as<bool>();
     const bool no_color = parse_result["no-color"].as<bool>();
     const bool no_audio = parse_result["no-audio"].as<bool>();
     std::u32string charset32 = utf_8_stuff::utf8_to_utf32(charset);
-    VERBOSE_MODE = verbose;
 
     const std::filesystem::path input_path = input;
     if (input.empty()) {
@@ -116,7 +109,6 @@ int main(const int argc, char** argv) {
               << "Charset: " << charset << '\n'
               << "Width: " << width << '\n'
               << "Height: " << height << '\n'
-              << "Verbose: " << (verbose ? "true" : "false") << '\n'
               << "No Color: " << (no_color ? "true" : "false") << '\n'
               << "No Output: " << (no_output ? "true" : "false") << '\n'
               << "No Audio: " << (no_audio ? "true" : "false") << '\n'
@@ -127,24 +119,24 @@ int main(const int argc, char** argv) {
 
     std::string audio_file = "audio.wav";
 
-    VERBOSE("Loading audio file...");
+    DEBUG("Loading audio file...");
     if (no_audio) {
-        VERBOSE("Audio playback is disabled.");
+        DEBUG("Audio playback is disabled.");
     } else {
-        VERBOSE("Audio playback is enabled.");
-        audio.load(input, audio_file);
-        VERBOSE("Audio file loaded successfully.");
+        DEBUG("Audio playback is enabled.");
+        audio.load(input);
+        DEBUG("Audio file loaded successfully.");
     }
 
-    VERBOSE("Configure Renderer");
+    DEBUG("Configure Renderer");
     Renderer renderer;
     renderer.config.color = !no_color;
     if (!charset32.empty()) {
         renderer.config.charset = charset32;
     }
-    VERBOSE("Configured Renderer");
+    DEBUG("Configured Renderer");
 
-    VERBOSE("Starting frame generation and output...");
+    DEBUG("Starting frame generation and output...");
     bool first_frame = true;
     double target_ms = 0.0;
     unsigned int frame_index = 0;
@@ -184,13 +176,13 @@ int main(const int argc, char** argv) {
             frame_index++;
     });
 
-    VERBOSE("Frame generation and output completed.");
+    DEBUG("Frame generation and output completed.");
 
-    VERBOSE("Cleaning up audio resources...");
+    DEBUG("Cleaning up audio resources...");
     audio.stop();
-    audio.deleteAudioFile();
-    VERBOSE("Audio file deleted");
+    audio.unload();
+    DEBUG("Audio file deleted");
 
-    VERBOSE("Bye :3");
+    std::cout << "Bye :3" << std::endl;
     return 0;
 }

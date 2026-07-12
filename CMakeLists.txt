@@ -20,6 +20,9 @@ add_executable(img_to_ascii
         src/GenerateFrames.cpp
         src/miniaudio.c
         src/utf8_stuff.cpp
+        src/AudioExtractor.cpp
+        src/AudioPlayer.cpp
+        include/Verbose.hpp
 )
 
 target_include_directories(img_to_ascii PRIVATE
