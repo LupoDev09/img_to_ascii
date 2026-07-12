@@ -54,17 +54,12 @@ public:
      */
     void wait_until(const double target_ms) const {
         DEBUG("SyncClock: wait_until got called");
+        using namespace std::chrono;
 
-        // Maintains stable frame timing without drift by using absolute target time
-        while (true) {
-            const double current = now_ms();
-            if (current >= target_ms) break;
+        const auto start_tp = start_time;
+        const auto target_tp = start_tp + duration<double, std::milli>(target_ms);
 
-            const double sleep_ms = target_ms - current;
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(static_cast<int>(sleep_ms))
-            );
-        }
+        std::this_thread::sleep_until(target_tp);
     }
 
 private:
