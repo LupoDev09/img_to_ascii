@@ -1,22 +1,18 @@
 #include <AudioPlayer.hpp>
-#include <SyncClock.hpp>
-#include <utf8_stuff.hpp>
-#include <Verbose.hpp>
-
 #include <GenerateFrames.hpp>
+#include <OutputWriter.hpp>
 #include <Renderer.hpp>
-#include <cxxopts.hpp>
+#include <SyncClock.hpp>
+#include <Verbose.hpp>
 #include <dataStructures.hpp>
+#include <utf8_stuff.hpp>
+
+#include <cxxopts.hpp>
 
 #include <chrono>
 #include <filesystem>
 #include <iostream>
 
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
 
 // Makes the cursor invisible on construction and visible through a function call or at deconstruction
 struct CursorGuard {
@@ -32,28 +28,6 @@ struct CursorGuard {
         makeVisible();
     }
 };
-
-void write_stdout(const std::string& data) {
-#ifdef _WIN32
-    DWORD written = 0;
-    HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-
-    WriteFile(
-        stdout_handle,
-        data.data(),
-        static_cast<DWORD>(data.size()),
-        &written,
-        nullptr
-    );
-
-#else
-    write(
-        STDOUT_FILENO,
-        data.data(),
-        data.size()
-    );
-#endif
-}
 
 /**
  * @brief Convert a video file to ASCII art animation.
@@ -156,8 +130,6 @@ int main(const int argc, char** argv) {
     AudioPlayer audio;
     SyncClock clock;
 
-    std::string audio_file = "audio.wav";
-
     if (no_audio) {
         DEBUG("Audio playback is disabled.");
     } else {
@@ -176,16 +148,12 @@ int main(const int argc, char** argv) {
 
     DEBUG("Starting frame generation and output...");
     CursorGuard cursor_guard;
+    OutputWriter output;
     bool first_frame = true;
     double target_ms = 0.0;
     unsigned int frame_index = 0;
     GenerateFrames::generate(input_path, frame_rate, width, height,
         [&](DataStructures::Frame&& frame) {
-            // Clear previous frame and move cursor to home position
-            if (!first_frame && !no_output) {
-                std::cout << "\033[2J\033[H";
-            }
-
             // Initialize timing and playback on first frame
             if (first_frame) {
                 clock.start();
@@ -199,6 +167,12 @@ int main(const int argc, char** argv) {
                 ? 1000.0 / frame_rate
                 : 1000.0 / source_fps;
 
+                if (!no_output) {
+                    output.start();
+                    output.push("\033[2J\033[H"); // Clear screen and move cursor to home position
+                }
+
+
                 first_frame = false;
             }
 
@@ -206,7 +180,7 @@ int main(const int argc, char** argv) {
             const std::string rendered = renderer.render_frame(frame);
 
             if (!no_output) {
-                write_stdout(rendered);
+                output.push(rendered);
             }
 
             // Synchronize with calculated frame time
@@ -214,7 +188,8 @@ int main(const int argc, char** argv) {
             clock.wait_until(expected);
             frame_index++;
     });
-    cursor_guard.makeVisible();
+    output.stop();
+    CursorGuard::makeVisible();
     DEBUG("Frame generation and output completed.");
 
     DEBUG("Cleaning up audio resources...");

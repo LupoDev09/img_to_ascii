@@ -105,6 +105,8 @@ add_executable(img_to_ascii
         src/utf8_stuff.cpp
         src/AudioExtractor.cpp
         src/AudioPlayer.cpp
+        src/OutputWriter.cpp
+        include/OutputWriter.hpp
 )
 
 target_include_directories(img_to_ascii PRIVATE
@@ -125,4 +127,10 @@ if(MSVC)
     target_compile_options(img_to_ascii PRIVATE /W4)
 else()
     target_compile_options(img_to_ascii PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(img_to_ascii PRIVATE DEBUG_MODE)
+else()
+    target_compile_definitions(img_to_ascii PRIVATE NDEBUG)
 endif()

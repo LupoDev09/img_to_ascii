@@ -20,6 +20,13 @@ class Renderer {
 public:
     Renderer();
 
+    // Keine Kopien oder Zuweisungen
+    Renderer(const Renderer &) = delete;
+    Renderer &operator=(const Renderer &) = delete;
+    Renderer(Renderer &&) = delete;
+    Renderer &operator=(Renderer &&) = delete;
+
+
     /**
      * @struct Config
      * @brief Rendering configuration options.

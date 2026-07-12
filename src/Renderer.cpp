@@ -14,7 +14,7 @@ void Renderer::build_char_lut() {
     const size_t n = charset.size();
 
     for (size_t i = 0; i < 256; ++i) {
-        const size_t index = static_cast<float>(i) / 255.0f * static_cast<float>(n - 1);
+        const auto index = static_cast<size_t>(static_cast<float>(i) / 255.0f * static_cast<float>(n - 1));
 
         char_lut[i] = utf_8_stuff::utf32_to_utf8(charset[index]);
     }
