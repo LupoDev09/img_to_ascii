@@ -4,6 +4,7 @@ A CLI tool that converts video/image files into real-time ASCII art animations d
 
 ## TODOs
 - [x] Find a way to save the audio in memory instead of saving it in a temporary file
+- [ ] Koppel Sound and Video playback together so that they are in sync even if the fps is changed
 - [ ] Add some kind of progress bar for the audio playback
 - [ ] Add a way to skip frames if the processing is too slow
 - [ ] Add a way to render the subtitle stream of the video if it exists
