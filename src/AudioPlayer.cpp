@@ -111,6 +111,7 @@ bool AudioPlayer::is_playing() const {
 }
 
 double AudioPlayer::get_time_ms() const {
+    DEBUG("get_time_ms got called");
     if (!playing) return 0.0;
 
     const auto now = std::chrono::steady_clock::now();

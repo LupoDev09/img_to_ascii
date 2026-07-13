@@ -70,7 +70,8 @@ int main(const int argc, char** argv) {
     // Group: Output
     options.add_options("Output")
     ("no-color", "Disable ANSI color output (output grayscale only)", cxxopts::value<bool>()->default_value("false"))
-    ("c,charset", "Character palette for ASCII mapping (darker to lighter)", cxxopts::value<std::string>()->default_value(" ░▒▓█"));
+    ("c,charset", "Character palette for ASCII mapping (darker to lighter)", cxxopts::value<std::string>()->default_value(" ░▒▓█"))
+    ("left-pad", "Left padding for each line of ASCII art", cxxopts::value<int>()->default_value("0"));
 
     // Group: General
     options.add_options("General")
@@ -91,6 +92,7 @@ int main(const int argc, char** argv) {
 
     const std::string input = parse_result["i"].as<std::string>();
     const std::string charset = parse_result["c"].as<std::string>();
+    const int left_pad = parse_result["left-pad"].as<int>();
     const int width = parse_result["w"].as<int>();
     const int height = parse_result["h"].as<int>();
     const int frame_rate = parse_result["f"].as<int>();
@@ -113,7 +115,7 @@ int main(const int argc, char** argv) {
         return 1;
     }
     if (height <= 0 && width <= 0) {
-        std::cerr << "Height and width are invalid please provide at least one of them as positiv integer" << std::endl;
+        std::cerr << "Height and width are invalid please provide at least one of them as positive integer" << std::endl;
         return 1;
     }
 
@@ -122,6 +124,7 @@ int main(const int argc, char** argv) {
               << "Charset: " << charset << '\n'
               << "Width: " << width << '\n'
               << "Height: " << height << '\n'
+              << "Left Pad: " << left_pad << '\n'
               << "No Color: " << (no_color ? "true" : "false") << '\n'
               << "No Output: " << (no_output ? "true" : "false") << '\n'
               << "No Audio: " << (no_audio ? "true" : "false") << '\n'
@@ -141,6 +144,7 @@ int main(const int argc, char** argv) {
     DEBUG("Configure Renderer");
     Renderer renderer;
     renderer.config.color = !no_color;
+    renderer.set_left_pad(left_pad);
     if (!charset32.empty()) {
         renderer.set_charset(charset32);
     }

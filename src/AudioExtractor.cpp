@@ -16,6 +16,7 @@ extern "C" {
 }
 
 AudioExtractor::AudioExtractor(const std::string &filepath) {
+    DEBUG("Initialising AudioExtractor");
     if (!filepath.empty()) {
         DEBUG(std::format("AudioExtractor: Loading audio from file: {}", filepath));
         extractAudio(filepath);
@@ -29,6 +30,7 @@ bool AudioExtractor::loadFile(const std::string &filepath) {
         extractAudio(filepath);
         return true;
     } catch (std::exception &e) {
+        DEBUG("AudioExtractor: Failed to load audio");
         std::cerr << std::format("[ERROR] Failed to load audio from {}\n", filepath);
         DEBUG(std::format("[ERROR] Failed to load audio from {}: {}\n", filepath, e.what()));
         return false;

@@ -19,6 +19,7 @@
 class Renderer {
 public:
     Renderer();
+    ~Renderer();
 
     // Keine Kopien oder Zuweisungen
     Renderer(const Renderer &) = delete;
@@ -37,9 +38,15 @@ public:
 
         /// Character palette for luminance mapping (darker to lighter characters)
         std::u32string charset = U" ░▒▓█";
+
+        /// Left padding for each line of ASCII art
+        int left_pad = 0;
+
     } config;
 
     void set_charset(const std::u32string &charset);
+
+    void set_left_pad(int left_pad);
 
     /**
      * @brief Render a video frame into ASCII art.
@@ -52,13 +59,17 @@ public:
      */
     [[nodiscard]] std::string render_frame(const DataStructures::Frame &frame) const;
 private:
-    std::array<std::string, 256> number_lut;  ///< Lookup table for luminance to character mapping
-    std::array<std::string, 256> char_lut;   ///< Lookup table for character mapping
+    std::array<std::string, 256> m_number_lut;  ///< Lookup table for luminance to character mapping
+    std::array<std::string, 256> m_char_lut;   ///< Lookup table for character mapping
+
+    std::string m_left_pad_str;
 
     static constexpr std::string_view COLOR_PREFIX = "\033[38;2;";
     static constexpr std::string_view COLOR_RESET = "\033[0m";
 
     void build_char_lut();
+
+    void build_padding();
 };
 
 #endif// IMG_TO_ASCII_RENDERER_H

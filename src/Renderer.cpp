@@ -10,28 +10,52 @@
 #include <utf8_stuff.hpp>
 
 void Renderer::build_char_lut() {
+    DEBUG("Building character lookup table");
     const auto& charset = config.charset;
     const size_t n = charset.size();
 
     for (size_t i = 0; i < 256; ++i) {
         const auto index = static_cast<size_t>(static_cast<float>(i) / 255.0f * static_cast<float>(n - 1));
+        m_char_lut[i] = utf_8_stuff::utf32_to_utf8(charset[index]);
+    }
+}
 
-        char_lut[i] = utf_8_stuff::utf32_to_utf8(charset[index]);
+void Renderer::build_padding() {
+    DEBUG("Build padding got called");
+    if (int pad = config.left_pad; pad > 0) {
+        DEBUG("Left padding is set");
+        for (; pad > 0; --pad) {
+            m_left_pad_str.push_back(' ');
+        }
+    } else {
+        DEBUG("Left padding is disabled");
+        m_left_pad_str.clear();
     }
 }
 
 Renderer::Renderer() {
+    DEBUG("Initializing Renderer");
     // Generiert einen Lookup table für Zahlen, als strings um die nicht immer während des rendering zu generieren
     for (int i = 0; i < 256; ++i) {
-        number_lut[i] = std::to_string(i);
+        m_number_lut[i] = std::to_string(i);
     }
     build_char_lut();
 }
+Renderer::~Renderer() {
+    DEBUG("Destroying Renderer");
+}
 
 void Renderer::set_charset(const std::u32string &charset) {
+    DEBUG("set_charset got called");
     this->config.charset = charset;
     // Rebuild the character lookup table
     this->build_char_lut();
+}
+
+void Renderer::set_left_pad(const int left_pad) {
+    DEBUG("set_left_pad got called with pad: " + std::to_string(left_pad));
+    this->config.left_pad = left_pad;
+    build_padding();
 }
 
 std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
@@ -46,7 +70,7 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
         uint8_t last_r = 0, last_g = 0, last_b = 0;
 
         // 25 ist die ungefähre anzahl in bytes die ich pro pixel brauche
-        output.reserve(frame.width * frame.height * 26);
+        output.reserve(frame.width * frame.height * 26 + m_left_pad_str.size() * frame.height);
         for (int y = 0; y < frame.height; ++y) {
             bool first_pixel_in_line = true;
             const DataStructures::Pixel * row = &frame.data[y * frame.width];
@@ -54,17 +78,18 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
             output.append(std::to_string(y));
 #endif
 
+            output.append(m_left_pad_str);
             for (int x = 0; x < frame.width; ++x) {
                 const auto& pixel = row[x];
 
                 // Änder die Ansi sequence nur, wenn sie anders ist als die vorherige oder es der erste frame pixel ist
                 if (first_pixel_in_line || pixel.r != last_r || pixel.g != last_g || pixel.b != last_b) {
                     output.append(COLOR_PREFIX);
-                    output.append(number_lut[pixel.r]);
+                    output.append(m_number_lut[pixel.r]);
                     output.push_back(';');
-                    output.append(number_lut[pixel.g]);
+                    output.append(m_number_lut[pixel.g]);
                     output.push_back(';');
-                    output.append(number_lut[pixel.b]);
+                    output.append(m_number_lut[pixel.b]);
                     output.push_back('m');
 
                     last_r = pixel.r;
@@ -73,19 +98,19 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
                     first_pixel_in_line = false;
                 }
 
-                output.append(char_lut[pixel.CalculateLuminance()]);
+                output.append(m_char_lut[pixel.CalculateLuminance()]);
             }
             output.append(COLOR_RESET);  // Reset color at the end of each line
             output.push_back('\n');
         }
     } else {
         DEBUG("Rendering with color disabled");
-        output.reserve(frame.width * frame.height * 12);
+        output.reserve(frame.width * frame.height * 12 + m_left_pad_str.size() * frame.height);
         for (int y = 0; y < frame.height; ++y) {
             const DataStructures::Pixel * row = &frame.data[y * frame.width];
             for (int x = 0; x < frame.width; ++x) {
                 const auto& pixel = row[x];
-                output.append(char_lut[pixel.CalculateLuminance()]);
+                output.append(m_char_lut[pixel.CalculateLuminance()]);
             }
             output.push_back('\n');
         }
