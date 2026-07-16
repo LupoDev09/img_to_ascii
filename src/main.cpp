@@ -14,20 +14,22 @@
 #include <iostream>
 
 
-// Makes the cursor invisible on construction and visible through a function call or at deconstruction
-struct CursorGuard {
-    CursorGuard() {
-        std::cout << "\033[?25l"; // Hide cursor
-    }
+namespace {
+    // Makes the cursor invisible on construction and visible through a function call or at deconstruction
+    struct CursorGuard {
+        CursorGuard() {
+            std::cout << "\033[?25l";// Hide cursor
+        }
 
-    static void makeVisible() {
-        std::cout << "\033[?25h"; // Show cursor
-    }
+        static void makeVisible() {
+            std::cout << "\033[?25h";// Show cursor
+        }
 
-    ~CursorGuard() {
-        makeVisible();
-    }
-};
+        ~CursorGuard() {
+            makeVisible();
+        }
+    };
+}// namespace
 
 /**
  * @brief Convert a video file to ASCII art animation.
@@ -50,7 +52,7 @@ struct CursorGuard {
  * 
  * @return 0 on success, 1 on error
  */
-int main(const int argc, char** argv) {
+int main(int argc, char** argv) {
     cxxopts::Options options("Img_to_ascii", "Convert video files to ASCII art animations");
 
     // Group: Input
@@ -78,7 +80,34 @@ int main(const int argc, char** argv) {
     ("help", "Print this help message")
     ("no-output", "Process video without outputting ASCII animation to stdout", cxxopts::value<bool>()->default_value("false"));
 
+#ifdef DEBUG_MODE
+    DEBUG("Hallo Ich muss argc ihrgendwie nutzen deshalb hier der Wert " + std::to_string(argc));
+
+    std::vector<std::string> mock_argv = {
+        argv[0], // argv[0] muss existieren!
+        "--input", "/home/lupo/CLionProjects/img_to_ascii/Silly_Cat_Character.jpg",
+        "--width", "50"
+    };
+
+    std::vector<const char*> argv_ptrs;
+
+    argv_ptrs.reserve(mock_argv.size());
+
+    // Wir konvertieren jeden std::string zu const char*
+    for (const auto& arg : mock_argv) {
+        argv_ptrs.emplace_back(arg.c_str());
+        // c_str() gibt Pointer auf internen String zurück
+    }
+
+    int mock_argc = static_cast<int>(argv_ptrs.size());
+    auto mock_argv_ptr = const_cast<char**>(argv_ptrs.data());
+    // const_cast nötig weil cxxopts kein const akzeptiert
+
+    const cxxopts::ParseResult parse_result = options.parse(mock_argc, mock_argv_ptr);
+#else
     const cxxopts::ParseResult parse_result = options.parse(argc, argv);
+#endif
+
     if (parse_result.count("help")) {
         std::cout << options.help() << std::endl;
         return 0;
