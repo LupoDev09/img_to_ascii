@@ -32,6 +32,10 @@ A CLI tool that converts video/image files into real-time ASCII art animations d
 
 ### Build Instructions
 
+you will need to have ffmpeg development libraries installed for your system.\
+If you use linux you can install them with your package manager.\
+If you use Windows good luck, I don't know how to install them on Windows, in fact I never got it to successfully link on their.
+
 ```bash
 mkdir build
 cd build
@@ -101,18 +105,26 @@ Process without output (useful for performance testing):
 
 ```
 include/
-  ├── dataStructures.h      # Core data structures (Pixel, Frame) and UTF-8/UTF-32 conversion utilities
-  ├── Renderer.h             # ASCII art rendering engine
-  ├── GenerateFrames.h       # Video decoding and frame extraction
-  ├── AudioPlayer.h          # Audio extraction and playback
-  ├── SyncClock.h            # High-precision timing for frame synchronization
-  ├── cxxopts.hpp            # Command-line argument parsing library
-  └── miniaudio.h            # Audio playback library (header-only)
+├── AudioExtractor.hpp     # Audio extraction interface
+├── AudioPlayer.hpp        # Audioplayer declaration
+├── cxxopts.hpp            # Command-line argument parsing library (not mine)
+├── dataStructures.hpp     # Core data structures (Pixel, Frame)
+├── GenerateFrames.hpp     # Video decoding and frame extraction
+├── miniaudio.h            # Audio playback library (header-only (also not mine)
+├── OutputWriter.hpp       # Output writer for ASCII frames to stdout
+├── Renderer.hpp           # ASCII art rendering
+├── SyncClock.hpp          # High-precision timing for frame synchronization
+├── utf8_stuff.hpp         # UTF-8/UTF-32 conversion utilities
+└── Verbose.hpp            # Debug macro
 src/
-  ├── main.cpp               # Application entry point and CLI logic
-  ├── Renderer.cpp           # Renderer implementation
-  ├── GenerateFrames.cpp     # Frame generation implementation
-  └── AudioPlayer.cpp        # (if separate implementation exists)
+├── AudioExtractor.cpp     # Audio extraction implementation
+├── AudioPlayer.cpp        # Audio playback implementation
+├── GenerateFrames.cpp     # Video decoding and frame extraction implementation
+├── main.cpp               # Application entry point and CLI logic
+├── miniaudio.c            # Audio playback implementation interface
+├── OutputWriter.cpp       # Output writer implementation
+├── Renderer.cpp           # ASCII art rendering implementation
+└── utf8_stuff.cpp         # UTF-8/UTF-32 conversion utilities implementation
 ```
 
 ## Architecture
@@ -174,7 +186,6 @@ This better matches human visual perception than simple averaging.
 
 - **Memory**: Frames are processed one at a time; memory usage is proportional to output dimensions
 - **CPU**: Real-time playback requires reasonable processing power; reduce dimensions for lower-end systems
-- **I/O**: Audio is extracted to temporary WAV file; ensure sufficient disk space
 - **Timing**: Uses high-resolution timer (steady_clock) for frame-perfect timing
 
 ## Troubleshooting
@@ -182,12 +193,11 @@ This better matches human visual perception than simple averaging.
 ### Video not displaying
 - Ensure FFmpeg is installed: `ffmpeg -version`
 - Check video format is supported
-- Try with `--verbose` flag for diagnostic output
 
 ### Audio not playing
 - Verify video contains audio: `ffmpeg -i video.mp4`
 - Check miniaudio can access audio device
-- Try `--no-audio` flag to skip audio playback
+- Try `--no-audio` flag to skip audio playback (this does not fix the problem but it allows you to skip the audio part)
 
 ### Timing issues
 - Reduce output dimensions to improve frame processing speed
