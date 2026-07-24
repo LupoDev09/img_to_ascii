@@ -5,7 +5,7 @@
 #include <SyncClock.hpp>
 #include <Verbose.hpp>
 #include <dataStructures.hpp>
-#include <utf8_stuff.hpp>
+#include <utf8/checked.h>
 
 #include <cxxopts.hpp>
 
@@ -130,7 +130,8 @@ int main(int argc, char** argv) {
     const bool no_output = parse_result["no-output"].as<bool>();
     const bool no_color = parse_result["no-color"].as<bool>();
     const bool no_audio = parse_result["no-audio"].as<bool>();
-    std::u32string charset32 = utf_8_stuff::utf8_to_utf32(charset);
+    std::u32string charset32;
+    utf8::utf8to32(charset.begin(), charset.end(), std::back_inserter(charset32));
 
     const std::filesystem::path input_path = input;
     if (input.empty()) {

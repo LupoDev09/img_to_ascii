@@ -7,7 +7,7 @@
 #include "Verbose.hpp"
 
 #include <format>
-#include <utf8_stuff.hpp>
+#include <utf8.h>
 
 void Renderer::build_char_lut() {
     DEBUG("Building character lookup table");
@@ -16,7 +16,7 @@ void Renderer::build_char_lut() {
 
     for (size_t i = 0; i < 256; ++i) {
         const auto index = static_cast<size_t>(static_cast<float>(i) / 255.0f * static_cast<float>(n - 1));
-        m_char_lut[i] = utf_8_stuff::utf32_to_utf8(charset[index]);
+        utf8::utf32to8(&charset[index], &charset[index + 1], std::back_inserter(m_char_lut[i]));
     }
 }
 

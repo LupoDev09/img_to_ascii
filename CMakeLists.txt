@@ -102,7 +102,6 @@ add_executable(img_to_ascii
         src/Renderer.cpp
         src/GenerateFrames.cpp
         src/miniaudio.c
-        src/utf8_stuff.cpp
         src/AudioExtractor.cpp
         src/AudioPlayer.cpp
         src/OutputWriter.cpp
