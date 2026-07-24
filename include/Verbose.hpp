@@ -5,12 +5,16 @@
 #ifndef IMG_TO_ASCII_VERBOSE_HPP
 #define IMG_TO_ASCII_VERBOSE_HPP
 #include <iostream>
+#include <string_view>
 
-/// Macro to output messages only when DEBUG_MODE is enabled
-#ifdef DEBUG_MODE
-#define DEBUG(msg) std::clog << (msg) << '\n'
+// Debug-Makro: Nur aktiv, wenn NDEBUG NICHT definiert ist (z. B. in Debug-Builds)
+#ifdef NDEBUG
+    #define DEBUG(message) ((void)0)  // Wird zu nichts kompiliert
 #else
-#define DEBUG(msg)
+    #define DEBUG(message) \
+        do { \
+            std::cerr << "[DEBUG] " << __FILE__ << ":" << __LINE__ << " (" << __func__ << "): " << message << "\n"; \
+        } while (0)
 #endif
 
 #endif// IMG_TO_ASCII_VERBOSE_HPP
