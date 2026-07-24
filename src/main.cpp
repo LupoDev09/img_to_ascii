@@ -122,8 +122,10 @@ int main(int argc, char** argv) {
     const std::string input = parse_result["i"].as<std::string>();
     const std::string charset = parse_result["c"].as<std::string>();
     const int left_pad = parse_result["left-pad"].as<int>();
-    const int width = parse_result["w"].as<int>();
-    const int height = parse_result["h"].as<int>();
+
+    // Saves the width and height in this pair where the width is the first and the height the second element
+    const std::pair image_dimensions = { parse_result["w"].as<int>(), parse_result["h"].as<int>() };
+
     const int frame_rate = parse_result["f"].as<int>();
     const bool no_output = parse_result["no-output"].as<bool>();
     const bool no_color = parse_result["no-color"].as<bool>();
@@ -143,7 +145,7 @@ int main(int argc, char** argv) {
         std::cerr << "Frame rate is invalid" << std::endl;
         return 1;
     }
-    if (height <= 0 && width <= 0) {
+    if (image_dimensions.second <= 0 && image_dimensions.first<= 0) {
         std::cerr << "Height and width are invalid please provide at least one of them as positive integer" << std::endl;
         return 1;
     }
@@ -151,8 +153,8 @@ int main(int argc, char** argv) {
     std::cout << "Input video file: " << input << '\n'
               << "Frame rate: " << (frame_rate > 0 ? std::to_string(frame_rate) : "use source") << '\n'
               << "Charset: " << charset << '\n'
-              << "Width: " << width << '\n'
-              << "Height: " << height << '\n'
+              << "Width: " << image_dimensions.first<< '\n'
+              << "Height: " << image_dimensions.second << '\n'
               << "Left Pad: " << left_pad << '\n'
               << "No Color: " << (no_color ? "true" : "false") << '\n'
               << "No Output: " << (no_output ? "true" : "false") << '\n'
@@ -185,7 +187,7 @@ int main(int argc, char** argv) {
     bool first_frame = true;
     double target_ms = 0.0;
     unsigned int frame_index = 0;
-    GenerateFrames::generate(input_path, frame_rate, width, height,
+    GenerateFrames::generate(input_path, frame_rate, image_dimensions.first, image_dimensions.second,
         [&](DataStructures::Frame&& frame) {
             // Initialize timing and playback on first frame
             if (first_frame) {
