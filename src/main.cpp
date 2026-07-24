@@ -1,3 +1,6 @@
+#define MINIAUDIO_IMPLEMENTATION
+#include <miniaudio.h>
+
 #include <AudioPlayer.hpp>
 #include <GenerateFrames.hpp>
 #include <OutputWriter.hpp>
