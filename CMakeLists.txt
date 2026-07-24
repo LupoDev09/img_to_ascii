@@ -104,6 +104,7 @@ add_executable(img_to_ascii
         src/AudioExtractor.cpp
         src/AudioPlayer.cpp
         src/OutputWriter.cpp
+        src/SyncClock.cpp
 )
 
 target_include_directories(img_to_ascii PRIVATE

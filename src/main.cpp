@@ -1,4 +1,5 @@
 #define MINIAUDIO_IMPLEMENTATION
+// ReSharper disable once CppUnusedIncludeDirective
 #include <miniaudio.h>
 
 #include <AudioPlayer.hpp>
@@ -7,14 +8,12 @@
 #include <Renderer.hpp>
 #include <SyncClock.hpp>
 #include <Verbose.hpp>
-#include <dataStructures.hpp>
-#include <utf8/checked.h>
-
-#include <cxxopts.hpp>
-
 #include <chrono>
+#include <cxxopts.hpp>
+#include <dataStructures.hpp>
 #include <filesystem>
 #include <iostream>
+#include <utf8/checked.h>
 
 
 namespace {
@@ -88,7 +87,7 @@ int main(int argc, char** argv) {
 
     std::vector<std::string> mock_argv = {
         argv[0], // argv[0] muss existieren!
-        "--input", "/home/lupo/CLionProjects/img_to_ascii/Silly_Cat_Character.jpg",
+        "--input", "/home/lupo/CLionProjects/img_to_ascii/funny.gif",
         "--width", "50"
     };
 
@@ -234,7 +233,7 @@ int main(int argc, char** argv) {
     DEBUG("Cleaning up audio resources...");
     audio.stop();
     audio.unload();
-    DEBUG("Audio file deleted");
+    DEBUG("Audio unloaded");
 
     std::cout << "Bye :3" << std::endl;
     return 0;
