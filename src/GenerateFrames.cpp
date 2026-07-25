@@ -239,7 +239,7 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
             for (int x = 0; x < target_w; ++x) {
                 const std::size_t index = static_cast<std::size_t>(y) * static_cast<std::size_t>(target_w) + static_cast<std::size_t>(x);
                 const std::size_t rgb_index = static_cast<std::size_t>(x) * 3;
-                output_frame.data[index] = {row[rgb_index], row[rgb_index + 1], row[rgb_index + 2]};
+                output_frame.data[index] = {.r = row[rgb_index], .g = row[rgb_index + 1], .b = row[rgb_index + 2]};
             }
         }
 
