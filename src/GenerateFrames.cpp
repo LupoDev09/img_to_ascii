@@ -4,6 +4,7 @@
 
 #include <GenerateFrames.hpp>
 #include <Verbose.hpp>
+#include <cstring>
 #include <dataStructures.hpp>
 
 
@@ -22,6 +23,7 @@ extern "C" {
 #include <format>
 #include <utility>
 #include <vector>
+
 
 /**
  * @brief Decode a video file and return scaled RGB frames in memory.
@@ -162,7 +164,7 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
             target_w,
             target_h,
             AV_PIX_FMT_RGB24,
-            SWS_BILINEAR,
+            SWS_FAST_BILINEAR,
             nullptr,
             nullptr,
             nullptr);
@@ -239,11 +241,7 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
         // write the data in the Frame
         for (int y = 0; y < target_h; ++y) {
             const uint8_t *row = cleanup.rgb_frame->data[0] + static_cast<std::size_t>(y) * cleanup.rgb_frame->linesize[0];
-            for (int x = 0; x < target_w; ++x) {
-                const std::size_t index = static_cast<std::size_t>(y) * static_cast<std::size_t>(target_w) + static_cast<std::size_t>(x);
-                const std::size_t rgb_index = static_cast<std::size_t>(x) * 3;
-                output_frame.data[index] = {.r = row[rgb_index], .g = row[rgb_index + 1], .b = row[rgb_index + 2]};
-            }
+            std::memcpy(&output_frame.data[static_cast<std::size_t>(y) * target_w], row, static_cast<std::size_t>(target_w) * 3);
         }
 
         on_frame(std::move(output_frame));
