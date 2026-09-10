@@ -33,17 +33,16 @@ namespace {
     };
 
     struct FrameHandler {
-        SyncClock& clock;
-        AudioPlayer* audio;
-        OutputWriter& output;
         Renderer& renderer;
+        AudioPlayer* audio; // Not owning
+        OutputWriter& output;
+        SyncClock& clock;
+        int frame_rate;
+        unsigned int frame_index = 0;
+        double target_ms = 0.0;
         bool no_output;
         bool no_audio;
-        int frame_rate;
-
         bool first_frame = true;
-        double target_ms = 0.0;
-        unsigned int frame_index = 0;
 
         void operator()(DataStructures::Frame&& frame) {
             if (first_frame) {
@@ -182,7 +181,6 @@ int main(int argc, char** argv) {
     std::u32string charset32;
     utf8::utf8to32(charset.begin(), charset.end(), std::back_inserter(charset32));
 
-    const std::filesystem::path input_path = input;
     if (input.empty()) {
         std::cerr << "Input video file is required" << std::endl;
         return 1;
@@ -211,14 +209,14 @@ int main(int argc, char** argv) {
               << "No Audio: " << (no_audio ? "true" : "false") << '\n'
               << "Starting video to ascii conversion..." << std::endl;
 
-    AudioPlayer* audio = nullptr;
+    std::unique_ptr<AudioPlayer> audio = nullptr;
     SyncClock clock;
 
     if (no_audio) {
         DEBUG("Audio playback is disabled.");
     } else {
         DEBUG("Audio playback is enabled.");
-        audio = new AudioPlayer();
+        audio = std::make_unique<AudioPlayer>();
         audio->load(input);
         DEBUG("Audio file loaded successfully.");
     }
@@ -236,19 +234,17 @@ int main(int argc, char** argv) {
     CursorGuard cursor_guard;
     OutputWriter output;
 
-    FrameHandler handler{clock, audio, output, renderer, no_output, no_audio, frame_rate};
-    GenerateFrames::generate(input_path, frame_rate, image_dimensions.first, image_dimensions.second, handler);
+    FrameHandler handler{.renderer = renderer, .audio = audio.get(), .output = output, .clock = clock, .frame_rate = frame_rate, .no_output = no_output, .no_audio = no_audio};
+    GenerateFrames::generate(input, frame_rate, image_dimensions.first, image_dimensions.second, handler);
 
     output.stop();
     CursorGuard::makeVisible();
     DEBUG("Frame generation and output completed.");
 
     DEBUG("Cleaning up audio resources...");
-    if (audio != nullptr) {
+    if (audio) {
         audio->stop();
         audio->unload();
-        delete audio;
-        audio = nullptr;
     }
     DEBUG("Audio unloaded");
 
