@@ -31,7 +31,53 @@ namespace {
             makeVisible();
         }
     };
-}// namespace
+
+    struct FrameHandler {
+        SyncClock& clock;
+        AudioPlayer* audio;
+        OutputWriter& output;
+        Renderer& renderer;
+        bool no_output;
+        bool no_audio;
+        int frame_rate;
+
+        bool first_frame = true;
+        double target_ms = 0.0;
+        unsigned int frame_index = 0;
+
+        void operator()(DataStructures::Frame&& frame) {
+            if (first_frame) {
+                clock.start();
+                if (!no_output && !no_audio && audio != nullptr) {
+                    audio->play();
+                }
+                const double source_fps = frame.source_fps;
+
+                target_ms = frame_rate > 0
+                    ? 1000.0 / frame_rate
+                    : 1000.0 / source_fps;
+
+                if (!no_output) {
+                    output.start();
+                    output.push("\033[2J\033[H");
+                }
+
+                first_frame = false;
+            }
+
+            const std::string rendered = renderer.render_frame(frame);
+
+            if (!no_output) {
+                output.push("\033[H");
+                output.push(rendered);
+            }
+
+            const double expected = frame_index * target_ms;
+            clock.wait_until(expected);
+            frame_index++;
+        }
+    };
+}
 
 /**
  * @brief Convert a video file to ASCII art animation.
@@ -88,7 +134,8 @@ int main(int argc, char** argv) {
     std::vector<std::string> mock_argv = {
         argv[0], // argv[0] muss existieren!
         "--input", "/home/lupo/CLionProjects/img_to_ascii/funny.gif",
-        "--width", "50"
+        "--width", "50",
+        "--no-audio"
     };
 
     std::vector<const char*> argv_ptrs;
@@ -164,14 +211,15 @@ int main(int argc, char** argv) {
               << "No Audio: " << (no_audio ? "true" : "false") << '\n'
               << "Starting video to ascii conversion..." << std::endl;
 
-    AudioPlayer audio;
+    AudioPlayer* audio = nullptr;
     SyncClock clock;
 
     if (no_audio) {
         DEBUG("Audio playback is disabled.");
     } else {
         DEBUG("Audio playback is enabled.");
-        audio.load(input);
+        audio = new AudioPlayer();
+        audio->load(input);
         DEBUG("Audio file loaded successfully.");
     }
 
@@ -187,52 +235,21 @@ int main(int argc, char** argv) {
     DEBUG("Starting frame generation and output...");
     CursorGuard cursor_guard;
     OutputWriter output;
-    bool first_frame = true;
-    double target_ms = 0.0;
-    unsigned int frame_index = 0;
-    GenerateFrames::generate(input_path, frame_rate, image_dimensions.first, image_dimensions.second,
-        [&](DataStructures::Frame&& frame) {
-            // Initialize timing and playback on first frame
-            if (first_frame) {
-                clock.start();
-                if (!no_output && !no_audio) {
-                    audio.play();
-                }
-                const double source_fps = frame.source_fps;
 
-                // Calculate target time per frame (either custom fps or source fps)
-                target_ms = frame_rate > 0
-                ? 1000.0 / frame_rate
-                : 1000.0 / source_fps;
+    FrameHandler handler{clock, audio, output, renderer, no_output, no_audio, frame_rate};
+    GenerateFrames::generate(input_path, frame_rate, image_dimensions.first, image_dimensions.second, handler);
 
-                if (!no_output) {
-                    output.start();
-                    output.push("\033[2J\033[H"); // Clear screen and move cursor to home position
-                }
-
-                first_frame = false;
-            }
-
-            // Convert frame to ASCII art
-            const std::string rendered = renderer.render_frame(frame);
-
-            if (!no_output) {
-                output.push("\033[H"); // Move cursor to home position for next frame
-                output.push(rendered);
-            }
-
-            // Synchronize with calculated frame time
-            const double expected = frame_index * target_ms;
-            clock.wait_until(expected);
-            frame_index++;
-    });
     output.stop();
     CursorGuard::makeVisible();
     DEBUG("Frame generation and output completed.");
 
     DEBUG("Cleaning up audio resources...");
-    audio.stop();
-    audio.unload();
+    if (audio != nullptr) {
+        audio->stop();
+        audio->unload();
+        delete audio;
+        audio = nullptr;
+    }
     DEBUG("Audio unloaded");
 
     std::cout << "Bye :3" << std::endl;
