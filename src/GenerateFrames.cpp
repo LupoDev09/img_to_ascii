@@ -38,6 +38,7 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
 
     // Keep FFmpeg resources in one place so every early return still frees them.
     struct Cleanup {
+        AVPacket* pkt = av_packet_alloc();
         AVFormatContext *fmt;
         AVCodecContext *dec_ctx;
         AVFrame *frame;
@@ -52,6 +53,7 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
             rgb_frame = nullptr;
             sws = nullptr;
             rgb_buffer = nullptr;
+            pkt = nullptr;
         }
 
         ~Cleanup() {
@@ -61,6 +63,7 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
             sws_freeContext(sws);
             avcodec_free_context(&dec_ctx);
             avformat_close_input(&fmt);
+            av_packet_free(&pkt);
         }
     } cleanup;
 
@@ -247,11 +250,11 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
     };
 
     // Decode packets, convert the chosen frames, and keep only the sampled result.
-    AVPacket pkt;
+    cleanup.pkt = av_packet_alloc();
     std::size_t decoded_frame_index = 0;
-    while (av_read_frame(cleanup.fmt, &pkt) >= 0) {
-        if (pkt.stream_index == video_stream_index) {
-            if (avcodec_send_packet(cleanup.dec_ctx, &pkt) >= 0) {
+    while (av_read_frame(cleanup.fmt, cleanup.pkt) >= 0) {
+        if (cleanup.pkt->stream_index == video_stream_index) {
+            if (avcodec_send_packet(cleanup.dec_ctx, cleanup.pkt) >= 0) {
                 while (avcodec_receive_frame(cleanup.dec_ctx, cleanup.frame) >= 0) {
                     if (decoded_frame_index % frame_step == 0) {
                         append_frame(cleanup.frame);
@@ -260,7 +263,7 @@ void GenerateFrames::generate(const std::filesystem::path &input_path, const int
                 }
             }
         }
-        av_packet_unref(&pkt);
+        av_packet_unref(cleanup.pkt);
     }
 
     // Flush the decoder to process any remaining frames.
