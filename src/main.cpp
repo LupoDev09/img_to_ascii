@@ -45,11 +45,14 @@ namespace {
         bool first_frame = true;
 
         void operator()(DataStructures::Frame&& frame) {
+            // TODO: Rework the Architecture so the rendering is happening in it's own thread so we don't sleep during decoding
             if (first_frame) {
                 clock.start();
+
                 if (!no_output && !no_audio && audio != nullptr) {
                     audio->play();
                 }
+
                 const double source_fps = frame.source_fps;
 
                 target_ms = frame_rate > 0
