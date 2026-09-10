@@ -2,7 +2,6 @@
 // Created by lupo on 25.07.26.
 //
 #include "SyncClock.hpp"
-
 #include "Verbose.hpp"
 
 void SyncClock::start() {
@@ -33,10 +32,9 @@ void SyncClock::wait_until(const double target_ms) const {
     using namespace std::chrono;
 
     const auto target_tp = start_time.load() + duration<double, std::milli>(target_ms);
-    const auto now = steady_clock::now();
 
     // Adaptive Sleep: Erst grobe Sleep, dann Busy-Wait für die letzten Mikrosekunden
-    if (target_tp > now + 1ms) {
+    if (target_tp > steady_clock::now() + 1ms) {
         std::this_thread::sleep_until(target_tp - 1ms);// Sleep bis 1ms vor dem Ziel
     }
 
