@@ -69,8 +69,8 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
 
         uint8_t last_r = 0, last_g = 0, last_b = 0;
 
-        // 25 ist die ungefähre anzahl in bytes die ich pro pixel brauche
-        output.reserve(frame.width * frame.height * 26 + m_left_pad_str.size() * frame.height);
+        // 25 ist die ungefähre anzahl in bytes die ich pro pixel brauche + 1 zur sicher heit
+        output.reserve(static_cast<size_t>(frame.width * frame.height * 26 + m_left_pad_str.size() * frame.height));
         for (int y = 0; y < frame.height; ++y) {
             bool first_pixel_in_line = true;
             const DataStructures::Pixel * row = &frame.data[y * frame.width];
@@ -105,9 +105,10 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
         }
     } else {
         DEBUG("Rendering with color disabled");
-        output.reserve(frame.width * frame.height * 12 + m_left_pad_str.size() * frame.height);
+        output.reserve(static_cast<size_t>(frame.width * frame.height * 12 + m_left_pad_str.size() * frame.height));
         for (int y = 0; y < frame.height; ++y) {
             const DataStructures::Pixel * row = &frame.data[y * frame.width];
+            output.append(m_left_pad_str);
             for (int x = 0; x < frame.width; ++x) {
                 const auto& pixel = row[x];
                 output.append(m_char_lut[pixel.CalculateLuminance()]);
