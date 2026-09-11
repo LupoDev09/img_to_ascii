@@ -60,7 +60,9 @@ namespace {
 
                 if (!no_output) {
                     output.start();
-                    output.push("\033[2J\033[H");
+                    while (!output.push("\033[2J\033[H")) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    }
                 }
 
                 first_frame = false;
@@ -69,12 +71,12 @@ namespace {
             const std::string rendered = renderer.render_frame(frame);
 
             if (!no_output) {
-                output.push("\033[H");
-                output.push(rendered);
+                const double expected = frame_index * target_ms;
+                while (!output.push("\033[H" + rendered, expected)) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                }
             }
 
-            const double expected = frame_index * target_ms;
-            clock.wait_until(expected);
             frame_index++;
         }
     };
@@ -235,6 +237,7 @@ int main(int argc, char** argv) {
     DEBUG("Starting frame generation and output...");
     CursorGuard cursor_guard;
     OutputWriter output;
+    output.set_clock(clock);
 
     FrameHandler handler{.renderer = renderer, .audio = audio.get(), .output = output, .clock = clock, .frame_rate = frame_rate, .no_output = no_output, .no_audio = no_audio};
     Renderer::generate(input, frame_rate, image_dimensions.first, image_dimensions.second, handler);

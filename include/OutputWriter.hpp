@@ -5,12 +5,14 @@
 #ifndef IMG_TO_ASCII_OUTPUTWRITER_HPP
 #define IMG_TO_ASCII_OUTPUTWRITER_HPP
 
+#include <SyncClock.hpp>
+#include <atomic>
 #include <condition_variable>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <string>
 #include <thread>
-#include <atomic>
 
 class OutputWriter {
 public:
@@ -23,12 +25,14 @@ public:
     OutputWriter(OutputWriter &&) = delete;
     OutputWriter &operator=(OutputWriter &&) = delete;
 
+    void set_clock(SyncClock &clock);
 
     /**
      * @brief Push data to the output queue for asynchronous writing.
      * @param data the data to output
+     * @param target_ms optional absolute playback time in ms since start
      */
-    void push(std::string data);
+    [[nodiscard]] bool push(std::string data, std::optional<double> target_ms = std::nullopt);
 
     /**
      * @brief Starts the output writer thread.
@@ -48,15 +52,22 @@ private:
      */
     void worker();
 
+    struct QueuedWrite {
+        std::string data;
+        std::optional<double> target_ms;
+    };
+
     // The queue that holds the data to be written to stdout
-    std::queue<std::string> queue;
+    std::queue<QueuedWrite> queue;
 
     std::mutex mutex; // A lock for the queue
     std::condition_variable condition; // IDK what this does, I guess it's something that the worker uses to wait
 
     std::thread thread;               // The worker thread
     std::atomic<bool> running = true; // Flag to control the running state of the worker thread
+    SyncClock *clock_ = nullptr;
 
+    const uint8_t MAX_QUEUE_SIZE = 20; // Maximum number of items in the queue
 };
 
 
