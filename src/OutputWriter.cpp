@@ -55,7 +55,7 @@ bool OutputWriter::push(std::string data, std::optional<double> target_ms) {
         if (MAX_QUEUE_SIZE > 0 && queue.size() >= MAX_QUEUE_SIZE) {
             return false;
         }
-        queue.push(QueuedWrite{std::move(data), target_ms});
+        queue.push(QueuedWrite{.data = std::move(data), .target_ms = target_ms});
     }
 
     condition.notify_one();

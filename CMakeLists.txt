@@ -127,10 +127,28 @@ else()
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if (UNIX)
+        message(STATUS "AddressSanitizer (ASAN) aktiviert für Debug-Build")
+
+        # Aktiviert ASAN für Speicherfehler.
+        # -fno-omit-frame-pointer sorgt für bessere Stacktraces.
+        add_compile_options(
+                -fsanitize=address
+                -fno-omit-frame-pointer
+        )
+
+        # ASAN auch beim Linken aktivieren.
+        add_link_options(
+                -fsanitize=address
+        )
+    endif ()
+
+    target_compile_options(img_to_ascii PRIVATE -g)
     # For your own good just activate one of the two debug modes, not both. you dont want the see the flickering
     target_compile_definitions(img_to_ascii PRIVATE DEBUG_MODE)
     # target_compile_definitions(img_to_ascii PRIVATE DEBUG_RENDERER_MODE)
 else()
+    target_compile_options(img_to_ascii PRIVATE -O3)
     target_compile_definitions(img_to_ascii PRIVATE NDEBUG)
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -g")
 endif()
