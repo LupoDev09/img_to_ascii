@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
     // Group: Output
     options.add_options("Output")
     ("no-color", "Disable ANSI color output (output grayscale only)", cxxopts::value<bool>()->default_value("false"))
-    ("c,charset", "Character palette for ASCII mapping (darker to lighter)", cxxopts::value<std::string>()->default_value(" ░▒▓█"))
+    ("c,charset", "Character palette for ASCII mapping (darker to lighter) max 256 characters", cxxopts::value<std::string>()->default_value(" ░▒▓█"))
     ("left-pad", "Left padding for each line of ASCII art", cxxopts::value<int>()->default_value("0"));
 
     // Group: General
