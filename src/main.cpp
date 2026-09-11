@@ -3,7 +3,6 @@
 #include <miniaudio.h>
 
 #include <AudioPlayer.hpp>
-#include <GenerateFrames.hpp>
 #include <OutputWriter.hpp>
 #include <Renderer.hpp>
 #include <SyncClock.hpp>
@@ -238,7 +237,7 @@ int main(int argc, char** argv) {
     OutputWriter output;
 
     FrameHandler handler{.renderer = renderer, .audio = audio.get(), .output = output, .clock = clock, .frame_rate = frame_rate, .no_output = no_output, .no_audio = no_audio};
-    GenerateFrames::generate(input, frame_rate, image_dimensions.first, image_dimensions.second, handler);
+    Renderer::generate(input, frame_rate, image_dimensions.first, image_dimensions.second, handler);
 
     output.stop();
     CursorGuard::makeVisible();

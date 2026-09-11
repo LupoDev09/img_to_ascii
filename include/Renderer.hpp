@@ -6,12 +6,14 @@
 #define IMG_TO_ASCII_RENDERER_H
 #include <array>
 #include <dataStructures.hpp>
+#include <functional>
 #include <string>
+#include <filesystem>
 
 /**
  * @class Renderer
  * @brief Converts video frames into ASCII art with optional color support.
- * 
+ *
  * The Renderer maps pixel luminance values to characters from a configurable charset,
  * creating terminal-displayable ASCII art. It can output with ANSI color codes for
  * colored terminals or plain text for standard terminals.
@@ -58,6 +60,29 @@ public:
      * @return String containing ANSI-formatted ASCII art with embedded control codes
      */
     [[nodiscard]] std::string render_frame(const DataStructures::Frame &frame) const;
+
+    /// Callback type for frame processing. Frame ownership is transferred to the callback.
+    using FrameCallback = std::function<void(DataStructures::Frame &&Frame)>;
+
+    /**
+     * @brief Decode a video file and deliver scaled RGB frames via callback.
+     *
+     * Extracts frames from a video file, optionally scales them to the specified dimensions,
+     * and invokes the callback for each decoded frame. The caller receives frame data
+     * directly suitable for rendering.
+     *
+     * @param input_path Path to the video file to decode
+     * @param frame_rate Target frame rate (0 = use source file's fps, >0 = resample to this fps)
+     * @param width Target width in pixels (0 = preserve aspect ratio, >0 = scale to this width)
+     * @param height Target height in pixels (0 = preserve aspect ratio, >0 = scale to this height)
+     * @param on_frame Callback invoked for each decoded frame with ownership transfer
+     *
+     * @note At least one of width or height must be specified (non-zero)
+     * @note Frames are delivered in playback order
+     * @note If only one dimension is specified, the other is calculated to preserve aspect ratio
+     */
+    static void generate(const std::filesystem::path & input_path, int frame_rate, int width, int height, const FrameCallback &on_frame);
+
 private:
     std::array<std::string, 256> m_number_lut;  ///< Lookup table for luminance to character mapping
     std::array<std::string, 256> m_char_lut;   ///< Lookup table for character mapping

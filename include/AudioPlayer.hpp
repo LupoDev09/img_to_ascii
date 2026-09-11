@@ -5,11 +5,11 @@
 #ifndef IMG_TO_ASCII_AUDIOPLAYER_H
 #define IMG_TO_ASCII_AUDIOPLAYER_H
 
+#include <AudioExtractor.hpp>
 #include <chrono>
 #include <filesystem>
 #include <miniaudio.h>
 #include <string>
-#include <AudioExtractor.hpp>
 
 class AudioPlayer {
 public:

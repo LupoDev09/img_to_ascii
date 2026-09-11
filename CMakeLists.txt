@@ -100,7 +100,6 @@ endif()
 add_executable(img_to_ascii
         src/main.cpp
         src/Renderer.cpp
-        src/GenerateFrames.cpp
         src/AudioExtractor.cpp
         src/AudioPlayer.cpp
         src/OutputWriter.cpp
