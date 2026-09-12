@@ -87,6 +87,7 @@ void Renderer::start_rendering() {
             DataStructures::Frame frame{.width = 0, .height = 0, .source_fps = 0.0, .data = {}};
             while (frame.width == 0 && frame.height == 0 && frame.source_fps == 0.0) {
                 if (m_no_new_frames_ && m_frame_queue.empty()) { break; }
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 {
                     std::lock_guard lock(m_queue_mutex);
                     if (!m_frame_queue.empty()) {
@@ -94,7 +95,8 @@ void Renderer::start_rendering() {
                         m_frame_queue.pop();
                     }
                 }
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Sleep to dont peg the CPU
             }
 
             if (frame.width == 0 || frame.height == 0 || frame.source_fps <= 0.0) {
@@ -103,14 +105,15 @@ void Renderer::start_rendering() {
             }
 
             if (first_frame) {
+                first_frame = false;
                 clock_.start();
                 output_writer_->set_clock(clock_);
 
                 if (!no_output_ && !no_audio_ && audio_ != nullptr) { audio_->play(); }
 
-                const double source_fps = frame.source_fps;
-
-                target_ms = frame_rate_ > 0 ? 1000.0 / frame_rate_ : 1000.0 / source_fps;
+                target_ms = (frame_rate_ > 0) ?
+                            1000.0 / frame_rate_
+                            : 1000.0 / frame.source_fps;
 
                 if (!no_output_) {
                     output_writer_->start();
@@ -118,10 +121,9 @@ void Renderer::start_rendering() {
                         std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     }
                 }
-
-                first_frame = false;
             }
 
+            // This so we also do the work without output to make debugging easier
             const std::string rendered = render_frame(frame);
 
             if (!no_output_) {
