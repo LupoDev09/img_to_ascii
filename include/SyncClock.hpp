@@ -21,7 +21,7 @@
  */
 class SyncClock {
 public:
-    SyncClock() : start_time(std::chrono::steady_clock::now()) {}// Standardkonstruktor setzt start_time
+    SyncClock() : start_time(std::chrono::steady_clock::now()) {} ///< Initializes start_time to now. Call start() to (re)start the clock.
 
     /**
      * @brief Start the clock's time reference.

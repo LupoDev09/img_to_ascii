@@ -47,7 +47,7 @@ public:
      */
     void stop();
 
-    // Keine Kopien oder Zuweisungen
+    // Non-copyable and non-movable
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
     Renderer(Renderer&&) = delete;

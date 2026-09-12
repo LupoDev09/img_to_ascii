@@ -73,9 +73,9 @@ private:
     ma_audio_buffer audioBuffer = {};
 
 
-    // The bools do what they say
-    bool playing = false;
-    bool is_something_loaded = false;
-    std::chrono::steady_clock::time_point start_time;// The start time of the playback
+    // Playback state flags
+    bool playing = false;               ///< True while audio is playing
+    bool is_something_loaded = false;   ///< True if an audio source has been loaded
+    std::chrono::steady_clock::time_point start_time; ///< Start time of the playback
 };
 #endif// IMG_TO_ASCII_AUDIOPLAYER_H

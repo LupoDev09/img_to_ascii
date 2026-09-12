@@ -24,12 +24,11 @@ namespace DataStructures {
          * This weighted average better matches human perception than simple averaging.
          */
         [[nodiscard]] uint8_t CalculateLuminance() const {
-            /*
-             * Der onliner hier unten entspricht:
-             * 0.2126f * r + 0.7152f * g + 0.0722f * b
-             */
-
-            return (r * 54 + g * 183 + b * 19) >> 8;
+            // Uses BT.709 weights approximated with integer math:
+            // L ≈ (0.2126 * R + 0.7152 * G + 0.0722 * B)
+            // The integer form below computes (r*54 + g*183 + b*19) >> 8 which approximates the
+            // floating point result while avoiding FP arithmetic for speed.
+            return static_cast<uint8_t>((r * 54 + g * 183 + b * 19) >> 8);
         }
     };
 

@@ -58,14 +58,14 @@ private:
     // The queue that holds the data to be written to stdout
     std::queue<QueuedWrite> queue;
 
-    std::mutex mutex;                 // A lock for the queue
-    std::condition_variable condition;// IDK what this does, I guess it's something that the worker uses to wait
+    std::mutex mutex;                   ///< Mutex protecting access to the queue
+    std::condition_variable condition;  ///< Condition variable used to notify the worker thread when new queue items are available
 
-    std::thread thread;              // The worker thread
-    std::atomic<bool> running = true;// Flag to control the running state of the worker thread
+    std::thread thread;                 ///< The worker thread that performs async writes
+    std::atomic<bool> running = true;   ///< Flag controlling the running state of the worker thread
     SyncClock* clock_ = nullptr;
 
-    const uint8_t MAX_QUEUE_SIZE = 20;// Maximum number of items in the queue
+    const uint8_t MAX_QUEUE_SIZE = 20;  ///< Maximum number of items in the queue
 };
 
 
