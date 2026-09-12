@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
     DEBUG("Hallo Ich muss argc ihrgendwie nutzen deshalb hier der Wert " + std::to_string(argc));
 
     std::vector<std::string> mock_argv = {argv[0],// argv[0] muss existieren!
-            "--input", "/home/lupo/CLionProjects/img_to_ascii/funny.gif", "--width", "50", "--no-audio"};
+            "--input", "/home/lupo/CLionProjects/img_to_ascii/Silly_Cat_Character.jpg", "--width", "500", "--no-audio"};
 
     std::vector<const char*> argv_ptrs;
 

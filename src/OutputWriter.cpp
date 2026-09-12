@@ -13,6 +13,8 @@
 
 #include <OutputWriter.hpp>
 
+#include "Verbose.hpp"
+
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -63,7 +65,10 @@ bool OutputWriter::push(std::string data, std::optional<double> target_ms) {
     return true;
 }
 
-void OutputWriter::start() { thread = std::thread(&OutputWriter::worker, this); }
+void OutputWriter::start() {
+    thread = std::thread(&OutputWriter::worker, this);
+    SET_THREAD_NAME(thread, "OutputWriter");
+}
 
 void OutputWriter::stop() {
     if (!running.exchange(false)) return;
@@ -97,8 +102,6 @@ void OutputWriter::worker() {
                 clock_->wait_until(*target_ms);
                 lock.lock();
             }
-
-            if (!running && queue.empty()) { break; }
 
             write_stdout(data);
         }

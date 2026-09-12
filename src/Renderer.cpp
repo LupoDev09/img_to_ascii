@@ -81,20 +81,36 @@ void Renderer::start_rendering() {
     worker_thread_ = std::thread([this] {
         double target_ms = 0.0;
         int frame_index = 0;
-        DataStructures::Frame frame{.width = 0, .height = 0, .source_fps = 0.0, .data = {}};
-
-        while (true) {
-            if (m_no_new_frames_ && m_frame_queue.empty()) { break; }
-            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Sleep to dont peg the CPU
-            {
-                std::lock_guard lock(m_queue_mutex);
-                if (!m_frame_queue.empty()) {
-                    frame = m_frame_queue.front();
-                    m_frame_queue.pop();
-                    break;
+        auto get_frame_from_queue = [this]() -> DataStructures::Frame {
+            while (true) {
+                {
+                    std::lock_guard lock(m_queue_mutex);
+                    if (!m_frame_queue.empty()) {
+                        auto frame = m_frame_queue.front();
+                        m_frame_queue.pop();
+                        return frame;
+                    }
+                    if (m_no_new_frames_) { break; }
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Sleep to dont peg the CPU
+           }
+            return {.width = -1, .height = -1, .source_fps = -1.0, .data = {}};
+        };
+        auto render_and_push = [this, &frame_index, target_ms](const DataStructures::Frame &f) {
+            const std::string rendered = render_frame(f);
+            if (!no_output_) {
+                const double expected = frame_index * target_ms;
+                while (!output_writer_->push("\033[H" + rendered, expected)) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 }
             }
-       }
+            frame_index++;
+        };
+
+        DataStructures::Frame frame = get_frame_from_queue();
+        if (frame.width == -1 && frame.height == -1 && frame.source_fps == -1.0 && frame.data.empty()) {
+            return;
+        }
 
         // some setup
         clock_.start();
@@ -116,19 +132,15 @@ void Renderer::start_rendering() {
             }
         }
 
+        if (!(frame.width == 0 || frame.height == 0 || frame.source_fps <= 0.0)) {
+            render_and_push(frame);
+        }
+
         // Render the frames
         while (!m_no_new_frames_ || !m_frame_queue.empty()) {
-            while (true) {
-                if (m_no_new_frames_ && m_frame_queue.empty()) { break; }
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                {
-                    std::lock_guard lock(m_queue_mutex);
-                    if (!m_frame_queue.empty()) {
-                        frame = m_frame_queue.front();
-                        m_frame_queue.pop();
-                        break;
-                    }
-                }
+            frame = get_frame_from_queue();
+            if (frame.width == -1 && frame.height == -1 && frame.source_fps == -1.0 && frame.data.empty()) {
+                return;
             }
 
             if (frame.width == 0 || frame.height == 0 || frame.source_fps <= 0.0) {
@@ -136,19 +148,11 @@ void Renderer::start_rendering() {
                 continue;
             }
 
-            // This so we also do the work without output to make debugging easier
-            const std::string rendered = render_frame(frame);
-
-            if (!no_output_) {
-                const double expected = frame_index * target_ms;
-                while (!output_writer_->push("\033[H" + rendered, expected)) {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                }
-            }
-
-            frame_index++;
+            render_and_push(frame);
         }
     });
+
+    SET_THREAD_NAME(worker_thread_, "RendererWorker");
 }
 
 bool Renderer::add_decoded_frame(const DataStructures::Frame& frame) {
@@ -390,6 +394,7 @@ void Renderer::decode_frames(const std::filesystem::path& input_path, const int 
     double source_fps = av_q2d(av_guess_frame_rate(cleanup.fmt, video_stream, nullptr));
     if (source_fps <= 0.0) { source_fps = av_q2d(video_stream->avg_frame_rate); }
     if (source_fps <= 0.0) { source_fps = static_cast<double>(frame_rate); }
+    if (source_fps <= 0.0) { source_fps = 25.0; } // Fall back for images
 
     const double effective_fps = (frame_rate > 0) ? static_cast<double>(frame_rate) : source_fps;
 
