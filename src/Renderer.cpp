@@ -79,13 +79,46 @@ Renderer::~Renderer() {
 void Renderer::start_rendering() {
     // Implementation for starting the rendering process
     worker_thread_ = std::thread([this] {
-        bool first_frame = true;
         double target_ms = 0.0;
         int frame_index = 0;
+        DataStructures::Frame frame{.width = 0, .height = 0, .source_fps = 0.0, .data = {}};
 
+        while (true) {
+            if (m_no_new_frames_ && m_frame_queue.empty()) { break; }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Sleep to dont peg the CPU
+            {
+                std::lock_guard lock(m_queue_mutex);
+                if (!m_frame_queue.empty()) {
+                    frame = m_frame_queue.front();
+                    m_frame_queue.pop();
+                    break;
+                }
+            }
+       }
+
+        // some setup
+        clock_.start();
+        output_writer_->set_clock(clock_);
+
+        if (!no_output_ && !no_audio_ && audio_ != nullptr) { audio_->play(); }
+
+        if (frame_rate_ > 0) {
+            target_ms = 1000.0 / frame_rate_;
+        } else {
+            target_ms = 1000.0 / frame.source_fps;
+        }
+
+        if (!no_output_) {
+            output_writer_->start();
+            // Clear the console once
+            while (!output_writer_->push("\033[2J\033[H")) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+        }
+
+        // Render the frames
         while (!m_no_new_frames_ || !m_frame_queue.empty()) {
-            DataStructures::Frame frame{.width = 0, .height = 0, .source_fps = 0.0, .data = {}};
-            while (frame.width == 0 && frame.height == 0 && frame.source_fps == 0.0) {
+            while (true) {
                 if (m_no_new_frames_ && m_frame_queue.empty()) { break; }
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 {
@@ -93,34 +126,14 @@ void Renderer::start_rendering() {
                     if (!m_frame_queue.empty()) {
                         frame = m_frame_queue.front();
                         m_frame_queue.pop();
+                        break;
                     }
                 }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Sleep to dont peg the CPU
             }
 
             if (frame.width == 0 || frame.height == 0 || frame.source_fps <= 0.0) {
                 if (m_no_new_frames_) { break; }
                 continue;
-            }
-
-            if (first_frame) {
-                first_frame = false;
-                clock_.start();
-                output_writer_->set_clock(clock_);
-
-                if (!no_output_ && !no_audio_ && audio_ != nullptr) { audio_->play(); }
-
-                target_ms = (frame_rate_ > 0) ?
-                            1000.0 / frame_rate_
-                            : 1000.0 / frame.source_fps;
-
-                if (!no_output_) {
-                    output_writer_->start();
-                    while (!output_writer_->push("\033[2J\033[H")) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                    }
-                }
             }
 
             // This so we also do the work without output to make debugging easier
