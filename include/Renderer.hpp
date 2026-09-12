@@ -32,10 +32,21 @@ public:
     Renderer(bool no_audio, bool no_output, AudioPlayer* audio, int frame_rate, OutputWriter* output_writer);
     ~Renderer();
 
+    /**
+     * @brief Starts the rendering process in a separate thread.
+     */
     void start_rendering();
 
+    /**
+     * @brief Adds a decoded video frame to the rendering queue.
+     * @param frame the frame to add
+     * @return whether the adding of the frame was successful
+     */
     bool add_decoded_frame(const DataStructures::Frame& frame);
 
+    /**
+     * @brief Signals that no new frames will be added to the queue.
+     */
     void no_new_frames();
 
     // Keine Kopien oder Zuweisungen
@@ -60,8 +71,16 @@ public:
         int left_pad = 0;
     } config;
 
+    /**
+     * @brief Sets the character set for luminance mapping.
+     * @param charset the character set to use
+     */
     void set_charset(const std::u32string &charset);
 
+    /**
+     * @brief Sets the left padding for each line of ASCII art.
+     * @param left_pad the left padding to use
+     */
     void set_left_pad(int left_pad);
 
 
@@ -110,8 +129,14 @@ private:
     static constexpr std::string_view COLOR_PREFIX = "\033[38;2;";
     static constexpr std::string_view COLOR_RESET = "\033[0m";
 
+    /**
+     * @brief Worker thread function that processes frames from the queue.
+     */
     void build_char_lut();
 
+    /**
+     * @brief Builds the left padding string based on the configured left_pad value.
+     */
     void build_padding();
 
 
