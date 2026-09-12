@@ -266,7 +266,7 @@ void Renderer::decode_frames(const std::filesystem::path& input_path, const int 
 
     // Keep FFmpeg resources in one place so every early return still frees them.
     struct Cleanup {
-        AVPacket* pkt = av_packet_alloc();
+        AVPacket* pkt;
         AVFormatContext* fmt;
         AVCodecContext* dec_ctx;
         AVFrame* frame;
