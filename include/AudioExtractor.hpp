@@ -5,11 +5,9 @@
 #ifndef IMG_TO_ASCII_AUDIOEXTRACTOR_HPP
 #define IMG_TO_ASCII_AUDIOEXTRACTOR_HPP
 
-#include <cstdint>
 #include <memory>
-#include <vector>
 #include <string>
-#include <cstring>
+#include <vector>
 
 extern "C" {
 #include <libswresample/swresample.h>

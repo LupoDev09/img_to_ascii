@@ -2,7 +2,7 @@
 // Created by lupo on 12.07.26.
 //
 
-#include "../include/AudioExtractor.hpp"
+#include <AudioExtractor.hpp>
 
 #include "Verbose.hpp"
 

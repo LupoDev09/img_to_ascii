@@ -5,7 +5,6 @@
 #include <AudioPlayer.hpp>
 #include <OutputWriter.hpp>
 #include <Renderer.hpp>
-#include <SyncClock.hpp>
 #include <Verbose.hpp>
 #include <chrono>
 #include <cxxopts.hpp>

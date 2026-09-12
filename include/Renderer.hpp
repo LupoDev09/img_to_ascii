@@ -4,10 +4,8 @@
 
 #ifndef IMG_TO_ASCII_RENDERER_H
 #define IMG_TO_ASCII_RENDERER_H
-#include "OutputWriter.hpp"
-#include "SyncClock.hpp"
-
-
+#include <OutputWriter.hpp>
+#include <SyncClock.hpp>
 #include <array>
 #include <dataStructures.hpp>
 #include <filesystem>

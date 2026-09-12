@@ -3,9 +3,7 @@
 //
 
 #include <Renderer.hpp>
-
-#include "AudioPlayer.hpp"
-
+#include <AudioPlayer.hpp>
 #include <Verbose.hpp>
 #include <algorithm>
 #include <cmath>

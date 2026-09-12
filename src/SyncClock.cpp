@@ -1,8 +1,8 @@
 //
 // Created by lupo on 25.07.26.
 //
-#include "SyncClock.hpp"
-#include "Verbose.hpp"
+#include <SyncClock.hpp>
+#include <Verbose.hpp>
 
 void SyncClock::start() {
     if (is_started) {
