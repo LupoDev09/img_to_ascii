@@ -67,6 +67,7 @@ Renderer::Renderer(const bool no_audio, const bool no_output, AudioPlayer* audio
 Renderer::~Renderer() {
     DEBUG("Destroying Renderer");
     DEBUG("Waiting for worker thread to finish");
+    no_new_frames();
     if (worker_thread_.joinable()) {
         worker_thread_.join();
     }

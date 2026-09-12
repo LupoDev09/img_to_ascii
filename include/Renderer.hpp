@@ -58,23 +58,12 @@ public:
 
         /// Left padding for each line of ASCII art
         int left_pad = 0;
-
     } config;
 
     void set_charset(const std::u32string &charset);
 
     void set_left_pad(int left_pad);
 
-    /**
-     * @brief Render a video frame into ASCII art.
-     * 
-     * Converts pixel data to ASCII characters based on luminance values.
-     * Output includes ANSI terminal codes for positioning and optionally coloring.
-     * 
-     * @param frame The decoded video frame to render
-     * @return String containing ANSI-formatted ASCII art with embedded control codes
-     */
-    [[nodiscard]] std::string render_frame(const DataStructures::Frame &frame) const;
 
     /// Callback type for frame processing. Frame ownership is transferred to the callback.
     using FrameCallback = std::function<void(DataStructures::Frame &&Frame)>;
@@ -124,6 +113,18 @@ private:
     void build_char_lut();
 
     void build_padding();
+
+
+    /**
+     * @brief Render a video frame into ASCII art.
+     *
+     * Converts pixel data to ASCII characters based on luminance values.
+     * Output includes ANSI terminal codes for positioning and optionally coloring.
+     *
+     * @param frame The decoded video frame to render
+     * @return String containing ANSI-formatted ASCII art with embedded control codes
+     */
+    [[nodiscard]] std::string render_frame(const DataStructures::Frame &frame) const;
 };
 
 #endif// IMG_TO_ASCII_RENDERER_H

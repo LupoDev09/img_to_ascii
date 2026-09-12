@@ -176,7 +176,6 @@ int main(int argc, char** argv) {
               << "Starting video to ascii conversion..." << std::endl;
 
     std::unique_ptr<AudioPlayer> audio = nullptr;
-    SyncClock clock;
 
     if (no_audio) {
         DEBUG("Audio playback is disabled.");
@@ -208,6 +207,7 @@ int main(int argc, char** argv) {
 
     renderer.no_new_frames();
     output.stop();
+
     CursorGuard::makeVisible();
     DEBUG("Frame generation and output completed.");
 
