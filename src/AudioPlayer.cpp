@@ -6,9 +6,7 @@
 
 AudioPlayer::AudioPlayer() {
     DEBUG("Initializing audio engine");
-    if (ma_engine_init(nullptr, &engine) != MA_SUCCESS) {
-        throw std::runtime_error("Failed to init audio engine");
-    }
+    if (ma_engine_init(nullptr, &engine) != MA_SUCCESS) { throw std::runtime_error("Failed to init audio engine"); }
     DEBUG("Audio engine initialized successfully");
 }
 
@@ -25,13 +23,11 @@ AudioPlayer::~AudioPlayer() {
     DEBUG("Audio engine uninitialized successfully");
 }
 
-void AudioPlayer::load(const std::string &path) {
+void AudioPlayer::load(const std::string& path) {
     DEBUG(std::format("Loading audio file: {}", path));
     unload();// Für den Fall das was geladen war, das Freigeben
 
-    if (audio_extractor.loadFile(path) == false) {
-        throw std::runtime_error("Failed to load audio");
-    }
+    if (audio_extractor.loadFile(path) == false) { throw std::runtime_error("Failed to load audio"); }
     DEBUG("Audio file loaded successfully");
 
     if (!audio_extractor.getAudioData()) {
@@ -45,9 +41,7 @@ void AudioPlayer::load(const std::string &path) {
     const ma_uint32 channels = audio_extractor.getChannels();
 
     // 3. Audiodaten in den ma_audio_buffer kopieren
-    const ma_audio_buffer_config config = ma_audio_buffer_config_init(
-            format,
-            channels,
+    const ma_audio_buffer_config config = ma_audio_buffer_config_init(format, channels,
             audio_extractor.getAudioDataSize() / (channels * ma_get_bytes_per_sample(format)),// Anzahl Frames
             audio_extractor.getAudioData(),
             nullptr// keine eigene Allokationsfunktion

@@ -5,11 +5,9 @@
 #ifndef IMG_TO_ASCII_AUDIOEXTRACTOR_HPP
 #define IMG_TO_ASCII_AUDIOEXTRACTOR_HPP
 
-#include <cstdint>
 #include <memory>
-#include <vector>
 #include <string>
-#include <cstring>
+#include <vector>
 
 extern "C" {
 #include <libswresample/swresample.h>
@@ -85,10 +83,10 @@ public:
 
 private:
     std::vector<uint8_t> audioBuffer;
-    int sampleRate    = 0;
-    int channels      = 0;
+    int sampleRate = 0;
+    int channels = 0;
     AVSampleFormat sampleFmt = AV_SAMPLE_FMT_NONE;
-    bool audioFound   = false;
+    bool audioFound = false;
 
     /**
      * @brief Extracts the audio stream from the given video file and stores it in memory.
