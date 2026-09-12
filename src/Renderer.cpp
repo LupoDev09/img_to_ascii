@@ -2,6 +2,15 @@
 // Created by lupo on 04.07.26.
 //
 
+/**
+ * @file Renderer.cpp
+ * @brief Convert RGB frames into ANSI-formatted ASCII frames for terminal output.
+ *
+ * Implements colorized and grayscale rendering paths and a character lookup
+ * table optimized for fast per-pixel mapping. Also contains a decoder helper
+ * (decode_frames) that produces scaled RGB frames suitable for rendering.
+ */
+
 #include <AudioPlayer.hpp>
 #include <Renderer.hpp>
 #include <Verbose.hpp>

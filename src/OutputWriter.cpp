@@ -2,6 +2,15 @@
 // Created by lupo on 12.07.26.
 //
 
+/**
+ * @file OutputWriter.cpp
+ * @brief Asynchronous, timed writing of ANSI-formatted frame data to stdout.
+ *
+ * The OutputWriter exposes a thread-safe queue for writing strings to stdout.
+ * Items can optionally carry an absolute target time (ms since a SyncClock start)
+ * and the worker will sleep until that time before emitting the data.
+ */
+
 #include <OutputWriter.hpp>
 
 #ifdef _WIN32
@@ -11,6 +20,12 @@
 #endif
 
 
+/**
+ * @brief Low-level platform specific write to stdout.
+ *
+ * Uses WriteFile on Windows and POSIX write() on Unix-like systems to avoid
+ * iostream buffering overhead for high-frequency writes.
+ */
 static void write_stdout(const std::string& data) {
 #ifdef _WIN32
 
@@ -59,13 +74,19 @@ void OutputWriter::stop() {
 }
 
 
+/**
+ * @brief Worker loop that consumes the write queue and emits data to stdout.
+ *
+ * The worker optionally synchronizes each output item to an absolute target
+ * time using the associated SyncClock. The function runs until running == false
+ * and the queue is drained.
+ */
 void OutputWriter::worker() {
     while (running || !queue.empty()) {
 
         std::unique_lock lock(mutex);
 
         condition.wait(lock, [&] { return !queue.empty() || !running; });
-
 
         while (!queue.empty()) {
             auto [data, target_ms] = queue.front();

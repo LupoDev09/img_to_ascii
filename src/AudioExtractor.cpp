@@ -2,6 +2,17 @@
 // Created by lupo on 12.07.26.
 //
 
+/**
+ * @file AudioExtractor.cpp
+ * @brief Extracts and resamples audio streams from media files using FFmpeg.
+ *
+ * This module decodes an audio stream from a media file, resamples it to
+ * signed 16-bit interleaved PCM and stores the raw bytes in memory. The
+ * resulting buffer is suitable for playback libraries such as miniaudio.
+ *
+ * Errors that cannot be recovered from are reported by throwing exceptions.
+ */
+
 #include <AudioExtractor.hpp>
 
 #include "Verbose.hpp"
@@ -90,6 +101,17 @@ AVSampleFormat AudioExtractor::getSampleFormat() const {
     return sampleFmt;
 }
 
+/**
+ * @brief Decode and resample the audio track from filepath into memory.
+ *
+ * @details Opens the input file with FFmpeg, finds the best audio stream, decodes
+ * audio packets and resamples them to AV_SAMPLE_FMT_S16 (signed 16-bit)
+ * interleaved output. The decoded PCM bytes are appended to audioBuffer.
+ * On success sampleRate, channels and sampleFmt are set and audioFound is
+ * set to true. Throws std::runtime_error on fatal errors.
+ *
+ * @param filepath Path to input media file
+ */
 void AudioExtractor::extractAudio(const std::string& filepath) {
     DEBUG(std::format("AudioExtractor: extractAudio() got called with filepath = {}", filepath));
 

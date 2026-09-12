@@ -1,15 +1,36 @@
 //
 // Created by lupo on 12.07.26.
 //
+
+/**
+ * @file AudioPlayer.cpp
+ * @brief Thin wrapper around miniaudio to play PCM buffers produced by AudioExtractor.
+ *
+ * Responsibilities:
+ * - Initialize and shut down the miniaudio engine
+ * - Accept raw PCM buffers (S16 interleaved) and expose them as ma_sound
+ * - Track playback state and provide simple timing information
+ */
 #include <AudioPlayer.hpp>
 #include <Verbose.hpp>
 
+/**
+ * @brief Construct and initialize the audio engine.
+ *
+ * Initializes the miniaudio engine used for playback. Throws on failure.
+ */
 AudioPlayer::AudioPlayer() {
     DEBUG("Initializing audio engine");
     if (ma_engine_init(nullptr, &engine) != MA_SUCCESS) { throw std::runtime_error("Failed to init audio engine"); }
     DEBUG("Audio engine initialized successfully");
 }
 
+/**
+ * @brief Stop playback and release audio engine resources.
+ *
+ * Ensures any playing sound is stopped and associated buffers are freed before
+ * uninitializing the audio engine.
+ */
 AudioPlayer::~AudioPlayer() {
     DEBUG("Destroying audio engine");
     stop();
@@ -23,6 +44,15 @@ AudioPlayer::~AudioPlayer() {
     DEBUG("Audio engine uninitialized successfully");
 }
 
+/**
+ * @brief Load PCM data from the given file into a miniaudio buffer and create a sound.
+ *
+ * The function uses AudioExtractor to obtain raw PCM (S16) data, initializes
+ * a ma_audio_buffer and constructs a ma_sound that can be started/stopped.
+ * Throws std::runtime_error on failure.
+ *
+ * @param path Path to input media file (used by AudioExtractor)
+ */
 void AudioPlayer::load(const std::string& path) {
     DEBUG(std::format("Loading audio file: {}", path));
     unload();// Für den Fall das was geladen war, das Freigeben
@@ -63,6 +93,12 @@ void AudioPlayer::load(const std::string& path) {
     is_something_loaded = true;
 }
 
+/**
+ * @brief Start playback of the loaded sound.
+ *
+ * If no audio is loaded this is a no-op. Marks the internal playing flag
+ * and records the playback start time for timing queries.
+ */
 void AudioPlayer::play() {
     if (is_something_loaded) {
         DEBUG("Starting audio playback");
@@ -73,6 +109,12 @@ void AudioPlayer::play() {
     }
 }
 
+/**
+ * @brief Stop (pause) playback of the current sound.
+ *
+ * The playback position is not explicitly reset; this call stops the sound
+ * and updates the internal state to reflect that playback is not active.
+ */
 void AudioPlayer::stop() {
     if (is_something_loaded) {
         DEBUG("Stopping audio playback");
@@ -83,6 +125,12 @@ void AudioPlayer::stop() {
     }
 }
 
+/**
+ * @brief Unload the current sound and free associated buffers.
+ *
+ * After this call the player contains no loaded audio and is ready to load a
+ * different source. Safe to call even when nothing is loaded.
+ */
 void AudioPlayer::unload() {
     if (is_something_loaded) {
         DEBUG("Unloading audio playback");
@@ -104,6 +152,14 @@ bool AudioPlayer::is_playing() const {
     return this->playing;
 }
 
+/**
+ * @brief Return playback time in milliseconds since play() was called.
+ *
+ * If playback is not active returns 0.0. The value is computed using steady_clock
+ * to avoid issues with system clock adjustments.
+ *
+ * @return elapsed playback time in milliseconds or 0 if not playing
+ */
 double AudioPlayer::get_time_ms() const {
     DEBUG("get_time_ms got called");
     if (!playing) return 0.0;

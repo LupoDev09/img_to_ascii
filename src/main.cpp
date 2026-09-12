@@ -1,3 +1,13 @@
+/*
+ * @file main.cpp
+ * @brief Command-line front-end: parse arguments and orchestrate extraction, rendering and playback.
+ *
+ * Main responsibilities:
+ * - Parse CLI options and validate inputs
+ * - Initialize AudioPlayer and Renderer according to flags
+ * - Decode frames and hand them to the Renderer for display
+ * - Coordinate teardown and resource cleanup
+ */
 #define MINIAUDIO_IMPLEMENTATION
 // ReSharper disable once CppUnusedIncludeDirective
 #include <miniaudio.h>
