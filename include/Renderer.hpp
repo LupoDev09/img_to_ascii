@@ -4,12 +4,20 @@
 
 #ifndef IMG_TO_ASCII_RENDERER_H
 #define IMG_TO_ASCII_RENDERER_H
+#include "OutputWriter.hpp"
+#include "SyncClock.hpp"
+
+
 #include <array>
 #include <dataStructures.hpp>
-#include <functional>
-#include <string>
 #include <filesystem>
+#include <functional>
+#include <mutex>
+#include <queue>
+#include <string>
+#include <thread>
 
+class AudioPlayer;
 /**
  * @class Renderer
  * @brief Converts video frames into ASCII art with optional color support.
@@ -20,8 +28,15 @@
  */
 class Renderer {
 public:
-    Renderer();
+    Renderer() = delete;
+    Renderer(bool no_audio, bool no_output, AudioPlayer* audio, int frame_rate, OutputWriter* output_writer);
     ~Renderer();
+
+    void start_rendering();
+
+    bool add_decoded_frame(const DataStructures::Frame& frame);
+
+    void no_new_frames();
 
     // Keine Kopien oder Zuweisungen
     Renderer(const Renderer &) = delete;
@@ -89,6 +104,20 @@ private:
 
     std::string m_left_pad_str;
 
+    std::mutex m_queue_mutex;
+    std::queue<DataStructures::Frame> m_frame_queue;
+    std::thread worker_thread_;
+
+    bool no_audio_;
+    bool no_output_;
+    int frame_rate_;
+
+    OutputWriter* output_writer_;
+    SyncClock clock_;
+    AudioPlayer* audio_;
+    std::atomic<bool> m_no_new_frames_;
+
+    static constexpr std::uint8_t QUEUE_MAX_SIZE = 20;
     static constexpr std::string_view COLOR_PREFIX = "\033[38;2;";
     static constexpr std::string_view COLOR_RESET = "\033[0m";
 

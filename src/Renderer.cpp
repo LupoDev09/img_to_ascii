@@ -4,15 +4,17 @@
 
 #include <Renderer.hpp>
 
+#include "AudioPlayer.hpp"
+
 #include <Verbose.hpp>
-#include <format>
-#include <utf8.h>
-#include <dataStructures.hpp>
 #include <algorithm>
 #include <cmath>
+#include <dataStructures.hpp>
 #include <filesystem>
+#include <format>
 #include <string>
 #include <thread>
+#include <utf8.h>
 #include <utility>
 #include <vector>
 
@@ -47,16 +49,114 @@ void Renderer::build_padding() {
     }
 }
 
-Renderer::Renderer() {
+Renderer::Renderer(const bool no_audio, const bool no_output, AudioPlayer* audio, const int frame_rate, OutputWriter* output_writer) : audio_(audio), m_no_new_frames_(false) {
     DEBUG("Initializing Renderer");
     // Generiert einen Lookup table für Zahlen, als strings um die nicht immer während des rendering zu generieren
     for (int i = 0; i < 256; ++i) {
         m_number_lut[i] = std::to_string(i);
     }
     build_char_lut();
+    build_padding();
+
+    no_audio_ = no_audio;
+    no_output_ = no_output;
+    frame_rate_ = frame_rate;
+    output_writer_ = output_writer;
 }
+
 Renderer::~Renderer() {
     DEBUG("Destroying Renderer");
+    DEBUG("Waiting for worker thread to finish");
+    if (worker_thread_.joinable()) {
+        worker_thread_.join();
+    }
+}
+
+void Renderer::start_rendering() {
+    // Implementation for starting the rendering process
+    worker_thread_ = std::thread([this] {
+        bool first_frame = true;
+        double target_ms = 0.0;
+        int frame_index = 0;
+
+        while (!m_no_new_frames_ || !m_frame_queue.empty()) {
+            DataStructures::Frame frame {.width = 0, .height = 0, .source_fps = 0.0, .data = {}};
+            while (frame.width == 0 && frame.height == 0 && frame.source_fps == 0.0) {
+                if (m_no_new_frames_ && m_frame_queue.empty()) {
+                    break;
+                }
+                {
+                    std::lock_guard lock(m_queue_mutex);
+                    if (!m_frame_queue.empty()) {
+                        frame = m_frame_queue.front();
+                        m_frame_queue.pop();
+                    }
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+
+            if (frame.width == 0 || frame.height == 0 || frame.source_fps <= 0.0) {
+                if (m_no_new_frames_) {
+                    break;
+                }
+                continue;
+            }
+
+            if (first_frame) {
+                clock_.start();
+                output_writer_->set_clock(clock_);
+
+                if (!no_output_ && !no_audio_ && audio_ != nullptr) {
+                    audio_->play();
+                }
+
+                const double source_fps = frame.source_fps;
+
+                target_ms = frame_rate_ > 0
+                    ? 1000.0 / frame_rate_
+                    : 1000.0 / source_fps;
+
+                if (!no_output_) {
+                    output_writer_->start();
+                    while (!output_writer_->push("\033[2J\033[H")) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    }
+                }
+
+                first_frame = false;
+            }
+
+            const std::string rendered = render_frame(frame);
+
+            if (!no_output_) {
+                const double expected = frame_index * target_ms;
+                while (!output_writer_->push("\033[H" + rendered, expected)) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                }
+            }
+
+            frame_index++;
+        }
+    });
+}
+
+bool Renderer::add_decoded_frame(const DataStructures::Frame &frame) {
+    {
+        std::lock_guard lock(m_queue_mutex);
+        if (m_frame_queue.size() >= QUEUE_MAX_SIZE) {
+            return false;
+        }
+        m_frame_queue.push(frame);
+    }
+    return true;
+}
+
+void Renderer::no_new_frames() {
+    DEBUG("Renderer: no_new_frames got called");
+    m_no_new_frames_ = true;
+    if (worker_thread_.joinable()) {
+        worker_thread_.join();
+    }
 }
 
 void Renderer::set_charset(const std::u32string &charset) {
@@ -133,7 +233,6 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
 
     return output;
 }
-
 
 
 /**

@@ -19,12 +19,6 @@ public:
     OutputWriter();
     ~OutputWriter();
 
-    // Keine Kopien oder Zuweisungen
-    OutputWriter(const OutputWriter &) = delete;
-    OutputWriter &operator=(const OutputWriter &) = delete;
-    OutputWriter(OutputWriter &&) = delete;
-    OutputWriter &operator=(OutputWriter &&) = delete;
-
     void set_clock(SyncClock &clock);
 
     /**

@@ -33,51 +33,13 @@ namespace {
 
     struct FrameHandler {
         Renderer& renderer;
-        AudioPlayer* audio; // Not owning
-        OutputWriter& output;
-        SyncClock& clock;
-        int frame_rate;
-        unsigned int frame_index = 0;
-        double target_ms = 0.0;
-        bool no_output;
-        bool no_audio;
-        bool first_frame = true;
 
-        void operator()(DataStructures::Frame&& frame) {
+        void operator()(DataStructures::Frame&& frame) const {
+            while (!renderer.add_decoded_frame(frame)) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+
             // TODO: Rework the Architecture so the rendering is happening in it's own thread so we don't sleep during decoding
-            if (first_frame) {
-                clock.start();
-
-                if (!no_output && !no_audio && audio != nullptr) {
-                    audio->play();
-                }
-
-                const double source_fps = frame.source_fps;
-
-                target_ms = frame_rate > 0
-                    ? 1000.0 / frame_rate
-                    : 1000.0 / source_fps;
-
-                if (!no_output) {
-                    output.start();
-                    while (!output.push("\033[2J\033[H")) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                    }
-                }
-
-                first_frame = false;
-            }
-
-            const std::string rendered = renderer.render_frame(frame);
-
-            if (!no_output) {
-                const double expected = frame_index * target_ms;
-                while (!output.push("\033[H" + rendered, expected)) {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                }
-            }
-
-            frame_index++;
         }
     };
 }
@@ -226,7 +188,9 @@ int main(int argc, char** argv) {
     }
 
     DEBUG("Configure Renderer");
-    Renderer renderer;
+    OutputWriter output;
+
+    Renderer renderer(no_audio, no_output, audio.get(), frame_rate, &output);
     renderer.config.color = !no_color;
     renderer.set_left_pad(left_pad);
     if (!charset32.empty()) {
@@ -236,12 +200,13 @@ int main(int argc, char** argv) {
 
     DEBUG("Starting frame generation and output...");
     CursorGuard cursor_guard;
-    OutputWriter output;
-    output.set_clock(clock);
 
-    FrameHandler handler{.renderer = renderer, .audio = audio.get(), .output = output, .clock = clock, .frame_rate = frame_rate, .no_output = no_output, .no_audio = no_audio};
+
+    renderer.start_rendering();
+    FrameHandler handler{.renderer = renderer};
     Renderer::generate(input, frame_rate, image_dimensions.first, image_dimensions.second, handler);
 
+    renderer.no_new_frames();
     output.stop();
     CursorGuard::makeVisible();
     DEBUG("Frame generation and output completed.");
