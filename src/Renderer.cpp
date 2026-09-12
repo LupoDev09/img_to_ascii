@@ -2,8 +2,8 @@
 // Created by lupo on 04.07.26.
 //
 
-#include <Renderer.hpp>
 #include <AudioPlayer.hpp>
+#include <Renderer.hpp>
 #include <Verbose.hpp>
 #include <algorithm>
 #include <cmath>
@@ -38,21 +38,19 @@ void Renderer::build_padding() {
     DEBUG("Build padding got called");
     if (int pad = config.left_pad; pad > 0) {
         DEBUG("Left padding is set");
-        for (; pad > 0; --pad) {
-            m_left_pad_str.push_back(' ');
-        }
+        for (; pad > 0; --pad) { m_left_pad_str.push_back(' '); }
     } else {
         DEBUG("Left padding is disabled");
         m_left_pad_str.clear();
     }
 }
 
-Renderer::Renderer(const bool no_audio, const bool no_output, AudioPlayer* audio, const int frame_rate, OutputWriter* output_writer) : audio_(audio), m_no_new_frames_(false) {
+Renderer::Renderer(const bool no_audio, const bool no_output, AudioPlayer* audio, const int frame_rate,
+        OutputWriter* output_writer)
+    : audio_(audio), m_no_new_frames_(false) {
     DEBUG("Initializing Renderer");
     // Generiert einen Lookup table für Zahlen, als strings um die nicht immer während des rendering zu generieren
-    for (int i = 0; i < 256; ++i) {
-        m_number_lut[i] = std::to_string(i);
-    }
+    for (int i = 0; i < 256; ++i) { m_number_lut[i] = std::to_string(i); }
     build_char_lut();
     build_padding();
 
@@ -66,9 +64,7 @@ Renderer::~Renderer() {
     DEBUG("Destroying Renderer");
     DEBUG("Waiting for worker thread to finish");
     no_new_frames();
-    if (worker_thread_.joinable()) {
-        worker_thread_.join();
-    }
+    if (worker_thread_.joinable()) { worker_thread_.join(); }
 }
 
 void Renderer::start_rendering() {
@@ -79,11 +75,9 @@ void Renderer::start_rendering() {
         int frame_index = 0;
 
         while (!m_no_new_frames_ || !m_frame_queue.empty()) {
-            DataStructures::Frame frame {.width = 0, .height = 0, .source_fps = 0.0, .data = {}};
+            DataStructures::Frame frame{.width = 0, .height = 0, .source_fps = 0.0, .data = {}};
             while (frame.width == 0 && frame.height == 0 && frame.source_fps == 0.0) {
-                if (m_no_new_frames_ && m_frame_queue.empty()) {
-                    break;
-                }
+                if (m_no_new_frames_ && m_frame_queue.empty()) { break; }
                 {
                     std::lock_guard lock(m_queue_mutex);
                     if (!m_frame_queue.empty()) {
@@ -95,9 +89,7 @@ void Renderer::start_rendering() {
             }
 
             if (frame.width == 0 || frame.height == 0 || frame.source_fps <= 0.0) {
-                if (m_no_new_frames_) {
-                    break;
-                }
+                if (m_no_new_frames_) { break; }
                 continue;
             }
 
@@ -105,15 +97,11 @@ void Renderer::start_rendering() {
                 clock_.start();
                 output_writer_->set_clock(clock_);
 
-                if (!no_output_ && !no_audio_ && audio_ != nullptr) {
-                    audio_->play();
-                }
+                if (!no_output_ && !no_audio_ && audio_ != nullptr) { audio_->play(); }
 
                 const double source_fps = frame.source_fps;
 
-                target_ms = frame_rate_ > 0
-                    ? 1000.0 / frame_rate_
-                    : 1000.0 / source_fps;
+                target_ms = frame_rate_ > 0 ? 1000.0 / frame_rate_ : 1000.0 / source_fps;
 
                 if (!no_output_) {
                     output_writer_->start();
@@ -139,12 +127,10 @@ void Renderer::start_rendering() {
     });
 }
 
-bool Renderer::add_decoded_frame(const DataStructures::Frame &frame) {
+bool Renderer::add_decoded_frame(const DataStructures::Frame& frame) {
     {
         std::lock_guard lock(m_queue_mutex);
-        if (m_frame_queue.size() >= QUEUE_MAX_SIZE) {
-            return false;
-        }
+        if (m_frame_queue.size() >= QUEUE_MAX_SIZE) { return false; }
         m_frame_queue.push(frame);
     }
     return true;
@@ -153,12 +139,10 @@ bool Renderer::add_decoded_frame(const DataStructures::Frame &frame) {
 void Renderer::no_new_frames() {
     DEBUG("Renderer: no_new_frames got called");
     m_no_new_frames_ = true;
-    if (worker_thread_.joinable()) {
-        worker_thread_.join();
-    }
+    if (worker_thread_.joinable()) { worker_thread_.join(); }
 }
 
-void Renderer::set_charset(const std::u32string &charset) {
+void Renderer::set_charset(const std::u32string& charset) {
     DEBUG("set_charset got called");
     this->config.charset = charset;
     // Rebuild the character lookup table
@@ -171,7 +155,7 @@ void Renderer::set_left_pad(const int left_pad) {
     build_padding();
 }
 
-std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
+std::string Renderer::render_frame(const DataStructures::Frame& frame) const {
     DEBUG("Renderer: render_frame got called");
     DEBUG(std::format("Rendering frame of size {}x{}", frame.width, frame.height));
     std::string output;
@@ -186,7 +170,7 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
         output.reserve(static_cast<size_t>(frame.width * frame.height * 26 + m_left_pad_str.size() * frame.height));
         for (int y = 0; y < frame.height; ++y) {
             bool first_pixel_in_line = true;
-            const DataStructures::Pixel * row = &frame.data[y * frame.width];
+            const DataStructures::Pixel* row = &frame.data[y * frame.width];
 #ifdef DEBUG_RENDERER_MODE
             output.append(std::to_string(y));
 #endif
@@ -213,14 +197,14 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
 
                 output.append(m_char_lut[pixel.CalculateLuminance()]);
             }
-            output.append(COLOR_RESET);  // Reset color at the end of each line
+            output.append(COLOR_RESET);// Reset color at the end of each line
             output.push_back('\n');
         }
     } else {
         DEBUG("Rendering with color disabled");
         output.reserve(static_cast<size_t>(frame.width * frame.height * 12 + m_left_pad_str.size() * frame.height));
         for (int y = 0; y < frame.height; ++y) {
-            const DataStructures::Pixel * row = &frame.data[y * frame.width];
+            const DataStructures::Pixel* row = &frame.data[y * frame.width];
             output.append(m_left_pad_str);
             for (int x = 0; x < frame.width; ++x) {
                 const auto& pixel = row[x];
@@ -243,19 +227,21 @@ std::string Renderer::render_frame(const DataStructures::Frame &frame) const {
  * @param height the height used as target
  * @param on_frame the function to call when a frame is redy
  */
-void Renderer::generate(const std::filesystem::path &input_path, const int frame_rate, const int width, const int height, const FrameCallback &on_frame) {
+void Renderer::generate(const std::filesystem::path& input_path, const int frame_rate, const int width,
+        const int height, const FrameCallback& on_frame) {
     DEBUG("GenerateFrames: generate got called");
-    DEBUG(std::format("Input path: {}, frame rate: {}, width: {}, height: {}", input_path.string(), frame_rate, width, height));
+    DEBUG(std::format("Input path: {}, frame rate: {}, width: {}, height: {}", input_path.string(), frame_rate, width,
+            height));
 
     // Keep FFmpeg resources in one place so every early return still frees them.
     struct Cleanup {
         AVPacket* pkt = av_packet_alloc();
-        AVFormatContext *fmt;
-        AVCodecContext *dec_ctx;
-        AVFrame *frame;
-        AVFrame *rgb_frame;
-        SwsContext *sws;
-        uint8_t *rgb_buffer;
+        AVFormatContext* fmt;
+        AVCodecContext* dec_ctx;
+        AVFrame* frame;
+        AVFrame* rgb_frame;
+        SwsContext* sws;
+        uint8_t* rgb_buffer;
 
         Cleanup() {
             fmt = nullptr;
@@ -278,17 +264,13 @@ void Renderer::generate(const std::filesystem::path &input_path, const int frame
         }
     } cleanup;
 
-    if (frame_rate < 0) {
-        throw std::invalid_argument("Invalid frame rate");
-    }
+    if (frame_rate < 0) { throw std::invalid_argument("Invalid frame rate"); }
 
     if (avformat_open_input(&cleanup.fmt, input_path.string().c_str(), nullptr, nullptr) < 0) {
         throw std::runtime_error("Failed to open input file");
     }
 
-    if (avformat_find_stream_info(cleanup.fmt, nullptr) < 0) {
-        throw std::runtime_error("Failed to read stream info");
-    }
+    if (avformat_find_stream_info(cleanup.fmt, nullptr) < 0) { throw std::runtime_error("Failed to read stream info"); }
 
     int video_stream_index = -1;
     for (unsigned int i = 0; i < cleanup.fmt->nb_streams; ++i) {
@@ -298,20 +280,14 @@ void Renderer::generate(const std::filesystem::path &input_path, const int frame
         }
     }
 
-    if (video_stream_index < 0) {
-        throw std::runtime_error("No video stream found");
-    }
+    if (video_stream_index < 0) { throw std::runtime_error("No video stream found"); }
 
-    const AVCodecParameters *codec_par = cleanup.fmt->streams[video_stream_index]->codecpar;
-    const AVCodec *dec = avcodec_find_decoder(codec_par->codec_id);
-    if (!dec) {
-        throw std::runtime_error("Failed to find decoder");
-    }
+    const AVCodecParameters* codec_par = cleanup.fmt->streams[video_stream_index]->codecpar;
+    const AVCodec* dec = avcodec_find_decoder(codec_par->codec_id);
+    if (!dec) { throw std::runtime_error("Failed to find decoder"); }
 
     cleanup.dec_ctx = avcodec_alloc_context3(dec);
-    if (!cleanup.dec_ctx) {
-        throw std::runtime_error("Failed to allocate decoder context");
-    }
+    if (!cleanup.dec_ctx) { throw std::runtime_error("Failed to allocate decoder context"); }
 
     if (avcodec_parameters_to_context(cleanup.dec_ctx, codec_par) < 0) {
         throw std::runtime_error("Failed to copy codec parameters");
@@ -321,15 +297,11 @@ void Renderer::generate(const std::filesystem::path &input_path, const int frame
     cleanup.dec_ctx->thread_count = static_cast<int>(cpu_threads);
     cleanup.dec_ctx->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
 
-    if (avcodec_open2(cleanup.dec_ctx, dec, nullptr) < 0) {
-        throw std::runtime_error("Failed to open decoder");
-    }
+    if (avcodec_open2(cleanup.dec_ctx, dec, nullptr) < 0) { throw std::runtime_error("Failed to open decoder"); }
 
     cleanup.frame = av_frame_alloc();
     cleanup.rgb_frame = av_frame_alloc();
-    if (!cleanup.frame || !cleanup.rgb_frame) {
-        throw std::runtime_error("Failed to allocate frames");
-    }
+    if (!cleanup.frame || !cleanup.rgb_frame) { throw std::runtime_error("Failed to allocate frames"); }
 
     // Compute target dimensions if one of them is zero to preserve aspect ratio.
     int target_w = width;
@@ -356,30 +328,22 @@ void Renderer::generate(const std::filesystem::path &input_path, const int frame
         }
     };
 
-    if (target_w <= 0 && target_h <= 0) {
-        throw std::invalid_argument("Invalid target dimensions");
-    }
+    if (target_w <= 0 && target_h <= 0) { throw std::invalid_argument("Invalid target dimensions"); }
 
     if (target_h <= 0) {
-        target_h = std::max(1, static_cast<int>(std::llround(static_cast<double>(src_h) * static_cast<double>(target_w) / (static_cast<double>(src_w) * char_aspect))));
+        target_h =
+                std::max(1, static_cast<int>(std::llround(static_cast<double>(src_h) * static_cast<double>(target_w) /
+                                                          (static_cast<double>(src_w) * char_aspect))));
     } else if (target_w <= 0) {
-        target_w = std::max(1, static_cast<int>(std::llround(static_cast<double>(src_w) * static_cast<double>(target_h) * char_aspect / static_cast<double>(src_h))));
+        target_w =
+                std::max(1, static_cast<int>(std::llround(static_cast<double>(src_w) * static_cast<double>(target_h) *
+                                                          char_aspect / static_cast<double>(src_h))));
     }
 
-    cleanup.sws = sws_getContext(
-            cleanup.dec_ctx->width,
-            cleanup.dec_ctx->height,
-            normalize_pixel_format(cleanup.dec_ctx->pix_fmt),
-            target_w,
-            target_h,
-            AV_PIX_FMT_RGB24,
-            SWS_FAST_BILINEAR,
-            nullptr,
-            nullptr,
-            nullptr);
-    if (!cleanup.sws) {
-        throw std::runtime_error("Failed to create scaling context");
-    }
+    cleanup.sws = sws_getContext(cleanup.dec_ctx->width, cleanup.dec_ctx->height,
+            normalize_pixel_format(cleanup.dec_ctx->pix_fmt), target_w, target_h, AV_PIX_FMT_RGB24, SWS_FAST_BILINEAR,
+            nullptr, nullptr, nullptr);
+    if (!cleanup.sws) { throw std::runtime_error("Failed to create scaling context"); }
 
     // Check if the colorspace can be converted
     if (sws_setColorspaceDetails(cleanup.sws, sws_getCoefficients(SWS_CS_DEFAULT), 0,
@@ -388,69 +352,46 @@ void Renderer::generate(const std::filesystem::path &input_path, const int frame
     }
 
     const int rgb_buffer_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, target_w, target_h, 1);
-    if (rgb_buffer_size < 0) {
-        throw std::runtime_error("Failed to allocate RGB buffer");
-    }
+    if (rgb_buffer_size < 0) { throw std::runtime_error("Failed to allocate RGB buffer"); }
 
-    cleanup.rgb_buffer = static_cast<uint8_t *>(av_malloc(rgb_buffer_size));
-    if (!cleanup.rgb_buffer) {
-        throw std::runtime_error("Failed to allocate RGB memory");
-    }
+    cleanup.rgb_buffer = static_cast<uint8_t*>(av_malloc(rgb_buffer_size));
+    if (!cleanup.rgb_buffer) { throw std::runtime_error("Failed to allocate RGB memory"); }
 
-    if (av_image_fill_arrays(
-                cleanup.rgb_frame->data,
-                cleanup.rgb_frame->linesize,
-                cleanup.rgb_buffer,
-                AV_PIX_FMT_RGB24,
-                target_w,
-                target_h,
-                1) < 0) {
+    if (av_image_fill_arrays(cleanup.rgb_frame->data, cleanup.rgb_frame->linesize, cleanup.rgb_buffer, AV_PIX_FMT_RGB24,
+                target_w, target_h, 1) < 0) {
         throw std::runtime_error("Failed to bind RGB buffer to frame");
     }
 
-    AVStream *video_stream = cleanup.fmt->streams[video_stream_index];
+    AVStream* video_stream = cleanup.fmt->streams[video_stream_index];
     double source_fps = av_q2d(av_guess_frame_rate(cleanup.fmt, video_stream, nullptr));
-    if (source_fps <= 0.0) {
-        source_fps = av_q2d(video_stream->avg_frame_rate);
-    }
-    if (source_fps <= 0.0) {
-        source_fps = static_cast<double>(frame_rate);
-    }
+    if (source_fps <= 0.0) { source_fps = av_q2d(video_stream->avg_frame_rate); }
+    if (source_fps <= 0.0) { source_fps = static_cast<double>(frame_rate); }
 
-    const double effective_fps = (frame_rate > 0)
-                                         ? static_cast<double>(frame_rate)
-                                         : source_fps;
+    const double effective_fps = (frame_rate > 0) ? static_cast<double>(frame_rate) : source_fps;
 
-    if (effective_fps <= 0.0) {
-        throw std::runtime_error("Could not determine a valid frame rate");
-    }
+    if (effective_fps <= 0.0) { throw std::runtime_error("Could not determine a valid frame rate"); }
 
-    const std::size_t frame_step = std::max<std::size_t>(
-            1,
-            std::llround(source_fps / effective_fps));
+    const std::size_t frame_step = std::max<std::size_t>(1, std::llround(source_fps / effective_fps));
 
     // Convert each decoded frame from the source pixel format into packed RGB24.
-    auto append_frame = [&](const AVFrame *source_frame) {
+    auto append_frame = [&](const AVFrame* source_frame) {
         // scale the frame to the target height and width
-        sws_scale(
-                cleanup.sws,
-                source_frame->data,
-                source_frame->linesize,
-                0,
-                cleanup.dec_ctx->height,
-                cleanup.rgb_frame->data,
-                cleanup.rgb_frame->linesize);
+        sws_scale(cleanup.sws, source_frame->data, source_frame->linesize, 0, cleanup.dec_ctx->height,
+                cleanup.rgb_frame->data, cleanup.rgb_frame->linesize);
 
         DataStructures::Frame output_frame;
         output_frame.width = target_w;
         output_frame.height = target_h;
-        output_frame.data.resize(static_cast<std::size_t>(target_w) * static_cast<std::size_t>(target_h));// Reserve space in the vector
+        output_frame.data.resize(
+                static_cast<std::size_t>(target_w) * static_cast<std::size_t>(target_h));// Reserve space in the vector
         output_frame.source_fps = effective_fps;
 
         // write the data in the Frame
         for (int y = 0; y < target_h; ++y) {
-            const uint8_t *row = cleanup.rgb_frame->data[0] + static_cast<std::size_t>(y) * cleanup.rgb_frame->linesize[0];
-            std::memcpy(&output_frame.data[static_cast<std::size_t>(y) * target_w], row, static_cast<std::size_t>(target_w) * 3);
+            const uint8_t* row =
+                    cleanup.rgb_frame->data[0] + static_cast<std::size_t>(y) * cleanup.rgb_frame->linesize[0];
+            std::memcpy(&output_frame.data[static_cast<std::size_t>(y) * target_w], row,
+                    static_cast<std::size_t>(target_w) * 3);
         }
 
         on_frame(std::move(output_frame));
@@ -463,9 +404,7 @@ void Renderer::generate(const std::filesystem::path &input_path, const int frame
         if (cleanup.pkt->stream_index == video_stream_index) {
             if (avcodec_send_packet(cleanup.dec_ctx, cleanup.pkt) >= 0) {
                 while (avcodec_receive_frame(cleanup.dec_ctx, cleanup.frame) >= 0) {
-                    if (decoded_frame_index % frame_step == 0) {
-                        append_frame(cleanup.frame);
-                    }
+                    if (decoded_frame_index % frame_step == 0) { append_frame(cleanup.frame); }
                     ++decoded_frame_index;
                 }
             }
@@ -476,9 +415,7 @@ void Renderer::generate(const std::filesystem::path &input_path, const int frame
     // Flush the decoder to process any remaining frames.
     if (avcodec_send_packet(cleanup.dec_ctx, nullptr) >= 0) {
         while (avcodec_receive_frame(cleanup.dec_ctx, cleanup.frame) >= 0) {
-            if (decoded_frame_index % frame_step == 0) {
-                append_frame(cleanup.frame);
-            }
+            if (decoded_frame_index % frame_step == 0) { append_frame(cleanup.frame); }
             ++decoded_frame_index;
         }
     }

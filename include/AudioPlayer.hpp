@@ -25,16 +25,16 @@ public:
     ~AudioPlayer();
 
     // Keine Kopien oder Zuweisungen
-    AudioPlayer(const AudioPlayer &) = delete;
-    AudioPlayer &operator=(const AudioPlayer &) = delete;
-    AudioPlayer(AudioPlayer &&) = delete;
-    AudioPlayer &operator=(AudioPlayer &&) = delete;
+    AudioPlayer(const AudioPlayer&) = delete;
+    AudioPlayer& operator=(const AudioPlayer&) = delete;
+    AudioPlayer(AudioPlayer&&) = delete;
+    AudioPlayer& operator=(AudioPlayer&&) = delete;
 
     /**
      * @brief loads the audio file from the given path. If a file is already loaded, it will be unloaded first.
      * @param path the path to the audio file to load.
      */
-    void load(const std::string &path);
+    void load(const std::string& path);
 
     /// @brief plays the loaded file (if any).
     void play();
@@ -46,7 +46,8 @@ public:
     void unload();
 
     /**
-     * @brief returns the time that passed since the playback started in milliseconds. If no audio is playing, it returns 0.
+     * @brief returns the time that passed since the playback started in milliseconds. If no audio is playing, it
+     * returns 0.
      * @return the time that passed since the playback started
      */
     [[nodiscard]] double get_time_ms() const;
@@ -75,6 +76,6 @@ private:
     // The bools do what they say
     bool playing = false;
     bool is_something_loaded = false;
-    std::chrono::steady_clock::time_point start_time; // The start time of the playback
+    std::chrono::steady_clock::time_point start_time;// The start time of the playback
 };
-#endif // IMG_TO_ASCII_AUDIOPLAYER_H
+#endif// IMG_TO_ASCII_AUDIOPLAYER_H

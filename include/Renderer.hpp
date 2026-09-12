@@ -48,10 +48,10 @@ public:
     void no_new_frames();
 
     // Keine Kopien oder Zuweisungen
-    Renderer(const Renderer &) = delete;
-    Renderer &operator=(const Renderer &) = delete;
-    Renderer(Renderer &&) = delete;
-    Renderer &operator=(Renderer &&) = delete;
+    Renderer(const Renderer&) = delete;
+    Renderer& operator=(const Renderer&) = delete;
+    Renderer(Renderer&&) = delete;
+    Renderer& operator=(Renderer&&) = delete;
 
 
     /**
@@ -73,7 +73,7 @@ public:
      * @brief Sets the character set for luminance mapping.
      * @param charset the character set to use
      */
-    void set_charset(const std::u32string &charset);
+    void set_charset(const std::u32string& charset);
 
     /**
      * @brief Sets the left padding for each line of ASCII art.
@@ -83,7 +83,7 @@ public:
 
 
     /// Callback type for frame processing. Frame ownership is transferred to the callback.
-    using FrameCallback = std::function<void(DataStructures::Frame &&Frame)>;
+    using FrameCallback = std::function<void(DataStructures::Frame&& Frame)>;
 
     /**
      * @brief Decode a video file and deliver scaled RGB frames via callback.
@@ -102,11 +102,12 @@ public:
      * @note Frames are delivered in playback order
      * @note If only one dimension is specified, the other is calculated to preserve aspect ratio
      */
-    static void generate(const std::filesystem::path & input_path, int frame_rate, int width, int height, const FrameCallback &on_frame);
+    static void generate(const std::filesystem::path& input_path, int frame_rate, int width, int height,
+            const FrameCallback& on_frame);
 
 private:
-    std::array<std::string, 256> m_number_lut;  ///< Lookup table for luminance to character mapping
-    std::array<std::string, 256> m_char_lut;   ///< Lookup table for character mapping
+    std::array<std::string, 256> m_number_lut;///< Lookup table for luminance to character mapping
+    std::array<std::string, 256> m_char_lut;  ///< Lookup table for character mapping
 
     std::string m_left_pad_str;
 
@@ -147,7 +148,7 @@ private:
      * @param frame The decoded video frame to render
      * @return String containing ANSI-formatted ASCII art with embedded control codes
      */
-    [[nodiscard]] std::string render_frame(const DataStructures::Frame &frame) const;
+    [[nodiscard]] std::string render_frame(const DataStructures::Frame& frame) const;
 };
 
 #endif// IMG_TO_ASCII_RENDERER_H

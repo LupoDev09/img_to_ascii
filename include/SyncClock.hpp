@@ -21,7 +21,7 @@
  */
 class SyncClock {
 public:
-    SyncClock() : start_time(std::chrono::steady_clock::now()) {} // Standardkonstruktor setzt start_time
+    SyncClock() : start_time(std::chrono::steady_clock::now()) {}// Standardkonstruktor setzt start_time
 
     /**
      * @brief Start the clock's time reference.
@@ -44,8 +44,8 @@ public:
     void wait_until(double target_ms) const;
 
 private:
-    std::atomic<std::chrono::steady_clock::time_point> start_time; ///< Reference point for timing
-    bool is_started = false; ///< Flag, ob die Uhr gestartet wurde
+    std::atomic<std::chrono::steady_clock::time_point> start_time;///< Reference point for timing
+    bool is_started = false;                                      ///< Flag, ob die Uhr gestartet wurde
 };
 
 #endif// IMG_TO_ASCII_SYNCCLOCK_H

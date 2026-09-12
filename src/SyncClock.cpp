@@ -5,9 +5,7 @@
 #include <Verbose.hpp>
 
 void SyncClock::start() {
-    if (is_started) {
-        throw std::runtime_error("SyncClock is already started!");
-    }
+    if (is_started) { throw std::runtime_error("SyncClock is already started!"); }
     DEBUG("SyncClock started.");
     start_time = std::chrono::steady_clock::now();
     is_started = true;
@@ -15,9 +13,7 @@ void SyncClock::start() {
 
 
 double SyncClock::now_ms() const {
-    if (!is_started) {
-        throw std::runtime_error("SyncClock is not started! Call start() first.");
-    }
+    if (!is_started) { throw std::runtime_error("SyncClock is not started! Call start() first."); }
     DEBUG("SyncClock: now_ms got called");
     const auto t = std::chrono::steady_clock::now();
     return std::chrono::duration<double, std::milli>(t - start_time.load()).count();
@@ -25,9 +21,7 @@ double SyncClock::now_ms() const {
 
 
 void SyncClock::wait_until(const double target_ms) const {
-    if (!is_started) {
-        throw std::runtime_error("SyncClock is not started! Call start() first.");
-    }
+    if (!is_started) { throw std::runtime_error("SyncClock is not started! Call start() first."); }
     DEBUG("SyncClock: wait_until got called");
     using namespace std::chrono;
 

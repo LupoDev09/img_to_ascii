@@ -25,31 +25,25 @@ namespace {
             std::cout << "\033[?25h";// Show cursor
         }
 
-        ~CursorGuard() {
-            makeVisible();
-        }
+        ~CursorGuard() { makeVisible(); }
     };
 
     struct FrameHandler {
         Renderer& renderer;
 
         void operator()(DataStructures::Frame&& frame) const {
-            while (!renderer.add_decoded_frame(frame)) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
-
-            // TODO: Rework the Architecture so the rendering is happening in it's own thread so we don't sleep during decoding
+            while (!renderer.add_decoded_frame(frame)) { std::this_thread::sleep_for(std::chrono::milliseconds(10)); }
         }
     };
-}
+}// namespace
 
 /**
  * @brief Convert a video file to ASCII art animation.
- * 
+ *
  * Reads a video file, extracts frames and audio, scales frames to specified dimensions,
  * converts pixels to ASCII characters based on luminance, and displays the animation
  * in the terminal with optional color support and synchronized audio.
- * 
+ *
  * Workflow:
  * 1. Parse command-line arguments for input file, output dimensions, frame rate, etc.
  * 2. Validate input parameters (file exists, dimensions valid, etc.)
@@ -61,53 +55,50 @@ namespace {
  *    - Output ASCII art with proper timing
  *    - Synchronize with audio playback
  * 6. Clean up resources (audio file, etc.)
- * 
+ *
  * @return 0 on success, 1 on error
  */
 int main(int argc, char** argv) {
     cxxopts::Options options("Img_to_ascii", "Convert video files to ASCII art animations");
 
     // Group: Input
-    options.add_options("Input")
-    ("i,input", "Input video file", cxxopts::value<std::string>());
+    options.add_options("Input")("i,input", "Input video file", cxxopts::value<std::string>());
 
     // Group: Sizing (width / height)
-    options.add_options("Sizing")
-    ("w,width", "Width of the output ascii video (0 = auto-calculate from height)", cxxopts::value<int>()->default_value("0"))
-    ("h,height", "Height of the output ascii video (0 = auto-calculate from width)", cxxopts::value<int>()->default_value("0"));
+    options.add_options("Sizing")("w,width", "Width of the output ascii video (0 = auto-calculate from height)",
+            cxxopts::value<int>()->default_value("0"))("h,height",
+            "Height of the output ascii video (0 = auto-calculate from width)",
+            cxxopts::value<int>()->default_value("0"));
 
     // Group: Video / Playback
-    options.add_options("Playback")
-    ("f,fps", "Frame rate of the output ascii video (0 = use source frame rate)", cxxopts::value<int>()->default_value("0"))
-    ("no-audio", "Disable audio playback during animation", cxxopts::value<bool>()->default_value("false"));
+    options.add_options("Playback")("f,fps", "Frame rate of the output ascii video (0 = use source frame rate)",
+            cxxopts::value<int>()->default_value("0"))("no-audio", "Disable audio playback during animation",
+            cxxopts::value<bool>()->default_value("false"));
 
     // Group: Output
-    options.add_options("Output")
-    ("no-color", "Disable ANSI color output (output grayscale only)", cxxopts::value<bool>()->default_value("false"))
-    ("c,charset", "Character palette for ASCII mapping (darker to lighter)", cxxopts::value<std::string>()->default_value(" ░▒▓█"))
-    ("left-pad", "Left padding for each line of ASCII art", cxxopts::value<int>()->default_value("0"));
+    options.add_options("Output")("no-color", "Disable ANSI color output (output grayscale only)",
+            cxxopts::value<bool>()->default_value("false"))("c,charset",
+            "Character palette for ASCII mapping (darker to lighter)",
+            cxxopts::value<std::string>()->default_value(" ░▒▓█"))("left-pad",
+            "Left padding for each line of ASCII art", cxxopts::value<int>()->default_value("0"));
 
     // Group: General
-    options.add_options("General")
-    ("help", "Print this help message")
-    ("no-output", "Process video without outputting ASCII animation to stdout", cxxopts::value<bool>()->default_value("false"));
+    options.add_options("General")("help", "Print this help message")("no-output",
+            "Process video without outputting ASCII animation to stdout",
+            cxxopts::value<bool>()->default_value("false"));
 
 #ifdef DEBUG_MODE
     DEBUG("Hallo Ich muss argc ihrgendwie nutzen deshalb hier der Wert " + std::to_string(argc));
 
-    std::vector<std::string> mock_argv = {
-        argv[0], // argv[0] muss existieren!
-        "--input", "/home/lupo/CLionProjects/img_to_ascii/funny.gif",
-        "--width", "50",
-        "--no-audio"
-    };
+    std::vector<std::string> mock_argv = {argv[0],// argv[0] muss existieren!
+            "--input", "/home/lupo/CLionProjects/img_to_ascii/funny.gif", "--width", "50", "--no-audio"};
 
     std::vector<const char*> argv_ptrs;
 
     argv_ptrs.reserve(mock_argv.size());
 
     // Wir konvertieren jeden std::string zu const char*
-    for (const auto& arg : mock_argv) {
+    for (const auto& arg: mock_argv) {
         argv_ptrs.emplace_back(arg.c_str());
         // c_str() gibt Pointer auf internen String zurück
     }
@@ -137,7 +128,7 @@ int main(int argc, char** argv) {
     const int left_pad = parse_result["left-pad"].as<int>();
 
     // Saves the width and height in this pair where the width is the first and the height the second element
-    const std::pair image_dimensions = { parse_result["w"].as<int>(), parse_result["h"].as<int>() };
+    const std::pair image_dimensions = {parse_result["w"].as<int>(), parse_result["h"].as<int>()};
 
     const int frame_rate = parse_result["f"].as<int>();
     const bool no_output = parse_result["no-output"].as<bool>();
@@ -158,15 +149,16 @@ int main(int argc, char** argv) {
         std::cerr << "Frame rate is invalid" << std::endl;
         return 1;
     }
-    if (image_dimensions.second <= 0 && image_dimensions.first<= 0) {
-        std::cerr << "Height and width are invalid please provide at least one of them as positive integer" << std::endl;
+    if (image_dimensions.second <= 0 && image_dimensions.first <= 0) {
+        std::cerr << "Height and width are invalid please provide at least one of them as positive integer"
+                  << std::endl;
         return 1;
     }
 
     std::cout << "Input video file: " << input << '\n'
               << "Frame rate: " << (frame_rate > 0 ? std::to_string(frame_rate) : "use source") << '\n'
               << "Charset: " << charset << '\n'
-              << "Width: " << image_dimensions.first<< '\n'
+              << "Width: " << image_dimensions.first << '\n'
               << "Height: " << image_dimensions.second << '\n'
               << "Left Pad: " << left_pad << '\n'
               << "No Color: " << (no_color ? "true" : "false") << '\n'
@@ -191,9 +183,7 @@ int main(int argc, char** argv) {
     Renderer renderer(no_audio, no_output, audio.get(), frame_rate, &output);
     renderer.config.color = !no_color;
     renderer.set_left_pad(left_pad);
-    if (!charset32.empty()) {
-        renderer.set_charset(charset32);
-    }
+    if (!charset32.empty()) { renderer.set_charset(charset32); }
     DEBUG("Configured Renderer");
 
     DEBUG("Starting frame generation and output...");

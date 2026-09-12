@@ -9,12 +9,12 @@
 
 // Debug-Makro: Nur aktiv, wenn NDEBUG NICHT definiert ist (z. B. in Debug-Builds)
 #ifdef NDEBUG
-    #define DEBUG(message) ((void)0)  // Wird zu nichts kompiliert
+#define DEBUG(message) ((void) 0)// Wird zu nichts kompiliert
 #else
-    #define DEBUG(message) \
-        do { \
-            std::cerr << "[DEBUG] " << __FILE__ << ":" << __LINE__ << " (" << __func__ << "): " << message << "\n"; \
-        } while (0)
+#define DEBUG(message)                                                                                                 \
+    do {                                                                                                               \
+        std::cerr << "[DEBUG] " << __FILE__ << ":" << __LINE__ << " (" << __func__ << "): " << message << "\n";        \
+    } while (0)
 #endif
 
 #endif// IMG_TO_ASCII_VERBOSE_HPP
