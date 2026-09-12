@@ -229,6 +229,7 @@ std::string Renderer::render_frame(const DataStructures::Frame& frame) const {
                 output.append(m_char_lut[pixel.CalculateLuminance()]);
             }
             output.append(COLOR_RESET);// Reset color at the end of each line
+            output.push_back('\r');
             output.push_back('\n');
         }
     } else {
@@ -241,6 +242,7 @@ std::string Renderer::render_frame(const DataStructures::Frame& frame) const {
                 const auto& pixel = row[x];
                 output.append(m_char_lut[pixel.CalculateLuminance()]);
             }
+            output.push_back('\r');
             output.push_back('\n');
         }
     }

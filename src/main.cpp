@@ -22,7 +22,7 @@
 #include <filesystem>
 #include <iostream>
 #include <utf8/checked.h>
-
+#include "RawOutputGuard.hpp"
 
 namespace {
     // Makes the cursor invisible on construction and visible through a function call or at deconstruction
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
     DEBUG("Hallo Ich muss argc ihrgendwie nutzen deshalb hier der Wert " + std::to_string(argc));
 
     std::vector<std::string> mock_argv = {argv[0],// argv[0] muss existieren!
-            "--input", "/home/lupo/CLionProjects/img_to_ascii/Silly_Cat_Character.jpg", "--width", "500", "--no-audio"};
+            "--input", "/home/lupo/CLionProjects/img_to_ascii/funny.gif", "--width", "500", "--no-audio"};
 
     std::vector<const char*> argv_ptrs;
 
@@ -199,17 +199,18 @@ int main(int argc, char** argv) {
     DEBUG("Configured Renderer");
 
     DEBUG("Starting frame generation and output...");
-    CursorGuard cursor_guard;
+    {
+        CursorGuard cursor_guard;
+        RawOutputGuard raw_output_guard;
 
 
-    renderer.start_rendering();
-    FrameHandler handler{.renderer = renderer};
-    Renderer::decode_frames(input, frame_rate, image_dimensions.first, image_dimensions.second, handler);
+        renderer.start_rendering();
+        FrameHandler handler{.renderer = renderer};
+        Renderer::decode_frames(input, frame_rate, image_dimensions.first, image_dimensions.second, handler);
 
-    renderer.stop();
-    output.stop();
-
-    CursorGuard::makeVisible();
+        renderer.stop();
+        output.stop();
+    }
     DEBUG("Frame generation and output completed.");
 
     if (audio) {
