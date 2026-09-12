@@ -40,7 +40,7 @@ public:
      * @param frame the frame to add
      * @return whether the adding of the frame was successful
      */
-    bool add_decoded_frame(const DataStructures::Frame& frame);
+    bool add_decoded_frame(DataStructures::Frame&& frame);
 
     /**
      * @brief Signals that no new frames will be added to the queue.

@@ -96,6 +96,19 @@ void Renderer::start_rendering() {
            }
             return {.width = -1, .height = -1, .source_fps = -1.0, .data = {}};
         };
+
+        DataStructures::Frame frame = get_frame_from_queue();
+        if (frame.width == -1 && frame.height == -1 && frame.source_fps == -1.0 && frame.data.empty()) {
+            return;
+        }
+
+        if (frame_rate_ > 0) {
+            target_ms = 1000.0 / frame_rate_;
+        } else {
+            target_ms = 1000.0 / frame.source_fps;
+        }
+
+        // Don't move this function before the if-statement for target_ms!!!
         auto render_and_push = [this, &frame_index, target_ms](const DataStructures::Frame &f) {
             const std::string rendered = render_frame(f);
             if (!no_output_) {
@@ -107,22 +120,12 @@ void Renderer::start_rendering() {
             frame_index++;
         };
 
-        DataStructures::Frame frame = get_frame_from_queue();
-        if (frame.width == -1 && frame.height == -1 && frame.source_fps == -1.0 && frame.data.empty()) {
-            return;
-        }
-
         // some setup
         clock_.start();
         output_writer_->set_clock(clock_);
 
         if (!no_output_ && !no_audio_ && audio_ != nullptr) { audio_->play(); }
 
-        if (frame_rate_ > 0) {
-            target_ms = 1000.0 / frame_rate_;
-        } else {
-            target_ms = 1000.0 / frame.source_fps;
-        }
 
         if (!no_output_) {
             output_writer_->start();
@@ -155,11 +158,11 @@ void Renderer::start_rendering() {
     SET_THREAD_NAME(worker_thread_, "RendererWorker");
 }
 
-bool Renderer::add_decoded_frame(const DataStructures::Frame& frame) {
+bool Renderer::add_decoded_frame(DataStructures::Frame&& frame) {
     {
         std::lock_guard lock(m_queue_mutex);
         if (m_frame_queue.size() >= QUEUE_MAX_SIZE) { return false; }
-        m_frame_queue.push(frame);
+        m_frame_queue.push(std::move(frame));
     }
     return true;
 }

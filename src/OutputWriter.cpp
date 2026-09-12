@@ -13,7 +13,7 @@
 
 #include <OutputWriter.hpp>
 
-#include "Verbose.hpp"
+#include <Verbose.hpp>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -38,7 +38,15 @@ static void write_stdout(const std::string& data) {
 
 #else
 
-    write(STDOUT_FILENO, data.data(), data.size());
+    size_t total_written = 0;
+    while (total_written < data.size()) {
+        const ssize_t n = write(STDOUT_FILENO, data.data() + total_written, data.size() - total_written);
+        if (n < 0) {
+            if (errno == EINTR) continue;  // Signal unterbrochen, einfach erneut versuchen
+            break;  // echter Fehler, z.B. EPIPE - abbrechen statt Endlosschleife
+        }
+        total_written += static_cast<size_t>(n);
+    }
 
 #endif
 }

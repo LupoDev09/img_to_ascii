@@ -42,7 +42,9 @@ namespace {
         Renderer& renderer;
 
         void operator()(DataStructures::Frame&& frame) const {
-            while (!renderer.add_decoded_frame(frame)) { std::this_thread::sleep_for(std::chrono::milliseconds(10)); }
+            while (!renderer.add_decoded_frame(std::move(frame))) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
         }
     };
 }// namespace
