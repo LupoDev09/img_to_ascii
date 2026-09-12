@@ -39,10 +39,10 @@ namespace DataStructures {
      * @brief Represents a decoded video frame with RGB pixel data.
      */
     struct Frame {
-        int width{};               ///< Frame width in pixels
-        int height{};              ///< Frame height in pixels
-        double source_fps{};       ///< Original frame rate from the source video
-        std::vector<Pixel> data; ///< Pixel data in row-major order (width * height pixels)
+        int width{};                ///< Frame width in pixels
+        int height{};               ///< Frame height in pixels
+        double source_fps{};        ///< Original frame rate from the source video
+        std::vector<Pixel> data;    ///< Pixel data in row-major order (width * height pixels)
     };
 }
 
