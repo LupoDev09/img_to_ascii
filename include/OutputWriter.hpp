@@ -19,6 +19,10 @@ public:
     OutputWriter();
     ~OutputWriter();
 
+    /**
+     * @brief Sets the clock for the output writer.
+     * @param clock the Clock to use
+     */
     void set_clock(SyncClock &clock);
 
     /**
