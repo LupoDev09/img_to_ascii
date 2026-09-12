@@ -39,7 +39,7 @@ public:
     void start();
 
     /**
-     * @brief Stops the output writer thread.
+     * @brief Stops the output writer thread and waits until the thread is done
      */
     void stop();
 

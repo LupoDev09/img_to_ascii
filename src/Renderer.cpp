@@ -63,7 +63,7 @@ Renderer::Renderer(const bool no_audio, const bool no_output, AudioPlayer* audio
 Renderer::~Renderer() {
     DEBUG("Destroying Renderer");
     DEBUG("Waiting for worker thread to finish");
-    no_new_frames();
+    stop();
     if (worker_thread_.joinable()) { worker_thread_.join(); }
 }
 
@@ -136,7 +136,7 @@ bool Renderer::add_decoded_frame(const DataStructures::Frame& frame) {
     return true;
 }
 
-void Renderer::no_new_frames() {
+void Renderer::stop() {
     DEBUG("Renderer: no_new_frames got called");
     m_no_new_frames_ = true;
     if (worker_thread_.joinable()) { worker_thread_.join(); }
@@ -227,7 +227,7 @@ std::string Renderer::render_frame(const DataStructures::Frame& frame) const {
  * @param height the height used as target
  * @param on_frame the function to call when a frame is redy
  */
-void Renderer::generate(const std::filesystem::path& input_path, const int frame_rate, const int width,
+void Renderer::decode_frames(const std::filesystem::path& input_path, const int frame_rate, const int width,
         const int height, const FrameCallback& on_frame) {
     DEBUG("GenerateFrames: generate got called");
     DEBUG(std::format("Input path: {}, frame rate: {}, width: {}, height: {}", input_path.string(), frame_rate, width,

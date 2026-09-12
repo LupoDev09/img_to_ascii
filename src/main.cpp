@@ -192,20 +192,26 @@ int main(int argc, char** argv) {
 
     renderer.start_rendering();
     FrameHandler handler{.renderer = renderer};
-    Renderer::generate(input, frame_rate, image_dimensions.first, image_dimensions.second, handler);
+    Renderer::decode_frames(input, frame_rate, image_dimensions.first, image_dimensions.second, handler);
 
-    renderer.no_new_frames();
+    renderer.stop();
     output.stop();
 
     CursorGuard::makeVisible();
     DEBUG("Frame generation and output completed.");
 
-    DEBUG("Cleaning up audio resources...");
     if (audio) {
+        DEBUG("Cleaning up audio resources...");
+
         audio->stop();
         audio->unload();
+        audio.reset();
+        audio = nullptr;
+
+        DEBUG("Audio unloaded");
+    } else {
+        DEBUG("Audio playback was disabled, no cleanup needed.");
     }
-    DEBUG("Audio unloaded");
 
     std::cout << "Bye :3" << std::endl;
     return 0;

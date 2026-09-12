@@ -45,7 +45,7 @@ public:
     /**
      * @brief Signals that no new frames will be added to the queue.
      */
-    void no_new_frames();
+    void stop();
 
     // Keine Kopien oder Zuweisungen
     Renderer(const Renderer&) = delete;
@@ -102,7 +102,7 @@ public:
      * @note Frames are delivered in playback order
      * @note If only one dimension is specified, the other is calculated to preserve aspect ratio
      */
-    static void generate(const std::filesystem::path& input_path, int frame_rate, int width, int height,
+    static void decode_frames(const std::filesystem::path& input_path, int frame_rate, int width, int height,
             const FrameCallback& on_frame);
 
 private:
