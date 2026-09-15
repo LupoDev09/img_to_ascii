@@ -142,7 +142,8 @@ int main(int argc, char** argv) {
     const int left_pad = parse_result["left-pad"].as<int>();
 
     // Saves the width and height in this pair where the width is the first and the height the second element
-    const std::pair image_dimensions = {parse_result["w"].as<int>(), parse_result["h"].as<int>()};
+    const int image_dimensions_w = parse_result["w"].as<int>();
+    const int image_dimensions_h = parse_result["h"].as<int>();
 
     const int frame_rate = parse_result["f"].as<int>();
     const bool no_color = parse_result["no-color"].as<bool>();
@@ -172,7 +173,7 @@ int main(int argc, char** argv) {
         std::cerr << "Frame rate is invalid" << std::endl;
         return 1;
     }
-    if (image_dimensions.second <= 0 && image_dimensions.first <= 0) {
+    if (image_dimensions_h <= 0 && image_dimensions_w <= 0) {
         std::cerr << "Height and width are invalid please provide at least one of them as positive integer"
                   << std::endl;
         return 1;
@@ -181,8 +182,8 @@ int main(int argc, char** argv) {
     std::cout << "Input video file: " << input << '\n'
               << "Frame rate: " << (frame_rate > 0 ? std::to_string(frame_rate) : "use source") << '\n'
               << "Charset: " << charset << '\n'
-              << "Width: " << image_dimensions.first << '\n'
-              << "Height: " << image_dimensions.second << '\n'
+              << "Width: " << image_dimensions_w << '\n'
+              << "Height: " << image_dimensions_h << '\n'
               << "Left Pad: " << left_pad << '\n'
               << "No Color: " << (no_color ? "true" : "false") << '\n'
               << "Output: " << (output_mode == DataStructures::Output::FILE ? "file" : (output_mode == DataStructures::Output::STDOUT ? "stdout" : "none")) << '\n'
@@ -220,7 +221,7 @@ int main(int argc, char** argv) {
 
         renderer.start_rendering();
         FrameHandler handler{.renderer = renderer};
-        Renderer::decode_frames(input, frame_rate, image_dimensions.first, image_dimensions.second, handler);
+        Renderer::decode_frames(input, frame_rate, image_dimensions_w, image_dimensions_h, handler);
 
         renderer.stop();
         output.stop();
