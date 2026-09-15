@@ -86,7 +86,7 @@ void Renderer::start_rendering() {
                 {
                     std::lock_guard lock(m_queue_mutex);
                     if (!m_frame_queue.empty()) {
-                        auto frame = m_frame_queue.front();
+                        auto frame = std::move(m_frame_queue.front());
                         m_frame_queue.pop();
                         return frame;
                     }
