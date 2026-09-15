@@ -12,47 +12,39 @@
  */
 
 #include <OutputWriter.hpp>
-
 #include <Verbose.hpp>
-
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-
+#include <fstream>
 
 /**
- * @brief Low-level platform specific write to stdout.
- *
- * Uses WriteFile on Windows and POSIX write() on Unix-like systems to avoid
- * iostream buffering overhead for high-frequency writes.
+ * @brief Writes to the output stream
  */
-static void write_stdout(const std::string& data) {
-#ifdef _WIN32
-
-    DWORD written = 0;
-    HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-
-    WriteFile(stdout_handle, data.data(), static_cast<DWORD>(data.size()), &written, nullptr);
-
-#else
-
-    size_t total_written = 0;
-    while (total_written < data.size()) {
-        const ssize_t n = write(STDOUT_FILENO, data.data() + total_written, data.size() - total_written);
-        if (n < 0) {
-            if (errno == EINTR) continue;  // Signal unterbrochen, einfach erneut versuchen
-            break;  // echter Fehler, z.B. EPIPE - abbrechen statt Endlosschleife
-        }
-        total_written += static_cast<size_t>(n);
+void OutputWriter::write_output(const std::string& data) {
+    if (output_stream) {
+        output_stream.write(data.data(), static_cast<std::streamsize>(data.size()));
+        output_stream.flush();
     }
-
-#endif
 }
 
 
-OutputWriter::OutputWriter() = default;
+
+OutputWriter::OutputWriter(const DataStructures::Output output_mode, const std::string& output_file)
+    : output_stream(nullptr), output_mode_(output_mode) {// Buffer wird unten je nach Modus gesetzt
+    switch (output_mode) {
+        case DataStructures::Output::FILE:
+            file_stream.open(output_file, std::ios::out);
+            if (!file_stream.is_open()) {
+                throw std::runtime_error("Failed to open output file: " + output_file);
+            }
+            output_stream.rdbuf(file_stream.rdbuf());
+            break;
+        case DataStructures::Output::STDOUT:
+            output_stream.rdbuf(std::cout.rdbuf());
+            break;
+        case DataStructures::Output::NO_OUTPUT:
+            output_stream.rdbuf(nullptr);// Schreibvorgänge landen im Leeren
+            break;
+    }
+};
 
 
 OutputWriter::~OutputWriter() { stop(); }
@@ -105,13 +97,13 @@ void OutputWriter::worker() {
             auto [data, target_ms] = queue.front();
             queue.pop();
 
-            if (clock_ != nullptr && target_ms.has_value()) {
+            if (clock_ != nullptr && target_ms.has_value() && output_mode_ == DataStructures::Output::STDOUT) {
                 lock.unlock();
                 clock_->wait_until(*target_ms);
                 lock.lock();
             }
 
-            write_stdout(data);
+            write_output(data);
         }
     }
 }

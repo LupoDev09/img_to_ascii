@@ -5,9 +5,14 @@
 #ifndef IMG_TO_ASCII_OUTPUTWRITER_HPP
 #define IMG_TO_ASCII_OUTPUTWRITER_HPP
 
+#include "dataStructures.hpp"
+
+
 #include <SyncClock.hpp>
 #include <atomic>
 #include <condition_variable>
+#include <fstream>
+#include <iostream>
 #include <mutex>
 #include <optional>
 #include <queue>
@@ -16,7 +21,7 @@
 
 class OutputWriter {
 public:
-    OutputWriter();
+    OutputWriter(DataStructures::Output output_mode, const std::string& output_file);
     ~OutputWriter();
 
     /**
@@ -50,6 +55,8 @@ private:
      */
     void worker();
 
+    void write_output(const std::string& data);
+
     struct QueuedWrite {
         std::string data;
         std::optional<double> target_ms;
@@ -64,6 +71,10 @@ private:
     std::thread thread;                 ///< The worker thread that performs async writes
     std::atomic<bool> running = true;   ///< Flag controlling the running state of the worker thread
     SyncClock* clock_ = nullptr;
+
+    std::ostream output_stream;         ///< Output stream to write to (default: stdout)
+    std::ofstream file_stream;          ///< Owns the file buffer when output_mode == FILE
+    DataStructures::Output output_mode_;///< The mode for the output
 
     const uint8_t MAX_QUEUE_SIZE = 20;  ///< Maximum number of items in the queue
 };

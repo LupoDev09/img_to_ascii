@@ -92,7 +92,9 @@ int main(int argc, char** argv) {
             cxxopts::value<bool>()->default_value("false"))("c,charset",
             "Character palette for ASCII mapping (darker to lighter) max 256 characters",
             cxxopts::value<std::string>()->default_value(" ░▒▓█"))("left-pad",
-            "Left padding for each line of ASCII art", cxxopts::value<int>()->default_value("0"));
+            "Left padding for each line of ASCII art", cxxopts::value<int>()->default_value("0"))
+            ("o, output-file", "Output file for ASCII animation (if not specified, output to stdout)",
+                    cxxopts::value<std::string>()->default_value(""));
 
     // Group: General
     options.add_options("General")("help", "Print this help message")("no-output",
@@ -103,7 +105,7 @@ int main(int argc, char** argv) {
     DEBUG("Hallo Ich muss argc ihrgendwie nutzen deshalb hier der Wert " + std::to_string(argc));
 
     std::vector<std::string> mock_argv = {argv[0],// argv[0] muss existieren!
-            "--input", "/home/lupo/CLionProjects/img_to_ascii/funny.gif", "--width", "500", "--no-audio"};
+            "--input", "/home/lupo/CLionProjects/img_to_ascii/funny.gif", "--width", "500", "--no-audio", "-o", "/home/lupo/CLionProjects/img_to_ascii/output.txt"};
 
     std::vector<const char*> argv_ptrs;
 
@@ -143,11 +145,20 @@ int main(int argc, char** argv) {
     const std::pair image_dimensions = {parse_result["w"].as<int>(), parse_result["h"].as<int>()};
 
     const int frame_rate = parse_result["f"].as<int>();
-    const bool no_output = parse_result["no-output"].as<bool>();
     const bool no_color = parse_result["no-color"].as<bool>();
     const bool no_audio = parse_result["no-audio"].as<bool>();
     std::u32string charset32;
     utf8::utf8to32(charset.begin(), charset.end(), std::back_inserter(charset32));
+
+    // Bestimmt den Output-Modus anhand der Flags: --output-file hat Vorrang vor --no-output
+    auto output_mode = DataStructures::Output::STDOUT;
+    std::string output_file;
+    if (const auto& of = parse_result["output-file"].as<std::string>(); !of.empty()) {
+        output_mode = DataStructures::Output::FILE;
+        output_file = of;
+    } else if (parse_result["no-output"].as<bool>()) {
+        output_mode = DataStructures::Output::NO_OUTPUT;
+    }
 
     if (input.empty()) {
         std::cerr << "Input video file is required" << std::endl;
@@ -174,7 +185,8 @@ int main(int argc, char** argv) {
               << "Height: " << image_dimensions.second << '\n'
               << "Left Pad: " << left_pad << '\n'
               << "No Color: " << (no_color ? "true" : "false") << '\n'
-              << "No Output: " << (no_output ? "true" : "false") << '\n'
+              << "Output: " << (output_mode == DataStructures::Output::FILE ? "file" : (output_mode == DataStructures::Output::STDOUT ? "stdout" : "none")) << '\n'
+              << "Output File: " << output_file << '\n'
               << "No Audio: " << (no_audio ? "true" : "false") << '\n'
               << "Starting video to ascii conversion..." << std::endl;
 
@@ -190,9 +202,9 @@ int main(int argc, char** argv) {
     }
 
     DEBUG("Configure Renderer");
-    OutputWriter output;
+    OutputWriter output(output_mode, output_file);
 
-    Renderer renderer(no_audio, no_output, audio.get(), frame_rate, &output);
+    Renderer renderer(no_audio, output_mode == DataStructures::Output::NO_OUTPUT, audio.get(), frame_rate, &output);
     renderer.config.color = !no_color;
     renderer.set_left_pad(left_pad);
     if (!charset32.empty()) { renderer.set_charset(charset32); }
@@ -200,8 +212,10 @@ int main(int argc, char** argv) {
 
     DEBUG("Starting frame generation and output...");
     {
-        CursorGuard cursor_guard;
-        RawOutputGuard raw_output_guard;
+        if (output_mode == DataStructures::Output::STDOUT) {
+            CursorGuard cursor_guard;
+            RawOutputGuard raw_output_guard;
+        }
 
 
         renderer.start_rendering();

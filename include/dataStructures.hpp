@@ -5,6 +5,7 @@
 #ifndef IMG_TO_ASCII_DATASTRUCTURES_H
 #define IMG_TO_ASCII_DATASTRUCTURES_H
 #include <vector>
+#include <cstdint>
 
 namespace DataStructures {
     /**
@@ -41,6 +42,16 @@ namespace DataStructures {
         int height{};           ///< Frame height in pixels
         double source_fps{};    ///< Original frame rate from the source video
         std::vector<Pixel> data;///< Pixel data in row-major order (width * height pixels)
+    };
+
+    /**
+     * @enum Output
+     * @brief Represents the output mode for the ASCII art.
+     */
+    enum class Output : uint8_t {
+        STDOUT,
+        FILE,
+        NO_OUTPUT
     };
 }// namespace DataStructures
 
