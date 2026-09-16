@@ -82,18 +82,19 @@ void Renderer::start_rendering() {
         double target_ms = 0.0;
         int frame_index = 0;
         auto get_frame_from_queue = [this]() -> DataStructures::Frame {
-            while (true) {
-                {
-                    std::lock_guard lock(m_queue_mutex);
-                    if (!m_frame_queue.empty()) {
-                        auto frame = std::move(m_frame_queue.front());
-                        m_frame_queue.pop();
-                        return frame;
-                    }
-                    if (m_no_new_frames_) { break; }
-                }
-                std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Sleep to dont peg the CPU
-           }
+            std::unique_lock lock(m_queue_mutex);
+            // Wait until a frame is available or shutdown is signaled
+            m_queue_cv.wait(lock, [this] { return !m_frame_queue.empty() || m_no_new_frames_; });
+
+            if (!m_frame_queue.empty()) {
+                auto frame = std::move(m_frame_queue.front());
+                m_frame_queue.pop();
+                // Notify potential producers that there is space available
+                lock.unlock();
+                m_queue_cv.notify_one();
+                return frame;
+            }
+
             return {.width = -1, .height = -1, .source_fps = -1.0, .data = {}};
         };
 
@@ -158,18 +159,23 @@ void Renderer::start_rendering() {
     SET_THREAD_NAME(worker_thread_, "RendererWorker");
 }
 
-bool Renderer::add_decoded_frame(DataStructures::Frame&& frame) {
-    {
-        std::lock_guard lock(m_queue_mutex);
-        if (m_frame_queue.size() >= QUEUE_MAX_SIZE) { return false; }
-        m_frame_queue.push(std::move(frame));
-    }
-    return true;
+void Renderer::add_decoded_frame(DataStructures::Frame&& frame) {
+    std::unique_lock lock(m_queue_mutex);
+    // Block until there is space in the queue or shutdown is signaled
+    m_queue_cv.wait(lock, [this] { return m_frame_queue.size() < QUEUE_MAX_SIZE || m_no_new_frames_; });
+
+    if (m_no_new_frames_) { return; }
+
+    m_frame_queue.push(std::move(frame));
+    lock.unlock();
+    m_queue_cv.notify_one();
 }
 
 void Renderer::stop() {
     DEBUG("Renderer: no_new_frames got called");
     m_no_new_frames_ = true;
+    // Wake any waiting threads so they can exit promptly
+    m_queue_cv.notify_all();
     if (worker_thread_.joinable()) { worker_thread_.join(); }
 }
 
@@ -373,9 +379,13 @@ void Renderer::decode_frames(const std::filesystem::path& input_path, const int 
                                                           char_aspect / static_cast<double>(src_h))));
     }
 
-    cleanup.sws = sws_getContext(cleanup.dec_ctx->width, cleanup.dec_ctx->height,
-            normalize_pixel_format(cleanup.dec_ctx->pix_fmt), target_w, target_h, AV_PIX_FMT_RGB24, SWS_FAST_BILINEAR,
-            nullptr, nullptr, nullptr);
+    cleanup.sws = sws_getContext(
+        cleanup.dec_ctx->width,
+        cleanup.dec_ctx->height,
+        normalize_pixel_format(cleanup.dec_ctx->pix_fmt),
+        target_w, target_h,
+        AV_PIX_FMT_BGRA, SWS_FAST_BILINEAR,
+        nullptr, nullptr, nullptr);
     if (!cleanup.sws) { throw std::runtime_error("Failed to create scaling context"); }
 
     // Check if the colorspace can be converted
@@ -384,13 +394,13 @@ void Renderer::decode_frames(const std::filesystem::path& input_path, const int 
         throw std::runtime_error("Failed to configure colorspace conversion");
     }
 
-    const int rgb_buffer_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, target_w, target_h, 1);
+    const int rgb_buffer_size = av_image_get_buffer_size(AV_PIX_FMT_BGRA, target_w, target_h, 1);
     if (rgb_buffer_size < 0) { throw std::runtime_error("Failed to allocate RGB buffer"); }
 
     cleanup.rgb_buffer = static_cast<uint8_t*>(av_malloc(rgb_buffer_size));
     if (!cleanup.rgb_buffer) { throw std::runtime_error("Failed to allocate RGB memory"); }
 
-    if (av_image_fill_arrays(cleanup.rgb_frame->data, cleanup.rgb_frame->linesize, cleanup.rgb_buffer, AV_PIX_FMT_RGB24,
+    if (av_image_fill_arrays(cleanup.rgb_frame->data, cleanup.rgb_frame->linesize, cleanup.rgb_buffer, AV_PIX_FMT_BGRA,
                 target_w, target_h, 1) < 0) {
         throw std::runtime_error("Failed to bind RGB buffer to frame");
     }
@@ -424,8 +434,13 @@ void Renderer::decode_frames(const std::filesystem::path& input_path, const int 
         for (int y = 0; y < target_h; ++y) {
             const uint8_t* row =
                     cleanup.rgb_frame->data[0] + static_cast<std::size_t>(y) * cleanup.rgb_frame->linesize[0];
-            std::memcpy(&output_frame.data[static_cast<std::size_t>(y) * target_w], row,
-                    static_cast<std::size_t>(target_w) * 3);
+            DataStructures::Pixel* dst_row = &output_frame.data[static_cast<std::size_t>(y) * target_w];
+#pragma omp simd
+            for (int x = 0; x < target_w; ++x) {
+                dst_row[x].b = row[x * 4 + 0];
+                dst_row[x].g = row[x * 4 + 1];
+                dst_row[x].r = row[x * 4 + 2];
+            }
         }
 
         on_frame(std::move(output_frame));

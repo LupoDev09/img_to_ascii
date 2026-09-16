@@ -114,11 +114,14 @@ target_include_directories(img_to_ascii PRIVATE
 target_link_libraries(img_to_ascii PRIVATE ${FFMPEG_LIBRARIES})
 
 target_compile_options(img_to_ascii PRIVATE ${FFMPEG_CFLAGS_OTHER})
+target_compile_options(img_to_ascii PRIVATE -fopenmp-simd)
 
 # Warnstufe auf maximal und Warnungen als Fehler
 set_target_properties(img_to_ascii PROPERTIES
         COMPILE_WARNING_AS_ERROR ON
 )
+
+target_link_options(img_to_ascii PRIVATE -Wl,-z,now)
 
 if(MSVC)
     target_compile_options(img_to_ascii PRIVATE /W4)
@@ -143,16 +146,16 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         )
     endif ()
 
-    target_compile_options(img_to_ascii PRIVATE -g)
+    target_compile_options(img_to_ascii PRIVATE -g -march=native)
     # For your own good just activate one of the two debug modes, not both. you dont want the see the flickering
     target_compile_definitions(img_to_ascii PRIVATE DEBUG_MODE)
     # target_compile_definitions(img_to_ascii PRIVATE DEBUG_RENDERER_MODE)
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-    target_compile_options(img_to_ascii PRIVATE -O2 -g)
+    target_compile_options(img_to_ascii PRIVATE -O2 -g -march=native)
     target_compile_definitions(img_to_ascii PRIVATE NDEBUG)
     target_compile_definitions(img_to_ascii PRIVATE RELEASE_WITH_DEBUG_INF)
 else()
-    target_compile_options(img_to_ascii PRIVATE -O3)
+    target_compile_options(img_to_ascii PRIVATE -O3 -march=native)
     target_compile_definitions(img_to_ascii PRIVATE NDEBUG)
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -g")
 endif()

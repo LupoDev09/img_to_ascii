@@ -42,9 +42,8 @@ namespace {
         Renderer& renderer;
 
         void operator()(DataStructures::Frame&& frame) const {
-            while (!renderer.add_decoded_frame(std::move(frame))) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
+            // add_decoded_frame is blocking and provides backpressure, so a simple call is sufficient
+            renderer.add_decoded_frame(std::move(frame));
         }
     };
 }// namespace

@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <functional>
 #include <mutex>
+#include <condition_variable>
 #include <queue>
 #include <string>
 #include <thread>
@@ -40,7 +41,7 @@ public:
      * @param frame the frame to add
      * @return whether the adding of the frame was successful
      */
-    bool add_decoded_frame(DataStructures::Frame&& frame);
+    void add_decoded_frame(DataStructures::Frame&& frame);
 
     /**
      * @brief Signals that no new frames will be added to the queue.
@@ -112,6 +113,7 @@ private:
     std::string m_left_pad_str;
 
     std::mutex m_queue_mutex;
+    std::condition_variable m_queue_cv;
     std::queue<DataStructures::Frame> m_frame_queue;
     std::thread worker_thread_;
 
