@@ -101,11 +101,12 @@ int main(int argc, char** argv) {
             "Process video without outputting ASCII animation to stdout",
             cxxopts::value<bool>()->default_value("false"));
 
-#ifdef DEBUG_MODE
-    DEBUG("Hallo Ich muss argc ihrgendwie nutzen deshalb hier der Wert " + std::to_string(argc));
+#if defined(DEBUG_MODE) || defined(RELEASE_WITH_DEBUG_INF)
+    std::clog << "Hallo Ich muss argc ihrgendwie nutzen deshalb hier der Wert " + std::to_string(argc) << '\n';
 
     std::vector<std::string> mock_argv = {argv[0],// argv[0] muss existieren!
-            "--input", "/home/lupo/CLionProjects/img_to_ascii/funny.gif", "--width", "500", "--no-audio", "-o", "/home/lupo/CLionProjects/img_to_ascii/output.txt"};
+            "--input", "/home/lupo/CLionProjects/img_to_ascii/simpsons_ding.mp4",
+        "--width", "500", "--no-audio", "--no-output"};
 
     std::vector<const char*> argv_ptrs;
 

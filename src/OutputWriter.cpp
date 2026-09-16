@@ -21,10 +21,11 @@
 void OutputWriter::write_output(const std::string& data) {
     if (output_stream) {
         output_stream.write(data.data(), static_cast<std::streamsize>(data.size()));
-        output_stream.flush();
+        if (output_mode_ != DataStructures::Output::FILE) {
+            output_stream.flush();
+        }
     }
 }
-
 
 
 OutputWriter::OutputWriter(const DataStructures::Output output_mode, const std::string& output_file)
@@ -93,17 +94,30 @@ void OutputWriter::worker() {
 
         condition.wait(lock, [&] { return !queue.empty() || !running; });
 
-        while (!queue.empty()) {
-            auto [data, target_ms] = queue.front();
-            queue.pop();
+        if (output_mode_ == DataStructures::Output::STDOUT) {
+            while (!queue.empty()) {
+                auto [data, target_ms] = queue.front();
+                queue.pop();
 
-            if (clock_ != nullptr && target_ms.has_value() && output_mode_ == DataStructures::Output::STDOUT) {
-                lock.unlock();
-                clock_->wait_until(*target_ms);
-                lock.lock();
+                if (clock_ != nullptr && target_ms.has_value()) {
+                    lock.unlock();
+                    clock_->wait_until(*target_ms);
+                    lock.lock();
+                }
+
+                write_output(data);
             }
-
-            write_output(data);
+        } else {
+            // Kein Live-Betrachter, der exaktes Timing braucht -> alles, was
+            // gerade wartet, zu einem einzigen Write bündeln statt pro Frame
+            // einen eigenen Syscall auszulösen.
+            std::string batch;
+            while (!queue.empty()) {
+                batch += queue.front().data;
+                queue.pop();
+            }
+            lock.unlock();
+            if (!batch.empty()) { write_output(batch); }
         }
     }
 }
