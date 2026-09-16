@@ -196,10 +196,19 @@ int main(int argc, char** argv) {
     if (no_audio) {
         DEBUG("Audio playback is disabled.");
     } else {
-        DEBUG("Audio playback is enabled.");
-        audio = std::make_unique<AudioPlayer>();
-        audio->load(input);
-        DEBUG("Audio file loaded successfully.");
+        try {
+            DEBUG("Audio playback is enabled.");
+            audio = std::make_unique<AudioPlayer>();
+            audio->load(input);
+            DEBUG("Audio file loaded successfully.");
+        } catch (std::runtime_error& e) {
+            std::cerr << e.what() << '\n'
+                      << "Proceeding without Audio\n";
+            audio->stop();
+            audio->unload();
+            audio.reset();
+            audio = nullptr;
+        }
     }
 
     DEBUG("Configure Renderer");
