@@ -113,19 +113,32 @@ target_include_directories(img_to_ascii PRIVATE
 
 target_link_libraries(img_to_ascii PRIVATE ${FFMPEG_LIBRARIES})
 
+# Falls pkg-config oder manuelle Suche zusätzliche CFLAGS liefert (z.B. -I, -D),
+# werden diese hier übernommen. Meist leer, bleibt aber kompatibel zu pkg-config.
 target_compile_options(img_to_ascii PRIVATE ${FFMPEG_CFLAGS_OTHER})
+
+# -fopenmp-simd: aktiviert OpenMP SIMD-Pragmas (Vektor-Hinweise) ohne zwingende
+# Bindung an die komplette OpenMP-Runtime. Nützlich für explizite SIMD-Optimierungen.
 target_compile_options(img_to_ascii PRIVATE -fopenmp-simd)
 
-# Warnstufe auf maximal und Warnungen als Fehler
+# Warnstufe auf maximal und Warnungen als Fehler (siehe set_target_properties weiter oben)
 set_target_properties(img_to_ascii PROPERTIES
         COMPILE_WARNING_AS_ERROR ON
 )
 
+# Linker-Optionen:
+# -Wl,-z,now : erzwingt sofortiges Binden (disable lazy binding). Hilft, fehlende
+# Symbole früher zu erkennen und kann die Sicherheit gegen bestimmte Angriffe erhöhen.
 target_link_options(img_to_ascii PRIVATE -Wl,-z,now)
 
+# Compiler-spezifische Warnlevels:
 if(MSVC)
+    # /W4: hoher Warnlevel bei MSVC
     target_compile_options(img_to_ascii PRIVATE /W4)
 else()
+    # -Wall: grundlegende Warnungen
+    # -Wextra: zusätzliche (nützliche) Warnungen
+    # -Wpedantic: streng ISO-konforme Warnungen (stellt sicher, dass Code portabel ist)
     target_compile_options(img_to_ascii PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
@@ -133,29 +146,46 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     if (UNIX)
         message(STATUS "AddressSanitizer (ASAN) aktiviert für Debug-Build")
 
-        # Aktiviert ASAN für Speicherfehler.
-        # -fno-omit-frame-pointer sorgt für bessere Stacktraces.
+        # AddressSanitizer (-fsanitize=address): findet heap/stack-use-after-free,
+        # buffer overflows etc. -fno-omit-frame-pointer verbessert Backtraces
+        # (hilfreich beim Debugging von Speicherfehlern).
         add_compile_options(
                 -fsanitize=address
                 -fno-omit-frame-pointer
         )
 
-        # ASAN auch beim Linken aktivieren.
+        # ASAN auch beim Linken aktivieren, damit Laufzeitprüfungen funktionieren.
         add_link_options(
                 -fsanitize=address
         )
     endif ()
 
+    # -g: Debug-Symbole, -march=native: native CPU-Instruktionen/Optimierungen
     target_compile_options(img_to_ascii PRIVATE -g -march=native)
-    # For your own good just activate one of the two debug modes, not both. you dont want the see the flickering
+
+    # DEBUG_MODE: aktivert code-pfade für interaktives Debugging (z.B. mehr Logging,
+    # langsamere, aber leichter zu verfolgende Renderer). Nur einen Debug-Modus aktivieren.
     target_compile_definitions(img_to_ascii PRIVATE DEBUG_MODE)
+    # Alternativ: DEBUG_RENDERER_MODE um nur den Renderer-Debugpfad zu aktivieren
     # target_compile_definitions(img_to_ascii PRIVATE DEBUG_RENDERER_MODE)
+
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    # RelWithDebInfo: optimiert, aber behält Debug-Informationen (-O2 -g).
+    # -march=native ermöglicht CPU-spezifische Optimierungen (erhöht Performance,
+    # kann Portabilität einschränken).
     target_compile_options(img_to_ascii PRIVATE -O2 -g -march=native)
+    # NDEBUG deaktiviert assert()-Prüfungen im Code
     target_compile_definitions(img_to_ascii PRIVATE NDEBUG)
+    # RELEASE_WITH_DEBUG_INF: projektspezifische Kennzeichnung für diesen Modus
     target_compile_definitions(img_to_ascii PRIVATE RELEASE_WITH_DEBUG_INF)
 else()
+    # Release-Mode: maximale Optimierung
+    # -O3: aggressive Optimierungen
+    # -march=native: CPU-spezifische Instruktionen/Optimierungen
     target_compile_options(img_to_ascii PRIVATE -O3 -march=native)
+    # NDEBUG deaktiviert assert()
     target_compile_definitions(img_to_ascii PRIVATE NDEBUG)
+    # Falls Bedarf besteht, kann man hier -fno-omit-frame-pointer -g ergänzen,
+    # um Profiling/Backtraces im Release zu ermöglichen (auskommentiert).
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -g")
 endif()
