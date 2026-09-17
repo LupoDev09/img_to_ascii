@@ -332,7 +332,8 @@ void Renderer::decode_frames(const std::filesystem::path& input_path, const int 
         throw std::runtime_error("Failed to copy codec parameters");
     }
 
-    const unsigned int cpu_threads = std::max(1u, std::thread::hardware_concurrency());
+    // A thread count above 16 is not recommended by libdav1d
+    const unsigned int cpu_threads = std::min(std::max(1u, std::thread::hardware_concurrency()), 16u);
     cleanup.dec_ctx->thread_count = static_cast<int>(cpu_threads);
     cleanup.dec_ctx->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
 

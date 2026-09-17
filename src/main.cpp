@@ -82,8 +82,10 @@ int main(int argc, char** argv) {
             cxxopts::value<int>()->default_value("0"));
 
     // Group: Video / Playback
-    options.add_options("Playback")("f,fps", "Frame rate of the output ascii video (0 = use source frame rate)",
-            cxxopts::value<int>()->default_value("0"))("no-audio", "Disable audio playback during animation",
+    options.add_options("Playback")
+    ("f,fps", "Frame rate of the output ascii video (0 = use source frame rate)",
+            cxxopts::value<int>()->default_value("0"))
+    ("no-audio", "Disable audio playback during animation",
             cxxopts::value<bool>()->default_value("false"));
 
     // Group: Output
@@ -104,7 +106,7 @@ int main(int argc, char** argv) {
     std::clog << "Hallo Ich muss argc ihrgendwie nutzen deshalb hier der Wert " + std::to_string(argc) << '\n';
 
     std::vector<std::string> mock_argv = {argv[0],// argv[0] muss existieren!
-            "--input", "/home/lupo/CLionProjects/img_to_ascii/simpsons_ding.mp4",
+            "--input", "/home/lupo/CLionProjects/img_to_ascii/funny.gif",
         "--width", "500", "--no-audio", "--no-output"};
 
     std::vector<const char*> argv_ptrs;
